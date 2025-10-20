@@ -1,0 +1,13 @@
+{
+  "name": "cc",
+  "owner": {
+    "name": "ronnnnn"
+  },
+  "plugins": [
+    {
+      "name": "common",
+      "source": "./common",
+      "description": "Plugin for use on any languages, platforms or frameworks."
+    }
+  ]
+}
