@@ -2,9 +2,9 @@
   "name": "cc",
   "private": true,
   "scripts": {
+    "fmt": "prettier --write '**/*.+(md|yaml|yml|json|json5)'",
     "preinstall": "npx only-allow bun",
-    "prepare": "lefthook install",
-    "fmt": "prettier --write '**/*.+(md|yaml|yml|json|json5)'"
+    "prepare": "lefthook install"
   },
   "devDependencies": {
     "@commitlint/cli": "20.2.0",

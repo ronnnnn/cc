@@ -1,6 +1,37 @@
 {
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "cc",
   "owner": {
-    "name": "ronnnnn"
-  }
+    "name": "ronnnnn",
+    "email": "xxxx.xyzs.xxxx@gmail.com"
+  },
+  "metadata": {
+    "description": "A collection of Claude Code plugins.",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "git",
+      "description": "Commands for git/GitHub workflows including commit, PR creation, fixing code review comments and PR description update.",
+      "version": "1.0.0",
+      "author": {
+        "name": "ronnnnn",
+        "email": "xxxx.xyzs.xxxx@gmail.com"
+      },
+      "source": "./git",
+      "homepage": "https://github.com/ronnnnn/cc/tree/main/git",
+      "repository": "https://github.com/ronnnnn/cc/",
+      "license": "MIT",
+      "keywords": [
+        "git",
+        "github",
+        "commit",
+        "pull-request",
+        "pr",
+        "review",
+        "workflow"
+      ],
+      "category": "productivity"
+    }
+  ]
 }
