@@ -4,13 +4,13 @@
     // https://docs.renovatebot.com/presets-config/#configbest-practices
     'config:best-practices',
     ':semanticCommits',
-    ':semanticCommitTypeAll(upgrade)',
+    ':semanticCommitTypeAll(deps)',
     ':semanticCommitScopeDisabled',
     'schedule:daily',
   ],
   timezone: 'Asia/Tokyo',
   labels: ['dep'],
-  branchPrefix: 'upgrade-renovate-',
+  branchPrefix: 'deps-renovate-',
   major: {
     minimumReleaseAge: '5 days',
   },
