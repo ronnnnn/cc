@@ -14,6 +14,14 @@ allowed-tools:
 
 全変更 (staged + unstaged) をステージングし、Conventional Commits 形式でコミットする。
 
+## 重要な原則
+
+1. **コミットメッセージの言語は対象リポジトリに従う** - 既存のコミット履歴 (`git log`) を確認し、リポジトリで使用されている言語 (日本語/英語等) に合わせる
+2. **全変更を一括でコミット** - unstaged も untracked も全てステージング
+3. **コミットメッセージは commitlint 設定 / Conventional Commits に準拠する**
+4. **pre-commit hook がある場合は、それに従う**
+5. **機密情報 (.env, credentials 等) がステージングされていないか確認**
+
 ## 作業開始前の準備
 
 **必須:** 作業開始前に TodoWrite ツールで以下のステップを TODO に登録する:
@@ -253,10 +261,3 @@ git log -1 --oneline
 git add -A
 git commit
 ```
-
-## 注意事項
-
-- **全変更を一括でコミット** - unstaged も untracked も全てステージング
-- **コミットメッセージは commitlint 設定 / Conventional Commits に準拠する**
-- **pre-commit hook がある場合は、それに従う**
-- **機密情報 (.env, credentials 等) がステージングされていないか確認**

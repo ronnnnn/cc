@@ -14,6 +14,15 @@ allowed-tools:
 
 現在のブランチから Draft Pull Request を作成する。
 
+## 重要な原則
+
+1. **PR タイトル・description の言語は対象リポジトリに従う** - 既存の PR やコミット履歴を確認し、リポジトリで使用されている言語 (日本語/英語等) に合わせる
+2. **PR は常に Draft として作成する**
+3. **PR タイトルは commitlint 設定 / Conventional Commits に準拠する**
+4. **PR テンプレートがある場合は必ず準拠する**
+5. **ラベルはリポジトリに存在するもののみ使用する**
+6. **Reviewer は CODEOWNERS に記載されているユーザーのみ設定する**
+
 ## 作業開始前の準備
 
 **必須:** 作業開始前に TodoWrite ツールで以下のステップを TODO に登録する:
@@ -211,12 +220,3 @@ gh auth login
 ```bash
 git push -u origin $(git branch --show-current)
 ```
-
-## 注意事項
-
-- PR は常に Draft として作成する
-- PR タイトルは commitlint 設定に準拠する (設定がある場合)
-- description は日本語で作成する (コードベースの言語に合わせる)
-- PR テンプレートがある場合は必ず準拠する
-- ラベルはリポジトリに存在するもののみ使用する
-- Reviewer は CODEOWNERS に記載されているユーザーのみ設定する
