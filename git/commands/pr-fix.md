@@ -42,6 +42,7 @@ TodoWrite([
   { content: "commitlint 設定の確認", status: "pending", activeForm: "commitlint 設定を確認中" },
   { content: "コミット前の承認確認", status: "pending", activeForm: "コミット承認を確認中" },
   { content: "コミットの実行", status: "pending", activeForm: "コミットを実行中" },
+  { content: "プッシュの実行", status: "pending", activeForm: "プッシュを実行中" },
   { content: "返信コメントの作成", status: "pending", activeForm: "返信コメントを作成中" },
   { content: "返信コメント前の承認確認", status: "pending", activeForm: "返信承認を確認中" },
   { content: "返信の投稿", status: "pending", activeForm: "返信を投稿中" },
@@ -228,10 +229,17 @@ git commit -m "<type>(<scope>): レビュー指摘に基づく修正
 
 - [修正内容 1]
 - [修正内容 2]"
+```
+
+### 9. プッシュの実行
+
+コミット完了後、リモートにプッシュ:
+
+```bash
 git push
 ```
 
-### 9. 返信コメントの作成
+### 10. 返信コメントの作成
 
 各レビューコメントへの返信を作成する。
 
@@ -243,7 +251,7 @@ git push
 | 議論結果で修正 | `ご指摘の通り修正しました。[補足説明]`                                        |
 | 対応しない     | `[理由] のため、現状のままとさせてください。ご意見があればお知らせください。` |
 
-### 10. 返信コメント前の承認確認
+### 11. 返信コメント前の承認確認
 
 **必須:** 返信内容をユーザーに提示し、承認を求める:
 
@@ -267,7 +275,7 @@ git push
 これらの返信を投稿してよろしいですか？
 ```
 
-### 11. 返信の投稿
+### 12. 返信の投稿
 
 承認後、返信を投稿:
 
@@ -277,7 +285,7 @@ gh api repos/{owner}/{repo}/pulls/<pr_number>/comments/<comment_id>/replies \
   -f body="返信内容"
 ```
 
-### 12. 完了報告
+### 13. 完了報告
 
 ```
 ## 修正完了

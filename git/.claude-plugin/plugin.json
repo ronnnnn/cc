@@ -1,6 +1,6 @@
 {
   "name": "git",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Commands for git/GitHub workflows including commit, PR creation, fixing code review comments and PR description update.",
   "author": {
     "name": "ronnnnn",
