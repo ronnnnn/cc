@@ -1,4 +1,4 @@
-name: Lint Commit Messages
+name: Validate Plugin
 
 on:
   pull_request:
@@ -14,12 +14,18 @@ permissions:
   contents: read
 
 jobs:
-  commitlint:
+  validate-plugin:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
       - uses: ./.github/actions/setup-bun
 
-      - name: Validate PR commits with commitlint
-        run: bunx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose
+      - name: Install Claude Code
+        run: bun install -g @anthropic-ai/claude-code
+
+      - name: Validate marketplace
+        run: claude plugin validate .
+
+      - name: Validate git plugin
+        run: claude plugin validate ./git
