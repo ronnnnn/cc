@@ -17,10 +17,11 @@ allowed-tools:
 ## 重要な原則
 
 1. **コミットメッセージの言語は対象リポジトリに従う** - 既存のコミット履歴 (`git log`) を確認し、リポジトリで使用されている言語 (日本語/英語等) に合わせる
-2. **全変更を一括でコミット** - unstaged も untracked も全てステージング
-3. **コミットメッセージは commitlint 設定 / Conventional Commits に準拠する**
-4. **pre-commit hook がある場合は、それに従う**
-5. **機密情報 (.env, credentials 等) がステージングされていないか確認**
+2. **日本語でコミットメッセージを書く場合は `japanese-text-style` スキルに従う** - スペース、句読点、括弧のルールを適用する
+3. **全変更を一括でコミット** - unstaged も untracked も全てステージング
+4. **コミットメッセージは commitlint 設定 / Conventional Commits に準拠する**
+5. **pre-commit hook がある場合は、それに従う**
+6. **機密情報 (.env, credentials 等) がステージングされていないか確認**
 
 ## 作業開始前の準備
 

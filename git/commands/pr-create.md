@@ -17,11 +17,12 @@ allowed-tools:
 ## 重要な原則
 
 1. **PR タイトル・description の言語は対象リポジトリに従う** - 既存の PR やコミット履歴を確認し、リポジトリで使用されている言語 (日本語/英語等) に合わせる
-2. **PR は常に Draft として作成する**
-3. **PR タイトルは commitlint 設定 / Conventional Commits に準拠する**
-4. **PR テンプレートがある場合は必ず準拠する**
-5. **ラベルはリポジトリに存在するもののみ使用する**
-6. **Reviewer は CODEOWNERS に記載されているユーザーのみ設定する**
+2. **日本語で PR タイトル・description を書く場合は `japanese-text-style` スキルに従う** - スペース、句読点、括弧のルールを適用する
+3. **PR は常に Draft として作成する**
+4. **PR タイトルは commitlint 設定 / Conventional Commits に準拠する**
+5. **PR テンプレートがある場合は必ず準拠する**
+6. **ラベルはリポジトリに存在するもののみ使用する**
+7. **Reviewer は CODEOWNERS に記載されているユーザーのみ設定する**
 
 ## 作業開始前の準備
 
