@@ -15,9 +15,10 @@ Git/GitHub 操作を効率化する Claude Code plugin です。
 
 ### Skills
 
-| スキル                | 説明                                          | トリガー例                                                  |
-| --------------------- | --------------------------------------------- | ----------------------------------------------------------- |
-| `conventional-commit` | Conventional Commits と commitlint 設定ガイド | 「コミットメッセージの形式は？」「commitlint の設定を確認」 |
+| スキル                | 説明                                               | トリガー例                                                  |
+| --------------------- | -------------------------------------------------- | ----------------------------------------------------------- |
+| `conventional-commit` | Conventional Commits と commitlint 設定ガイド      | 「コミットメッセージの形式は？」「commitlint の設定を確認」 |
+| `japanese-text-style` | 日本語テキストのスペース・句読点・括弧・文体ルール | 「日本語のスペースルール」「句読点の使い方」                |
 
 ## インストール
 
@@ -147,10 +148,12 @@ git/
 │   ├── pr-fix.md            # レビュー修正コマンド
 │   └── pr-update.md         # Description 更新コマンド
 ├── skills/
-│   └── conventional-commit/
-│       ├── SKILL.md         # Conventional Commits ガイド
-│       └── references/
-│           └── commitlint-rules.md  # commitlint ルールリファレンス
+│   ├── conventional-commit/
+│   │   ├── SKILL.md         # Conventional Commits ガイド
+│   │   └── references/
+│   │       └── commitlint-rules.md  # commitlint ルールリファレンス
+│   └── japanese-text-style/
+│       └── SKILL.md         # 日本語テキストスタイルガイド
 └── README.md
 ```
 
