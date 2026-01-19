@@ -34,6 +34,54 @@ package.json 内の設定も確認:
 grep -A 20 '"commitlint"' package.json 2>/dev/null
 ```
 
+#### 1.1. 継承先 (子) ファイルの探索
+
+設定ファイルが見つかった場合、そのファイルを `extends` で継承している別のファイルがローカルに存在しないか確認する。
+
+**探索手順:**
+
+```bash
+# 例: commitlint.config.mjs が見つかった場合
+# そのファイルを継承している可能性のあるファイルを探す
+ls -la commitlint.config.*.{js,cjs,mjs,ts,cts} 2>/dev/null
+ls -la .commitlintrc.*.{json,yaml,yml,js,cjs,mjs,ts,cts} 2>/dev/null
+```
+
+**見つかったファイルの extends を確認:**
+
+```bash
+# 各候補ファイルの extends フィールドを確認
+grep -l "extends.*commitlint.config.mjs" commitlint.config.*.mjs 2>/dev/null
+```
+
+または Read ツールで内容を確認し、`extends` が元の設定ファイルを指しているか確認。
+
+**継承先ファイルの例:**
+
+```javascript
+// commitlint.config.local.mjs - commitlint.config.mjs を継承
+export default {
+  extends: ['./commitlint.config.mjs'],
+  rules: {
+    // ローカル用のカスタムルール
+    'scope-enum': [2, 'always', ['frontend', 'backend', 'shared']],
+  },
+};
+```
+
+**継承先が見つかった場合:**
+
+- 継承先ファイル（子）を最終的な設定ファイルとして使用
+- 継承チェーン: 子 → 親 → 親の親... の順でルールをマージ
+
+**典型的な継承先ファイル名パターン:**
+
+| ベースファイル          | 継承先の候補                                                  |
+| ----------------------- | ------------------------------------------------------------- |
+| `commitlint.config.mjs` | `commitlint.config.local.mjs`, `commitlint.config.custom.mjs` |
+| `commitlint.config.js`  | `commitlint.config.local.js`, `commitlint.config.dev.js`      |
+| `.commitlintrc.json`    | `.commitlintrc.local.json`                                    |
+
 ### 2. 設定ファイルの解析
 
 設定ファイルが見つかった場合、Read ツールで内容を確認し、以下のルールを抽出する:
@@ -48,7 +96,71 @@ grep -A 20 '"commitlint"' package.json 2>/dev/null
 
 ### 3. extends の解析
 
-`extends` フィールドがある場合、継承元の設定を考慮する:
+`extends` フィールドがある場合、継承元の設定を再帰的に解決する。
+
+#### 3.1. extends の形式
+
+```javascript
+// 単一の継承
+extends: ['@commitlint/config-conventional']
+
+// 複数の継承 (後の設定が優先)
+extends: ['./commitlint.base.js', '@commitlint/config-conventional']
+
+// 文字列形式 (配列でない場合)
+extends: '@commitlint/config-conventional'
+```
+
+#### 3.2. 継承元の解決手順
+
+`extends` で指定された各エントリを以下の順序で解決する:
+
+**1. 相対パス (`./` または `../` で始まる) の場合:**
+
+```bash
+# 設定ファイルからの相対パスでファイルを読み込む
+cat ./commitlint.base.js
+```
+
+**2. npm パッケージの場合:**
+
+```bash
+# パッケージのメインファイルを探す
+# @scope/package 形式
+cat node_modules/@commitlint/config-conventional/index.js 2>/dev/null || \
+cat node_modules/@commitlint/config-conventional/lib/index.js 2>/dev/null
+
+# package 形式
+cat node_modules/commitlint-config-custom/index.js 2>/dev/null
+```
+
+**3. package.json の main フィールドを確認:**
+
+```bash
+# パッケージのエントリポイントを確認
+cat node_modules/@scope/package/package.json | grep '"main"'
+```
+
+#### 3.3. 再帰的な継承チェーンの解決
+
+継承元の設定ファイルにも `extends` がある場合は、再帰的に解決する:
+
+```
+commitlint.config.js
+  └── extends: ['./commitlint.base.js']
+        └── extends: ['@commitlint/config-conventional']
+              └── (既知のプリセット: 解決完了)
+```
+
+**解決の優先順位** (後の設定が前の設定を上書き):
+
+1. 継承元の継承元... (再帰的に最深部から)
+2. 継承元の設定
+3. 現在の設定ファイル
+
+#### 3.4. 既知のプリセット
+
+以下のプリセットは node_modules を参照せずに既知の値を使用:
 
 **`@commitlint/config-conventional` の場合:**
 
@@ -63,6 +175,25 @@ scope: 任意
 type: build, ci, docs, feat, fix, perf, refactor, style, test
 scope: 任意
 ```
+
+#### 3.5. ルールのマージ
+
+継承チェーンで見つかったルールは以下のようにマージする:
+
+```javascript
+// 例: 継承元
+rules: {
+  'type-enum': [2, 'always', ['feat', 'fix', 'docs']]
+}
+
+// 例: 現在の設定 (継承元を上書き)
+rules: {
+  'type-enum': [2, 'always', ['feat', 'fix', 'docs', 'chore', 'refactor']]
+}
+```
+
+- 同じルールキーがある場合: 現在の設定が優先
+- 継承元にのみあるルール: そのまま継承
 
 ### 4. 設定がない場合のデフォルト
 

@@ -80,12 +80,25 @@ ls -la .commitlintrc{,.json,.yaml,.yml,.js,.cjs,.mjs,.ts,.cts} 2>/dev/null || \
 grep -l '"commitlint"' package.json 2>/dev/null
 ```
 
-設定ファイルが見つかった場合は Read ツールで内容を確認し、以下を抽出:
+設定ファイルが見つかった場合:
+
+**1. 継承先 (子) ファイルの探索:**
+
+```bash
+# 見つけた設定ファイルを継承している別のファイルがないか確認
+ls -la commitlint.config.*.{js,cjs,mjs,ts,cts} 2>/dev/null
+```
+
+継承先ファイルが見つかった場合は、そちらを最終的な設定ファイルとして使用。
+
+**2. 設定ファイルの解析:**
+
+Read ツールで内容を確認し、以下を抽出:
 
 - `type-enum`: 許可される type 一覧
 - `scope-enum`: 許可される scope 一覧
 - `scope-empty`: scope の必須/任意
-- `extends`: 継承元設定 (`@commitlint/config-conventional` 等)
+- `extends`: 継承元設定 (継承チェーンを再帰的に解決)
 
 詳細な解析方法は `conventional-commit` スキルを参照。
 
