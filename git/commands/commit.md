@@ -87,6 +87,7 @@ grep -l '"commitlint"' package.json 2>/dev/null
 ```bash
 # 見つけた設定ファイルを継承している別のファイルがないか確認
 ls -la commitlint.config.*.{js,cjs,mjs,ts,cts} 2>/dev/null
+ls -la .commitlintrc.*.{js,cjs,mjs,ts,cts} 2>/dev/null
 ```
 
 継承先ファイルが見つかった場合は、そちらを最終的な設定ファイルとして使用。
