@@ -7,13 +7,13 @@
   },
   "metadata": {
     "description": "A collection of Claude Code plugins.",
-    "version": "1.2.0"
+    "version": "1.3.0"
   },
   "plugins": [
     {
       "name": "git",
       "description": "Commands for git/GitHub workflows including commit, PR creation, fixing code review comments and PR description update.",
-      "version": "1.2.0",
+      "version": "1.3.0",
       "author": {
         "name": "ronnnnn",
         "email": "xxxx.xyzs.xxxx@gmail.com"
