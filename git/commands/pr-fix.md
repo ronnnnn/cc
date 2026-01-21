@@ -45,8 +45,8 @@ TodoWrite([
   { content: "コミットの実行", status: "pending", activeForm: "コミットを実行中" },
   { content: "プッシュの実行", status: "pending", activeForm: "プッシュを実行中" },
   { content: "返信コメントの作成", status: "pending", activeForm: "返信コメントを作成中" },
-  { content: "返信コメント前の承認確認", status: "pending", activeForm: "返信承認を確認中" },
-  { content: "返信の投稿", status: "pending", activeForm: "返信を投稿中" },
+  { content: "返信・resolve の承認確認", status: "pending", activeForm: "返信・resolve の承認を確認中" },
+  { content: "返信の投稿・スレッド resolve", status: "pending", activeForm: "返信投稿・スレッド resolve 中" },
   { content: "完了報告", status: "pending", activeForm: "完了報告を作成中" }
 ])
 ```
@@ -75,12 +75,14 @@ gh api repos/{owner}/{repo}/pulls/<number>/comments \
   --jq '.[] | select(.in_reply_to_id == null) | {id, path, line, body, user: .user.login, created_at}'
 
 # レビュースレッドの状態を確認 (GraphQL)
+# 注意: id はスレッドの resolve に必要なため必ず取得する
 gh api graphql -f query='
 query($owner: String!, $repo: String!, $number: Int!) {
   repository(owner: $owner, name: $repo) {
     pullRequest(number: $number) {
       reviewThreads(first: 100) {
         nodes {
+          id
           isResolved
           comments(first: 10) {
             nodes {
@@ -265,39 +267,71 @@ git push
 | 議論結果で修正 | `ご指摘の通り修正しました。[補足説明]`                                        |
 | 対応しない     | `[理由] のため、現状のままとさせてください。ご意見があればお知らせください。` |
 
-### 11. 返信コメント前の承認確認
+### 11. 返信・resolve の承認確認
 
-**必須:** 返信内容をユーザーに提示し、承認を求める:
+**必須:** 返信内容と resolve 対象をユーザーに提示し、承認を求める:
 
 ```
-## 返信コメントの確認
+## 返信コメントと resolve の確認
 
-以下の返信を投稿します:
+以下の返信を投稿し、スレッドを resolve します:
 
-### 1. [path/to/file.ts:42] への返信
+### 1. [path/to/file.ts:42] への返信 ✅ resolve 予定
 > 元のコメント: ...
 
 **返信:** 修正しました。ご指摘ありがとうございます。
 
-### 2. [path/to/file.ts:100] への返信
+### 2. [path/to/file.ts:100] への返信 ✅ resolve 予定
 > 元のコメント: ...
 
 **返信:** [理由] のため、現状のままとさせてください。
 
 ---
 
-これらの返信を投稿してよろしいですか？
+**resolve 対象:** N 件 (修正: X 件、対応不要: Y 件)
+
+これらの返信を投稿し、スレッドを resolve してよろしいですか？
+- resolve しない場合は「返信のみ」と回答してください
 ```
 
-### 12. 返信の投稿
+**resolve 対象の判定基準:**
 
-承認後、返信を投稿:
+| 対応タイプ             | resolve 対象 |
+| ---------------------- | ------------ |
+| 修正が完了したコメント | ✅           |
+| 対応不要と判断         | ✅           |
+| 議論継続中             | ❌           |
+
+### 12. 返信の投稿・スレッド resolve
+
+承認後、返信を投稿し、スレッドを resolve:
 
 ```bash
 # レビューコメントへの返信
 gh api repos/{owner}/{repo}/pulls/<pr_number>/comments/<comment_id>/replies \
   -f body="返信内容"
 ```
+
+**ユーザーが resolve を承認した場合:**
+
+```bash
+# スレッドを resolve (GraphQL mutation)
+# thread_id はステップ 2 で取得した reviewThreads の id を使用
+gh api graphql -f query='
+mutation($threadId: ID!) {
+  resolveReviewThread(input: {threadId: $threadId}) {
+    thread {
+      isResolved
+    }
+  }
+}' -f threadId="<thread_id>"
+```
+
+**処理順序:**
+
+1. 返信を投稿
+2. resolve を実行 (承認された場合のみ)
+3. エラーが発生した場合は続行し、完了報告で失敗したスレッドを報告
 
 ### 13. 完了報告
 
@@ -307,6 +341,23 @@ gh api repos/{owner}/{repo}/pulls/<pr_number>/comments/<comment_id>/replies \
 - 修正コミット: <commit_hash>
 - 修正ファイル数: N
 - 返信済みコメント数: M
+- resolve 済みスレッド数: K
+
+PR URL: <url>
+```
+
+**resolve に失敗したスレッドがある場合:**
+
+```
+## 修正完了 (一部エラーあり)
+
+- 修正コミット: <commit_hash>
+- 修正ファイル数: N
+- 返信済みコメント数: M
+- resolve 済みスレッド数: K
+
+**resolve 失敗:**
+- [path/to/file.ts:42]: エラー内容
 
 PR URL: <url>
 ```
