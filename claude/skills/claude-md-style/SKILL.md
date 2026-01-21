@@ -1,6 +1,6 @@
 ---
 name: CLAUDE.md Style Guide
-description: This skill should be used when the user asks about "CLAUDE.md style", "Japanese text formatting in CLAUDE.md", "CLAUDE.md best practices", "how to write CLAUDE.md", "CLAUDE.md optimization", "reduce CLAUDE.md size", or when creating/updating CLAUDE.md files. Provides styling guidelines, structure recommendations, and content optimization strategies.
+description: このスキルは、「CLAUDE.md の書き方」「CLAUDE.md のスタイル」「CLAUDE.md のベストプラクティス」「CLAUDE.md の最適化」「CLAUDE.md のサイズ削減」などを質問した際、または CLAUDE.md ファイルを作成・更新する際に使用する。スタイリングガイドライン、構造の推奨事項、コンテンツ最適化戦略を提供する。
 version: 0.1.0
 ---
 

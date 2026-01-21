@@ -1,6 +1,6 @@
 ---
 name: Japanese Text Style
-description: This skill should be used when the user asks about "Japanese text formatting", "Japanese spacing rules", "spacing between Japanese and ASCII", "Japanese punctuation rules", or when creating Japanese commit messages, PR descriptions, or review comments. Provides rules for spacing, punctuation (。、), and parentheses (). 日本語テキストのスペース・句読点・括弧ルールを提供する。
+description: このスキルは、「日本語のスペースルール」「日本語と ASCII 間のスペース」「句読点の使い方」「日本語テキストのフォーマット」などを質問した際、または日本語でコミットメッセージ、PR description、レビューコメントを作成する際に使用する。スペース・句読点 (。、)・括弧 () のルールを提供する。
 version: 1.0.0
 ---
 
