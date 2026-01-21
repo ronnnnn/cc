@@ -1,0 +1,19 @@
+{
+  "name": "claude",
+  "version": "1.0.0",
+  "description": "CLAUDE.md ファイルの作成・更新・品質管理を支援するコマンドとエージェント",
+  "author": {
+    "name": "ronnnnn",
+    "email": "xxxx.xyzs.xxxx@gmail.com"
+  },
+  "homepage": "https://github.com/ronnnnn/cc/tree/main/claude",
+  "repository": "https://github.com/ronnnnn/cc",
+  "license": "MIT",
+  "keywords": [
+    "claude-md",
+    "claude-code",
+    "documentation",
+    "workflow",
+    "style-guide"
+  ]
+}
