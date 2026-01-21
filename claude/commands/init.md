@@ -1,28 +1,78 @@
 ---
-description: CLAUDE.md を新規作成
-allowed-tools: Read, Write, Glob, Grep, Bash(ls:*, cat:*, head:*)
+name: init
+description: CLAUDE.md を新規作成。プロジェクト分析、テンプレート生成、ユーザー承認後に書き込み。
+allowed-tools:
+  - Read
+  - Write
+  - Glob
+  - Grep
+  - Bash
+  - TodoWrite
+  - AskUserQuestion
 argument-hint: [path]
 ---
 
-CLAUDE.md ファイルを作成する。
+# CLAUDE.md 作成ワークフロー
 
-## 作成場所
+プロジェクト構造を分析し、CLAUDE.md ファイルを新規作成する。
+
+## 重要な原則
+
+1. **プロジェクト固有の情報のみ記載** - Claude が既知の一般的なベストプラクティスは含めない
+2. **簡潔さ優先** - コンテキストウィンドウを消費するため、必要最小限の情報のみ
+3. **必須セクションを含める** - 日本語スタイリング、コード参照、技術調査優先順位
+4. **ユーザー承認を得てから書き込む**
+
+## 作業開始前の準備
+
+**必須:** 作業開始前に TodoWrite ツールで以下のステップを TODO に登録する:
+
+```
+TodoWrite([
+  { content: "プロジェクト構造の分析", status: "pending", activeForm: "プロジェクト構造を分析中" },
+  { content: "技術スタックの検出", status: "pending", activeForm: "技術スタックを検出中" },
+  { content: "既存 CLAUDE.md の確認", status: "pending", activeForm: "既存 CLAUDE.md を確認中" },
+  { content: "テンプレート生成", status: "pending", activeForm: "テンプレートを生成中" },
+  { content: "ユーザー承認", status: "pending", activeForm: "ユーザー承認を確認中" },
+  { content: "ファイル書き込み", status: "pending", activeForm: "ファイルを書き込み中" },
+  { content: "完了報告", status: "pending", activeForm: "完了報告を作成中" }
+])
+```
+
+各ステップの開始時に `in_progress` に、完了時に `completed` に更新する。
+
+## 実行手順
+
+### 1. 作成場所の決定
 
 - 引数が指定された場合: `$1/CLAUDE.md`
 - 引数がない場合: 現在のディレクトリの `CLAUDE.md`
 
-## 作成プロセス
+### 2. プロジェクト構造の分析
 
-1. **プロジェクト分析**
-   - `package.json`, `Cargo.toml`, `go.mod`, `pyproject.toml` 等からスタックを検出
-   - `Makefile`, `justfile`, `package.json scripts` からコマンドを抽出
-   - ディレクトリ構造を把握
+```bash
+# パッケージマネージャー/ビルドツールを検出
+ls -la package.json Cargo.toml go.mod pyproject.toml Makefile justfile 2>/dev/null
+```
 
-2. **既存 CLAUDE.md 確認**
-   - 既存ファイルがある場合は確認後マージ
+### 3. 技術スタックの検出
 
-3. **テンプレート生成**
-   以下のセクションを必須で含める:
+- `package.json`, `Cargo.toml`, `go.mod`, `pyproject.toml` 等からスタックを検出
+- `Makefile`, `justfile`, `package.json scripts` からコマンドを抽出
+- ディレクトリ構造を把握
+
+### 4. 既存 CLAUDE.md の確認
+
+```bash
+# 既存ファイルを確認
+ls -la CLAUDE.md 2>/dev/null
+```
+
+既存ファイルがある場合は確認後マージ。
+
+### 5. テンプレート生成
+
+以下のセクションを必須で含める:
 
 ```markdown
 # [プロジェクト名]
@@ -57,9 +107,33 @@ CLAUDE.md ファイルを作成する。
 優先順位: LSP → deepwiki MCP → context7 MCP → WebSearch
 ```
 
-4. **最適化**
-   - Claude が既知の一般的な内容は含めない
-   - 目標: 500-1,500 words
+### 6. 最適化
 
-5. **ユーザー確認**
-   生成した内容を表示し、承認を得てから書き込む
+- Claude が既知の一般的な内容は含めない
+- 目標: 500-1,500 words
+
+### 7. ユーザー承認
+
+生成した内容を表示し、AskUserQuestion で承認を得る。
+
+### 8. ファイル書き込み
+
+承認後、Write ツールで CLAUDE.md を作成。
+
+### 9. 完了報告
+
+```
+## CLAUDE.md 作成完了
+
+- **ファイル:** <path>
+- **文字数:** X words
+- **セクション数:** N
+```
+
+## エラーハンドリング
+
+### 既存ファイルがある場合
+
+1. 既存内容を読み込み
+2. マージ方法をユーザーに確認
+3. 承認後に上書き or マージ
