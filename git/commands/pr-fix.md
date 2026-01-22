@@ -304,9 +304,13 @@ git push
 
 ### 12. 返信の投稿・スレッド resolve
 
-承認後、返信を投稿し、スレッドを resolve:
+承認後、リアクション追加・返信投稿・スレッド resolve を実行:
 
 ```bash
+# 元のコメントに 👍 リアクションを追加
+gh api repos/{owner}/{repo}/pulls/comments/<comment_id>/reactions \
+  -f content="+1"
+
 # レビューコメントへの返信
 gh api repos/{owner}/{repo}/pulls/<pr_number>/comments/<comment_id>/replies \
   -f body="返信内容"
@@ -329,9 +333,10 @@ mutation($threadId: ID!) {
 
 **処理順序:**
 
-1. 返信を投稿
-2. resolve を実行 (承認された場合のみ)
-3. エラーが発生した場合は続行し、完了報告で失敗したスレッドを報告
+1. 元のコメントに 👍 リアクションを追加
+2. 返信を投稿
+3. resolve を実行 (承認された場合のみ)
+4. エラーが発生した場合は続行し、完了報告で失敗したスレッドを報告
 
 ### 13. 完了報告
 
