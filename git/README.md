@@ -10,8 +10,10 @@ Git/GitHub 操作を効率化する Claude Code plugin です。
 | ---------------- | ------------------------------------------------------------- |
 | `/git:commit`    | 全変更をステージングし、Conventional Commits 形式でコミット   |
 | `/git:pr-create` | PR を作成 (テンプレート準拠、ラベル自動選択、CODEOWNERS 対応) |
+| `/git:pr-review` | PR を複数 AI でレビューし、指摘箇所にコメントを投稿           |
 | `/git:pr-fix`    | レビュー指摘を修正 (妥当性判断、コミット/返信前に承認)        |
 | `/git:pr-update` | PR のタイトルと description を最新化                          |
+| `/git:review`    | ローカル変更を複数 AI でレビューし、指摘箇所を自動修正        |
 
 ### Skills
 
@@ -19,6 +21,7 @@ Git/GitHub 操作を効率化する Claude Code plugin です。
 | --------------------- | -------------------------------------------------- | ----------------------------------------------------------- |
 | `conventional-commit` | Conventional Commits と commitlint 設定ガイド      | 「コミットメッセージの形式は？」「commitlint の設定を確認」 |
 | `japanese-text-style` | 日本語テキストのスペース・句読点・括弧・文体ルール | 「日本語のスペースルール」「句読点の使い方」                |
+| `code-review`         | 複数 AI (Claude/Codex/Gemini) へのレビュー依頼方法 | 「code review」「codex レビュー」「gemini レビュー」        |
 
 ## インストール
 
@@ -122,6 +125,38 @@ claude plugin install git@cc --scope project
 - description はテンプレートまたは既存フォーマットに準拠
 - **タイトルと description をまとめて確認・更新**
 
+### PR レビュー
+
+```bash
+/git:pr-review                                    # 現在のブランチの PR をレビュー
+/git:pr-review 123                                # PR #123 をレビュー
+/git:pr-review https://github.com/owner/repo/123 # URL で指定
+```
+
+**ワークフロー:**
+
+1. PR の差分を取得
+2. **並列で複数 AI (Claude/Codex MCP/Gemini MCP) にレビュー依頼**
+3. 結果を統合・重複排除
+4. インラインコメント案を作成
+5. **コメント投稿前にユーザー承認を取得**
+6. 承認後、PR にコメントを投稿
+
+### ローカルレビュー
+
+```bash
+/git:review  # ローカルの変更 (staged/unstaged) をレビュー
+```
+
+**ワークフロー:**
+
+1. ローカル差分を取得 (staged + unstaged)
+2. **並列で複数 AI (Claude/Codex MCP/Gemini MCP) にレビュー依頼**
+3. 結果を統合・重複排除
+4. 修正が必要なものを**承認なしで自動修正**
+5. **指摘がなくなるまでレビュー・修正を繰り返す**
+6. 修正サマリを報告
+
 ## 前提条件
 
 - **Git** がインストールされていること
@@ -145,9 +180,15 @@ git/
 ├── commands/
 │   ├── commit.md            # コミットコマンド
 │   ├── pr-create.md         # PR 作成コマンド
+│   ├── pr-review.md         # PR レビューコマンド
 │   ├── pr-fix.md            # レビュー修正コマンド
-│   └── pr-update.md         # Description 更新コマンド
+│   ├── pr-update.md         # Description 更新コマンド
+│   └── review.md            # ローカルレビューコマンド
 ├── skills/
+│   ├── code-review/
+│   │   ├── SKILL.md         # 複数 AI レビューガイド
+│   │   └── references/
+│   │       └── mcp-prompts.md  # MCP プロンプトリファレンス
 │   ├── conventional-commit/
 │   │   ├── SKILL.md         # Conventional Commits ガイド
 │   │   └── references/
