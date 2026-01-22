@@ -13,8 +13,8 @@ version: 0.1.0
 このスキルは sub agent 内で実行され、以下の AI にレビューを依頼する:
 
 1. **Claude** - 自身でコードを分析してレビュー
-2. **Codex MCP** - `codex` ツールで `/review` を実行 (利用可能時)
-3. **Gemini MCP** - `ask-gemini` ツールで `/bug` を実行 (利用可能時)
+2. **Codex MCP** - `mcp__codex__codex` ツール (以降 `codex` と表記) で `/review` を実行 (利用可能時)
+3. **Gemini MCP** - `mcp__gemini__ask-gemini` ツール (以降 `ask-gemini` と表記) で `/bug` を実行 (利用可能時)
 
 ## レビュー依頼手順
 

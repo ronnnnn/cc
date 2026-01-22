@@ -59,8 +59,8 @@ echo "$ARGUMENTS" | grep -oE '[0-9]+$' || gh pr view --json number --jq '.number
 ```
 
 ```bash
-# PR 情報を取得
-gh pr view <number> --json number,title,url,baseRefName,headRefName
+# PR 情報を取得 (headRefOid はコメント投稿時に必要)
+gh pr view <number> --json number,title,url,baseRefName,headRefName,headRefOid
 ```
 
 ### 2. PR 差分の取得
@@ -104,7 +104,7 @@ PR #<number> の変更をレビューしてください。
 
     出力フォーマット:
     ## Issues Found
-    1. **[SEVERITY: HIGH/MEDIUM/LOW]** [file:line] - 説明
+    1. **[SEVERITY: CRITICAL/HIGH/MEDIUM/LOW]** [file:line] - 説明
        - 問題: ...
        - 推奨: ...
 
@@ -123,7 +123,7 @@ Codex MCP を使用して PR をレビューしてください。
 
     出力フォーマット:
     ## Issues Found
-    1. **[SEVERITY: HIGH/MEDIUM/LOW]** [file:line] - 説明
+    1. **[SEVERITY: CRITICAL/HIGH/MEDIUM/LOW]** [file:line] - 説明
        - 問題: ...
        - 推奨: ...
 
@@ -142,7 +142,7 @@ Gemini MCP を使用して PR をレビューしてください。
 
     出力フォーマット:
     ## Issues Found
-    1. **[SEVERITY: HIGH/MEDIUM/LOW]** [file:line] - 説明
+    1. **[SEVERITY: CRITICAL/HIGH/MEDIUM/LOW]** [file:line] - 説明
        - 問題: ...
        - 推奨: ...
 ```
@@ -228,9 +228,10 @@ Gemini MCP を使用して PR をレビューしてください。
 
 ```bash
 # レビューコメントを作成
+# commit_id にはステップ 1 で取得した headRefOid を使用
 gh api repos/{owner}/{repo}/pulls/<number>/comments \
   -f body="コメント内容" \
-  -f commit_id="<最新コミットSHA>" \
+  -f commit_id="<headRefOid>" \
   -f path="src/api/users.ts" \
   -F line=42 \
   -f side="RIGHT"
@@ -272,8 +273,8 @@ GitHub MCP ツールにフォールバック:
 
 ### 差分が大きすぎる場合
 
-まずは必ずコードベース全体で実施。
-各 AI が処理できない場合、主要なファイルに絞ってレビューを行う:
+まずは PR 全体の差分を対象にレビューを試みる。
+各 AI がトークン制限やサイズ制限で処理できない場合のみ、主要なファイルに絞ってレビューを行う:
 
 ```markdown
 PR の差分が大きいため、主要な変更ファイルに絞ってレビューします。

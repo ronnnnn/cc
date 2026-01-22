@@ -100,7 +100,7 @@ prompt: |
 
     出力フォーマット:
     ## Issues Found
-    1. **[SEVERITY: HIGH/MEDIUM/LOW]** [file:line] - 説明
+    1. **[SEVERITY: CRITICAL/HIGH/MEDIUM/LOW]** [file:line] - 説明
        - 問題: ...
        - 修正案: 具体的なコード修正案
 
@@ -120,7 +120,7 @@ Codex MCP を使用してローカル変更をレビューしてください。
 
     出力フォーマット:
     ## Issues Found
-    1. **[SEVERITY: HIGH/MEDIUM/LOW]** [file:line] - 説明
+    1. **[SEVERITY: CRITICAL/HIGH/MEDIUM/LOW]** [file:line] - 説明
        - 問題: ...
        - 修正案: 具体的なコード修正案
 
@@ -139,7 +139,7 @@ Gemini MCP を使用してローカル変更をレビューしてください。
 
     出力フォーマット:
     ## Issues Found
-    1. **[SEVERITY: HIGH/MEDIUM/LOW]** [file:line] - 説明
+    1. **[SEVERITY: CRITICAL/HIGH/MEDIUM/LOW]** [file:line] - 説明
        - 問題: ...
        - 修正案: 具体的なコード修正案
 ```
@@ -254,8 +254,8 @@ Claude 単独でレビューを実行し、修正を行う。
 
 ### 変更が大きすぎる場合
 
-まずは必ずコードベース全体で実施。
-各 AI が処理できない場合、主要なファイルに絞ってレビューを行う:
+まずはコードベース全体を対象にレビューを試みる。
+各 AI がトークン制限やサイズ制限で処理できない場合のみ、主要なファイルに絞ってレビューを行う:
 
 ```markdown
 変更が大きいため、主要なファイルに絞ってレビューします。
