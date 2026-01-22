@@ -2,6 +2,7 @@
   "name": "cc",
   "private": true,
   "scripts": {
+    "bump": "./scripts/bump-version.sh",
     "fmt": "prettier --write '**/*.+(md|yaml|yml|json|json5)'",
     "preinstall": "npx only-allow bun",
     "prepare": "lefthook install"
