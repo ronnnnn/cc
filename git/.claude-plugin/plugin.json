@@ -1,6 +1,6 @@
 {
   "name": "git",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "Git/GitHub ワークフロー向けコマンド (コミット、PR 作成、PR レビュー、レビュー修正、PR 更新、ローカルレビュー)",
   "author": {
     "name": "ronnnnn",
