@@ -10,7 +10,9 @@ allowed-tools:
   - Grep
   - Write
   - AskUserQuestion
-  - TodoWrite
+  - TaskCreate
+  - TaskUpdate
+  - TaskList
 ---
 
 # PR レビュー修正ワークフロー
@@ -31,27 +33,25 @@ PR のレビューコメントを確認し、必要な修正を行う。
 
 ## 作業開始前の準備
 
-**必須:** 作業開始前に TodoWrite ツールで以下のステップを TODO に登録する:
+**必須:** 作業開始前に TaskCreate ツールで以下のステップをタスクとして登録する:
 
 ```
-TodoWrite([
-  { content: "PR の特定", status: "pending", activeForm: "PR を特定中" },
-  { content: "未解決のレビューコメントを取得", status: "pending", activeForm: "レビューコメントを取得中" },
-  { content: "レビューコメントの分析", status: "pending", activeForm: "レビューコメントを分析中" },
-  { content: "修正計画の提示 (ユーザー承認)", status: "pending", activeForm: "修正計画を提示中" },
-  { content: "コード修正の実行", status: "pending", activeForm: "コードを修正中" },
-  { content: "commitlint 設定の確認", status: "pending", activeForm: "commitlint 設定を確認中" },
-  { content: "コミット前の承認確認", status: "pending", activeForm: "コミット承認を確認中" },
-  { content: "コミットの実行", status: "pending", activeForm: "コミットを実行中" },
-  { content: "プッシュの実行", status: "pending", activeForm: "プッシュを実行中" },
-  { content: "返信コメントの作成", status: "pending", activeForm: "返信コメントを作成中" },
-  { content: "返信・resolve の承認確認", status: "pending", activeForm: "返信・resolve の承認を確認中" },
-  { content: "返信の投稿・スレッド resolve", status: "pending", activeForm: "返信投稿・スレッド resolve 中" },
-  { content: "完了報告", status: "pending", activeForm: "完了報告を作成中" }
-])
+TaskCreate({ subject: "PR の特定", description: "引数または現在のブランチから PR を特定", activeForm: "PR を特定中" })
+TaskCreate({ subject: "未解決のレビューコメントを取得", description: "GraphQL で isResolved: false のスレッドを取得", activeForm: "レビューコメントを取得中" })
+TaskCreate({ subject: "レビューコメントの分析", description: "各コメントの妥当性を判断", activeForm: "レビューコメントを分析中" })
+TaskCreate({ subject: "修正計画の提示", description: "ユーザーに修正計画の承認を求める", activeForm: "修正計画を提示中" })
+TaskCreate({ subject: "コード修正の実行", description: "承認された修正を適用", activeForm: "コードを修正中" })
+TaskCreate({ subject: "commitlint 設定の確認", description: "commitlint 設定ファイルを探索・解析", activeForm: "commitlint 設定を確認中" })
+TaskCreate({ subject: "コミット前の承認確認", description: "ユーザーにコミットの承認を求める", activeForm: "コミット承認を確認中" })
+TaskCreate({ subject: "コミットの実行", description: "承認されたメッセージでコミット", activeForm: "コミットを実行中" })
+TaskCreate({ subject: "プッシュの実行", description: "git push でリモートに反映", activeForm: "プッシュを実行中" })
+TaskCreate({ subject: "返信コメントの作成", description: "各レビューコメントへの返信を作成", activeForm: "返信コメントを作成中" })
+TaskCreate({ subject: "返信・resolve の承認確認", description: "ユーザーに返信と resolve の承認を求める", activeForm: "返信・resolve の承認を確認中" })
+TaskCreate({ subject: "返信の投稿・スレッド resolve", description: "返信投稿とスレッド resolve を実行", activeForm: "返信投稿・スレッド resolve 中" })
+TaskCreate({ subject: "完了報告", description: "修正結果を報告", activeForm: "完了報告を作成中" })
 ```
 
-各ステップの開始時に `in_progress` に、完了時に `completed` に更新する。
+各ステップの開始時に TaskUpdate で `in_progress` に、完了時に `completed` に更新する。
 
 ## 実行手順
 

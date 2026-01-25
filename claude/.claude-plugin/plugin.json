@@ -1,6 +1,6 @@
 {
   "name": "claude",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "CLAUDE.md ファイルの作成・更新・品質管理を支援するコマンドとエージェント",
   "author": {
     "name": "ronnnnn",

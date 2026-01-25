@@ -9,7 +9,9 @@ allowed-tools:
   - Glob
   - Grep
   - Task
-  - TodoWrite
+  - TaskCreate
+  - TaskUpdate
+  - TaskList
   - ToolSearch
 ---
 
@@ -27,21 +29,19 @@ allowed-tools:
 
 ## 作業開始前の準備
 
-**必須:** 作業開始前に TodoWrite ツールで以下のステップを TODO に登録する:
+**必須:** 作業開始前に TaskCreate ツールで以下のステップをタスクとして登録する:
 
 ```
-TodoWrite([
-  { content: "ローカル差分の取得", status: "pending", activeForm: "差分を取得中" },
-  { content: "MCP 利用可能性の確認", status: "pending", activeForm: "MCP を確認中" },
-  { content: "並列レビューの実行", status: "pending", activeForm: "並列レビューを実行中" },
-  { content: "レビュー結果の統合", status: "pending", activeForm: "結果を統合中" },
-  { content: "自動修正の実行", status: "pending", activeForm: "自動修正を実行中" },
-  { content: "再レビュー (必要な場合)", status: "pending", activeForm: "再レビューを実行中" },
-  { content: "完了報告", status: "pending", activeForm: "完了報告を作成中" }
-])
+TaskCreate({ subject: "ローカル差分の取得", description: "git diff HEAD で全変更を取得", activeForm: "差分を取得中" })
+TaskCreate({ subject: "MCP 利用可能性の確認", description: "Codex/Gemini MCP の利用可能性を確認", activeForm: "MCP を確認中" })
+TaskCreate({ subject: "並列レビューの実行", description: "Claude/Codex/Gemini で並列レビュー", activeForm: "並列レビューを実行中" })
+TaskCreate({ subject: "レビュー結果の統合", description: "重複排除と severity 統一", activeForm: "結果を統合中" })
+TaskCreate({ subject: "自動修正の実行", description: "修正が必要な指摘を自動修正", activeForm: "自動修正を実行中" })
+TaskCreate({ subject: "再レビュー", description: "修正後に再度レビュー (最大 3 回)", activeForm: "再レビューを実行中" })
+TaskCreate({ subject: "完了報告", description: "修正サマリと残課題を報告", activeForm: "完了報告を作成中" })
 ```
 
-各ステップの開始時に `in_progress` に、完了時に `completed` に更新する。
+各ステップの開始時に TaskUpdate で `in_progress` に、完了時に `completed` に更新する。
 
 ## 実行手順
 
