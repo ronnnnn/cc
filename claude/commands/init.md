@@ -7,7 +7,9 @@ allowed-tools:
   - Glob
   - Grep
   - Bash
-  - TodoWrite
+  - TaskCreate
+  - TaskUpdate
+  - TaskList
   - AskUserQuestion
 argument-hint: [path]
 ---
@@ -25,21 +27,19 @@ argument-hint: [path]
 
 ## 作業開始前の準備
 
-**必須:** 作業開始前に TodoWrite ツールで以下のステップを TODO に登録する:
+**必須:** 作業開始前に TaskCreate ツールで以下のステップをタスクとして登録する:
 
 ```
-TodoWrite([
-  { content: "プロジェクト構造の分析", status: "pending", activeForm: "プロジェクト構造を分析中" },
-  { content: "技術スタックの検出", status: "pending", activeForm: "技術スタックを検出中" },
-  { content: "既存 CLAUDE.md の確認", status: "pending", activeForm: "既存 CLAUDE.md を確認中" },
-  { content: "テンプレート生成", status: "pending", activeForm: "テンプレートを生成中" },
-  { content: "ユーザー承認", status: "pending", activeForm: "ユーザー承認を確認中" },
-  { content: "ファイル書き込み", status: "pending", activeForm: "ファイルを書き込み中" },
-  { content: "完了報告", status: "pending", activeForm: "完了報告を作成中" }
-])
+TaskCreate({ subject: "プロジェクト構造の分析", description: "パッケージマネージャー/ビルドツールを検出", activeForm: "プロジェクト構造を分析中" })
+TaskCreate({ subject: "技術スタックの検出", description: "設定ファイルからスタックを検出", activeForm: "技術スタックを検出中" })
+TaskCreate({ subject: "既存 CLAUDE.md の確認", description: "既存ファイルの有無を確認", activeForm: "既存 CLAUDE.md を確認中" })
+TaskCreate({ subject: "テンプレート生成", description: "必須セクションを含むテンプレートを生成", activeForm: "テンプレートを生成中" })
+TaskCreate({ subject: "ユーザー承認", description: "生成内容の承認を求める", activeForm: "ユーザー承認を確認中" })
+TaskCreate({ subject: "ファイル書き込み", description: "承認後に CLAUDE.md を作成", activeForm: "ファイルを書き込み中" })
+TaskCreate({ subject: "完了報告", description: "作成結果を報告", activeForm: "完了報告を作成中" })
 ```
 
-各ステップの開始時に `in_progress` に、完了時に `completed` に更新する。
+各ステップの開始時に TaskUpdate で `in_progress` に、完了時に `completed` に更新する。
 
 ## 実行手順
 

@@ -6,7 +6,9 @@ allowed-tools:
   - Read
   - Glob
   - Grep
-  - TodoWrite
+  - TaskCreate
+  - TaskUpdate
+  - TaskList
   - AskUserQuestion
 ---
 
@@ -25,22 +27,20 @@ allowed-tools:
 
 ## 作業開始前の準備
 
-**必須:** 作業開始前に TodoWrite ツールで以下のステップを TODO に登録する:
+**必須:** 作業開始前に TaskCreate ツールで以下のステップをタスクとして登録する:
 
 ```
-TodoWrite([
-  { content: "変更状態の確認", status: "pending", activeForm: "変更状態を確認中" },
-  { content: "全変更のステージング", status: "pending", activeForm: "変更をステージング中" },
-  { content: "commitlint 設定の確認", status: "pending", activeForm: "commitlint 設定を確認中" },
-  { content: "変更内容の分析", status: "pending", activeForm: "変更内容を分析中" },
-  { content: "コミットメッセージ候補の提示", status: "pending", activeForm: "コミットメッセージ候補を提示中" },
-  { content: "コミット前の承認確認", status: "pending", activeForm: "コミット承認を確認中" },
-  { content: "コミットの実行", status: "pending", activeForm: "コミットを実行中" },
-  { content: "完了報告", status: "pending", activeForm: "完了報告を作成中" }
-])
+TaskCreate({ subject: "変更状態の確認", description: "git status で現在の変更状態を確認", activeForm: "変更状態を確認中" })
+TaskCreate({ subject: "全変更のステージング", description: "git add -A で全変更をステージング", activeForm: "変更をステージング中" })
+TaskCreate({ subject: "commitlint 設定の確認", description: "commitlint 設定ファイルを探索・解析", activeForm: "commitlint 設定を確認中" })
+TaskCreate({ subject: "変更内容の分析", description: "git diff --cached で変更内容を分析", activeForm: "変更内容を分析中" })
+TaskCreate({ subject: "コミットメッセージ候補の提示", description: "Conventional Commits 形式で候補を生成", activeForm: "コミットメッセージ候補を提示中" })
+TaskCreate({ subject: "コミット前の承認確認", description: "ユーザーにコミットメッセージの承認を求める", activeForm: "コミット承認を確認中" })
+TaskCreate({ subject: "コミットの実行", description: "承認されたメッセージでコミットを実行", activeForm: "コミットを実行中" })
+TaskCreate({ subject: "完了報告", description: "コミット結果を報告", activeForm: "完了報告を作成中" })
 ```
 
-各ステップの開始時に `in_progress` に、完了時に `completed` に更新する。
+各ステップの開始時に TaskUpdate で `in_progress` に、完了時に `completed` に更新する。
 
 ## 実行手順
 

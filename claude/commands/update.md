@@ -6,7 +6,9 @@ allowed-tools:
   - Write
   - Edit
   - Glob
-  - TodoWrite
+  - TaskCreate
+  - TaskUpdate
+  - TaskList
   - AskUserQuestion
 argument-hint: [path]
 ---
@@ -24,21 +26,19 @@ argument-hint: [path]
 
 ## 作業開始前の準備
 
-**必須:** 作業開始前に TodoWrite ツールで以下のステップを TODO に登録する:
+**必須:** 作業開始前に TaskCreate ツールで以下のステップをタスクとして登録する:
 
 ```
-TodoWrite([
-  { content: "CLAUDE.md の読み込み", status: "pending", activeForm: "CLAUDE.md を読み込み中" },
-  { content: "必須セクションの確認", status: "pending", activeForm: "必須セクションを確認中" },
-  { content: "冗長性の検出", status: "pending", activeForm: "冗長性を検出中" },
-  { content: "最適化提案の作成", status: "pending", activeForm: "最適化提案を作成中" },
-  { content: "ユーザー承認", status: "pending", activeForm: "ユーザー承認を確認中" },
-  { content: "変更の適用", status: "pending", activeForm: "変更を適用中" },
-  { content: "完了報告", status: "pending", activeForm: "完了報告を作成中" }
-])
+TaskCreate({ subject: "CLAUDE.md の読み込み", description: "ファイルを読み込み、文字数を計測", activeForm: "CLAUDE.md を読み込み中" })
+TaskCreate({ subject: "必須セクションの確認", description: "日本語スタイリング、コード参照、技術調査優先順位を確認", activeForm: "必須セクションを確認中" })
+TaskCreate({ subject: "冗長性の検出", description: "Claude が既知の一般的な内容を特定", activeForm: "冗長性を検出中" })
+TaskCreate({ subject: "最適化提案の作成", description: "削除・統合・追加の提案を作成", activeForm: "最適化提案を作成中" })
+TaskCreate({ subject: "ユーザー承認", description: "変更内容の承認を求める", activeForm: "ユーザー承認を確認中" })
+TaskCreate({ subject: "変更の適用", description: "承認後に変更を適用", activeForm: "変更を適用中" })
+TaskCreate({ subject: "完了報告", description: "更新結果を報告", activeForm: "完了報告を作成中" })
 ```
 
-各ステップの開始時に `in_progress` に、完了時に `completed` に更新する。
+各ステップの開始時に TaskUpdate で `in_progress` に、完了時に `completed` に更新する。
 
 ## 実行手順
 

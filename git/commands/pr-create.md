@@ -7,7 +7,9 @@ allowed-tools:
   - Read
   - Glob
   - Grep
-  - TodoWrite
+  - TaskCreate
+  - TaskUpdate
+  - TaskList
 ---
 
 # PR 作成ワークフロー
@@ -26,22 +28,20 @@ allowed-tools:
 
 ## 作業開始前の準備
 
-**必須:** 作業開始前に TodoWrite ツールで以下のステップを TODO に登録する:
+**必須:** 作業開始前に TaskCreate ツールで以下のステップをタスクとして登録する:
 
 ```
-TodoWrite([
-  { content: "事前確認 (ブランチ状態、リモート差分)", status: "pending", activeForm: "事前確認を実行中" },
-  { content: "PR テンプレートの確認", status: "pending", activeForm: "PR テンプレートを確認中" },
-  { content: "commitlint 設定の確認", status: "pending", activeForm: "commitlint 設定を確認中" },
-  { content: "変更内容の分析", status: "pending", activeForm: "変更内容を分析中" },
-  { content: "ラベルの選択", status: "pending", activeForm: "ラベルを選択中" },
-  { content: "CODEOWNERS の確認", status: "pending", activeForm: "CODEOWNERS を確認中" },
-  { content: "Draft PR 作成", status: "pending", activeForm: "Draft PR を作成中" },
-  { content: "完了報告 (ブラウザで開く)", status: "pending", activeForm: "完了報告を作成中" }
-])
+TaskCreate({ subject: "事前確認", description: "ブランチ状態、リモート差分を確認", activeForm: "事前確認を実行中" })
+TaskCreate({ subject: "PR テンプレートの確認", description: "PULL_REQUEST_TEMPLATE.md を探索・読み込み", activeForm: "PR テンプレートを確認中" })
+TaskCreate({ subject: "commitlint 設定の確認", description: "commitlint 設定ファイルを探索・解析", activeForm: "commitlint 設定を確認中" })
+TaskCreate({ subject: "変更内容の分析", description: "変更ファイルとコミット履歴を分析", activeForm: "変更内容を分析中" })
+TaskCreate({ subject: "ラベルの選択", description: "リポジトリのラベル一覧から適切なものを選択", activeForm: "ラベルを選択中" })
+TaskCreate({ subject: "CODEOWNERS の確認", description: "CODEOWNERS から Reviewer を特定", activeForm: "CODEOWNERS を確認中" })
+TaskCreate({ subject: "Draft PR 作成", description: "gh pr create --draft で PR を作成", activeForm: "Draft PR を作成中" })
+TaskCreate({ subject: "完了報告", description: "PR URL を報告し、ブラウザで開く", activeForm: "完了報告を作成中" })
 ```
 
-各ステップの開始時に `in_progress` に、完了時に `completed` に更新する。
+各ステップの開始時に TaskUpdate で `in_progress` に、完了時に `completed` に更新する。
 
 ## 実行手順
 
