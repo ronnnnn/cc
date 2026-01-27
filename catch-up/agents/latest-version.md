@@ -52,7 +52,7 @@ tools: ['Bash', 'WebFetch', 'WebSearch']
 2. **GitHub Releases からの取得 (優先)**
    - `gh` CLI を使用して最新リリースを取得する:
      ```
-     gh release list --repo <owner>/<repo> --limit 5
+     gh release list --repo <owner>/<repo> --limit 5 --json tagName,isPrerelease,publishedAt
      ```
    - または最新リリースのみ:
      ```
