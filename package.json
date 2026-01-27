@@ -11,6 +11,6 @@
     "@commitlint/config-conventional": "20.3.1",
     "lefthook": "2.0.15",
     "prettier": "3.8.0",
-    "prettier-plugin-packagejson": "2.5.22"
+    "prettier-plugin-packagejson": "3.0.0"
   }
 }
