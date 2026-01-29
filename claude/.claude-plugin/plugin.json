@@ -1,7 +1,7 @@
 {
   "name": "claude",
-  "version": "1.0.1",
-  "description": "CLAUDE.md ファイルの作成・更新・品質管理を支援するコマンドとエージェント",
+  "version": "1.2.0",
+  "description": "CLAUDE.md の作成・更新・品質管理、.claude/rules の作成、行動計画の作成を支援",
   "author": {
     "name": "ronnnnn",
     "email": "xxxx.xyzs.xxxx@gmail.com"
@@ -12,6 +12,8 @@
   "keywords": [
     "claude-md",
     "claude-code",
+    "claude-rules",
+    "action-plan",
     "documentation",
     "workflow",
     "style-guide"
