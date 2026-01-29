@@ -124,7 +124,7 @@
 
 ### ユーザー手動タスク (👤)
 
-```markdown
+````markdown
 ### T2: 外部サービスの API キー取得 👤
 
 **概要**: Stripe の API キーを取得し、環境変数に設定する。
@@ -139,6 +139,7 @@
 3. 「Secret key」をコピー
 4. プロジェクトルートに `.env.local` を作成
 5. 以下の内容を記述:
+
 ```
 
 STRIPE_SECRET_KEY=sk_test_xxxxx
@@ -153,7 +154,7 @@ STRIPE_SECRET_KEY=sk_test_xxxxx
 
 - [ ] `.env.local` に STRIPE_SECRET_KEY が存在する
 - [ ] `echo $STRIPE_SECRET_KEY` で値が表示される (source 後)
-```
+````
 
 ### Claude Code + ユーザー確認タスク (🤝)
 
