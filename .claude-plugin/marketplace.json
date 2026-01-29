@@ -35,8 +35,8 @@
     },
     {
       "name": "claude",
-      "description": "CLAUDE.md ファイルの作成・更新・品質管理を支援するコマンドとエージェント",
-      "version": "1.0.1",
+      "description": "CLAUDE.md ファイルの作成・更新・品質管理、および .claude/rules の作成を支援するコマンドとエージェント",
+      "version": "1.1.0",
       "author": {
         "name": "ronnnnn",
         "email": "xxxx.xyzs.xxxx@gmail.com"
@@ -48,6 +48,7 @@
       "keywords": [
         "claude-md",
         "claude-code",
+        "claude-rules",
         "documentation",
         "workflow",
         "style-guide"
