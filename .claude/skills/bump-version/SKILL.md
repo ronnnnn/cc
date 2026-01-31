@@ -1,0 +1,63 @@
+---
+name: bump-version
+description: プラグインまたはマーケットプレースのバージョンを更新
+version: 0.1.0
+---
+
+プラグインまたはマーケットプレースのバージョンを更新してください。
+
+## 引数
+
+- `$ARGUMENTS` の形式: `<target> <version>` (省略可能)
+  - `<target>`: プラグイン名 (git, claude, catch-up) または `marketplace`
+  - `<version>`: 新しいバージョン (例: 1.6.0)
+
+## 作業開始前の準備
+
+**必須:** 作業開始前に TaskCreate ツールで以下のステップをタスクとして登録する:
+
+```
+TaskCreate({ subject: "対象と変更内容の特定", description: "引数または git diff から対象プラグインとバージョンを特定", activeForm: "対象を特定中" })
+TaskCreate({ subject: "現在のバージョンの確認", description: "plugin.json と marketplace.json の現在のバージョンを確認", activeForm: "現在のバージョンを確認中" })
+TaskCreate({ subject: "バージョンの更新", description: "plugin.json と marketplace.json のバージョンを更新", activeForm: "バージョンを更新中" })
+TaskCreate({ subject: "完了報告", description: "更新結果を報告", activeForm: "完了報告を作成中" })
+```
+
+各ステップの開始時に TaskUpdate で `in_progress` に、完了時に `completed` に更新する。
+
+## 実行手順
+
+### 引数がない場合: 変更差分から推測
+
+1. `git diff --cached --name-only` と `git diff --name-only` で変更ファイル一覧を取得
+2. 変更されたファイルのパスから target を推測:
+   - `plugins/git/` 配下のファイルが変更 → target は `git`
+   - `plugins/claude/` 配下のファイルが変更 → target は `claude`
+   - `plugins/catch-up/` 配下のファイルが変更 → target は `catch-up`
+   - 複数のプラグインが変更されている場合 → 各プラグインを順に更新
+   - `.claude-plugin/marketplace.json` のみ変更 → target は `marketplace`
+3. 現在のバージョンを取得し、変更の種類に応じて version を推測:
+   - 互換性のない破壊的変更 → メジャーバージョンをインクリメント (1.5.0 → 2.0.0)
+   - 新機能追加 → マイナーバージョンをインクリメント (1.5.0 → 1.6.0)
+   - バグ修正 → パッチバージョンをインクリメント (1.5.0 → 1.5.1)
+4. 推測した target と version をユーザーに提示し、確認を求める
+
+### 引数がある場合: 指定された値を使用
+
+引数で `<target>` と `<version>` が指定されている場合は、その値を使用する。
+
+### プラグインのバージョン更新の場合 (target がプラグイン名)
+
+1. `plugins/<target>/.claude-plugin/plugin.json` の `version` を `<version>` に更新
+2. `.claude-plugin/marketplace.json` の `plugins` 配列内で、`name` が `<target>` と一致するプラグインの `version` を `<version>` に更新
+3. `.claude-plugin/marketplace.json` の `metadata.version` のパッチバージョンをインクリメント (例: 1.6.0 → 1.6.1)
+
+### マーケットプレースのバージョン更新の場合 (target が marketplace)
+
+1. `.claude-plugin/marketplace.json` の `metadata.version` を `<version>` に更新
+
+## 注意事項
+
+- プラグインのバージョン更新時は、必ずマーケットプレースのバージョンも更新すること
+- セマンティックバージョニング (semver) 形式を使用すること
+- 更新完了後、変更内容を報告すること

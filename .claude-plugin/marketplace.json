@@ -7,19 +7,19 @@
   },
   "metadata": {
     "description": "A collection of Claude Code plugins.",
-    "version": "1.8.0"
+    "version": "2.0.0"
   },
   "plugins": [
     {
       "name": "git",
-      "description": "Git/GitHub ワークフロー向けコマンド (コミット、PR 作成、PR レビュー、レビュー修正、PR 更新、ローカルレビュー)",
-      "version": "1.5.1",
+      "description": "Git/GitHub ワークフロー向けスキル (コミット、PR 作成、PR レビュー、レビュー修正、PR 更新、ローカルレビュー)",
+      "version": "2.0.0",
       "author": {
         "name": "ronnnnn",
         "email": "xxxx.xyzs.xxxx@gmail.com"
       },
-      "source": "./git",
-      "homepage": "https://github.com/ronnnnn/cc/tree/main/git",
+      "source": "./plugins/git",
+      "homepage": "https://github.com/ronnnnn/cc/tree/main/plugins/git",
       "repository": "https://github.com/ronnnnn/cc/",
       "license": "MIT",
       "keywords": [
@@ -36,13 +36,13 @@
     {
       "name": "claude",
       "description": "CLAUDE.md の作成・更新・品質管理、.claude/rules の作成、行動計画の作成を支援",
-      "version": "1.2.0",
+      "version": "2.0.0",
       "author": {
         "name": "ronnnnn",
         "email": "xxxx.xyzs.xxxx@gmail.com"
       },
-      "source": "./claude",
-      "homepage": "https://github.com/ronnnnn/cc/tree/main/claude",
+      "source": "./plugins/claude",
+      "homepage": "https://github.com/ronnnnn/cc/tree/main/plugins/claude",
       "repository": "https://github.com/ronnnnn/cc/",
       "license": "MIT",
       "keywords": [
@@ -59,13 +59,13 @@
     {
       "name": "catch-up",
       "description": "技術・ツール・フレームワークの最新バージョン取得と技術調査を支援するエージェントとスキル",
-      "version": "1.0.0",
+      "version": "2.0.0",
       "author": {
         "name": "ronnnnn",
         "email": "xxxx.xyzs.xxxx@gmail.com"
       },
-      "source": "./catch-up",
-      "homepage": "https://github.com/ronnnnn/cc/tree/main/catch-up",
+      "source": "./plugins/catch-up",
+      "homepage": "https://github.com/ronnnnn/cc/tree/main/plugins/catch-up",
       "repository": "https://github.com/ronnnnn/cc/",
       "license": "MIT",
       "keywords": ["version", "release", "latest", "github", "update"],
