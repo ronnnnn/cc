@@ -1,12 +1,12 @@
 {
   "name": "catch-up",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "description": "技術・ツール・フレームワークの最新バージョン取得と技術調査を支援するエージェントとスキル",
   "author": {
     "name": "ronnnnn",
     "email": "xxxx.xyzs.xxxx@gmail.com"
   },
-  "homepage": "https://github.com/ronnnnn/cc/tree/main/catch-up",
+  "homepage": "https://github.com/ronnnnn/cc/tree/main/plugins/catch-up",
   "repository": "https://github.com/ronnnnn/cc",
   "license": "MIT",
   "keywords": ["version", "release", "latest", "github", "update"]
