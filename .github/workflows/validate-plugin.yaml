@@ -27,5 +27,11 @@ jobs:
       - name: Validate marketplace
         run: claude plugin validate .
 
+      - name: Validate catch-up plugin
+        run: claude plugin validate ./catch-up
+
+      - name: Validate claude plugin
+        run: claude plugin validate ./claude
+
       - name: Validate git plugin
         run: claude plugin validate ./git
