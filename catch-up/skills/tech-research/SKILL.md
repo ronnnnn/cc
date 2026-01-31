@@ -25,6 +25,19 @@ version: 0.1.0
 | 4      | WebFetch     | 公式サイト・GitHub・特定 URL のコンテンツ取得 | WebFetch                                                                                                 |
 | 5      | WebSearch    | 最新情報・ブログ・リリースノートの検索        | WebSearch                                                                                                |
 
+## 作業開始前の準備
+
+**必須:** 作業開始前に TaskCreate ツールで以下のステップをタスクとして登録する:
+
+```
+TaskCreate({ subject: "調査対象の分類", description: "リクエストをカテゴリに分類し、使用するソースを決定", activeForm: "調査対象を分類中" })
+TaskCreate({ subject: "subagent の起動", description: "Task ツールで調査用 subagent を起動", activeForm: "subagent を起動中" })
+TaskCreate({ subject: "ソースからの情報取得", description: "優先順位に基づいてソースから情報を取得", activeForm: "情報を取得中" })
+TaskCreate({ subject: "結果の構造化", description: "調査結果を構造化してまとめる", activeForm: "結果を構造化中" })
+```
+
+各ステップの開始時に TaskUpdate で `in_progress` に、完了時に `completed` に更新する。
+
 ## 調査手順
 
 ### 1. 調査対象の分類
