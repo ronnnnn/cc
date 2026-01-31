@@ -13,6 +13,7 @@ allowed-tools:
   - TaskUpdate
   - TaskList
   - ToolSearch
+version: 0.1.0
 ---
 
 # ローカルレビューワークフロー

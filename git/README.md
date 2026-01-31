@@ -4,24 +4,19 @@ Git/GitHub 操作を効率化する Claude Code plugin です。
 
 ## 機能
 
-### Commands
-
-| コマンド         | 説明                                                          |
-| ---------------- | ------------------------------------------------------------- |
-| `/git:commit`    | 全変更をステージングし、Conventional Commits 形式でコミット   |
-| `/git:pr-create` | PR を作成 (テンプレート準拠、ラベル自動選択、CODEOWNERS 対応) |
-| `/git:pr-review` | PR を複数 AI でレビューし、指摘箇所にコメントを投稿           |
-| `/git:pr-fix`    | レビュー指摘を修正 (妥当性判断、コミット/返信前に承認)        |
-| `/git:pr-update` | PR のタイトルと description を最新化                          |
-| `/git:review`    | ローカル変更を複数 AI でレビューし、指摘箇所を自動修正        |
-
 ### Skills
 
-| スキル                | 説明                                               | トリガー例                                                  |
-| --------------------- | -------------------------------------------------- | ----------------------------------------------------------- |
-| `conventional-commit` | Conventional Commits と commitlint 設定ガイド      | 「コミットメッセージの形式は？」「commitlint の設定を確認」 |
-| `japanese-text-style` | 日本語テキストのスペース・句読点・括弧・文体ルール | 「日本語のスペースルール」「句読点の使い方」                |
-| `code-review`         | 複数 AI (Claude/Codex/Gemini) へのレビュー依頼方法 | 「code review」「codex レビュー」「gemini レビュー」        |
+| スキル                | 説明                                                          |
+| --------------------- | ------------------------------------------------------------- |
+| `/git:commit`         | 全変更をステージングし、Conventional Commits 形式でコミット   |
+| `/git:pr-create`      | PR を作成 (テンプレート準拠、ラベル自動選択、CODEOWNERS 対応) |
+| `/git:pr-review`      | PR を複数 AI でレビューし、指摘箇所にコメントを投稿           |
+| `/git:pr-fix`         | レビュー指摘を修正 (妥当性判断、コミット/返信前に承認)        |
+| `/git:pr-update`      | PR のタイトルと description を最新化                          |
+| `/git:review`         | ローカル変更を複数 AI でレビューし、指摘箇所を自動修正        |
+| `conventional-commit` | Conventional Commits と commitlint 設定ガイド                 |
+| `japanese-text-style` | 日本語テキストのスペース・句読点・括弧・文体ルール            |
+| `code-review`         | 複数 AI (Claude/Codex/Gemini) へのレビュー依頼方法            |
 
 ## インストール
 
@@ -177,14 +172,19 @@ gh auth status
 git/
 ├── .claude-plugin/
 │   └── plugin.json          # Plugin マニフェスト
-├── commands/
-│   ├── commit.md            # コミットコマンド
-│   ├── pr-create.md         # PR 作成コマンド
-│   ├── pr-review.md         # PR レビューコマンド
-│   ├── pr-fix.md            # レビュー修正コマンド
-│   ├── pr-update.md         # Description 更新コマンド
-│   └── review.md            # ローカルレビューコマンド
 ├── skills/
+│   ├── commit/
+│   │   └── SKILL.md         # コミットスキル
+│   ├── pr-create/
+│   │   └── SKILL.md         # PR 作成スキル
+│   ├── pr-review/
+│   │   └── SKILL.md         # PR レビュースキル
+│   ├── pr-fix/
+│   │   └── SKILL.md         # レビュー修正スキル
+│   ├── pr-update/
+│   │   └── SKILL.md         # Description 更新スキル
+│   ├── review/
+│   │   └── SKILL.md         # ローカルレビュースキル
 │   ├── code-review/
 │   │   ├── SKILL.md         # 複数 AI レビューガイド
 │   │   └── references/

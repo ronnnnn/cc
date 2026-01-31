@@ -13,6 +13,7 @@ allowed-tools:
   - TaskList
   - AskUserQuestion
   - ToolSearch
+version: 0.1.0
 ---
 
 # PR レビューワークフロー

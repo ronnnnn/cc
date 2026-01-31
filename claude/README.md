@@ -4,24 +4,21 @@ CLAUDE.md ファイルの作成・更新・品質管理を支援する Claude Co
 
 ## 機能
 
-### Commands
+### Skills
 
-| コマンド         | 説明                                                      |
-| ---------------- | --------------------------------------------------------- |
-| `/claude:init`   | CLAUDE.md を新規作成 (プロジェクト分析、テンプレート生成) |
-| `/claude:update` | CLAUDE.md を精査・最適化 (冗長削除、必須セクション確認)   |
+| スキル            | 説明                                                      |
+| ----------------- | --------------------------------------------------------- |
+| `/claude:init`    | CLAUDE.md を新規作成 (プロジェクト分析、テンプレート生成) |
+| `/claude:update`  | CLAUDE.md を精査・最適化 (冗長削除、必須セクション確認)   |
+| `create-rules`    | .claude/rules にプロジェクト固有の規約を抽出・保存        |
+| `plan`            | 資料を分析してフェーズ別行動計画を作成                    |
+| `claude-md-style` | CLAUDE.md スタイルガイド・ベストプラクティス              |
 
 ### Agents
 
 | エージェント         | 説明                                      |
 | -------------------- | ----------------------------------------- |
 | `claude-md-reviewer` | CLAUDE.md 品質レビュー (自動提案、改善案) |
-
-### Skills
-
-| スキル            | 説明                                         | トリガー例                               |
-| ----------------- | -------------------------------------------- | ---------------------------------------- |
-| `claude-md-style` | CLAUDE.md スタイルガイド・ベストプラクティス | 「CLAUDE.md の書き方」「日本語スタイル」 |
 
 ## インストール
 
@@ -115,12 +112,21 @@ claude plugin install claude@cc --scope project
 claude/
 ├── .claude-plugin/
 │   └── plugin.json          # Plugin マニフェスト
-├── commands/
-│   ├── init.md              # 新規作成コマンド
-│   └── update.md            # 更新・最適化コマンド
 ├── agents/
 │   └── claude-md-reviewer.md # 品質レビューエージェント
 ├── skills/
+│   ├── init/
+│   │   └── SKILL.md         # 新規作成スキル
+│   ├── update/
+│   │   └── SKILL.md         # 更新・最適化スキル
+│   ├── create-rules/
+│   │   ├── SKILL.md         # ルール作成スキル
+│   │   └── references/
+│   │       └── rules-format.md
+│   ├── plan/
+│   │   ├── SKILL.md         # 行動計画スキル
+│   │   └── references/
+│   │       └── plan-format.md
 │   └── claude-md-style/
 │       └── SKILL.md         # スタイルガイドスキル
 └── README.md

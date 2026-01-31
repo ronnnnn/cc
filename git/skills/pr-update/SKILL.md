@@ -10,6 +10,7 @@ allowed-tools:
   - TaskCreate
   - TaskUpdate
   - TaskList
+version: 0.1.0
 ---
 
 # PR Description 更新ワークフロー
@@ -271,5 +272,5 @@ GitHub MCP ツールにフォールバック:
 
 ```
 指定されたブランチに関連する PR が見つかりません。
-PR 番号を指定して再実行してください: /github:pr-update <number>
+PR 番号を指定して再実行してください: /git:pr-update <number>
 ```

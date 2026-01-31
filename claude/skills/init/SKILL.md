@@ -12,6 +12,7 @@ allowed-tools:
   - TaskList
   - AskUserQuestion
 argument-hint: [path]
+version: 0.1.0
 ---
 
 # CLAUDE.md 作成ワークフロー

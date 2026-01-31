@@ -1,5 +1,5 @@
 ---
-name: CLAUDE.md Style Guide
+name: claude-md-style
 description: このスキルは、「CLAUDE.md の書き方」「CLAUDE.md のスタイル」「CLAUDE.md のベストプラクティス」「CLAUDE.md の最適化」「CLAUDE.md のサイズ削減」などを質問した際、または CLAUDE.md ファイルを作成・更新する際に使用する。スタイリングガイドライン、構造の推奨事項、コンテンツ最適化戦略を提供する。
 version: 0.1.0
 ---

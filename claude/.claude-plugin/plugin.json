@@ -1,6 +1,6 @@
 {
   "name": "claude",
-  "version": "1.2.0",
+  "version": "2.0.0",
   "description": "CLAUDE.md の作成・更新・品質管理、.claude/rules の作成、行動計画の作成を支援",
   "author": {
     "name": "ronnnnn",
