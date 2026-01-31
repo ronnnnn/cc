@@ -9,7 +9,7 @@ version: 0.1.0
 ## 引数
 
 - `$ARGUMENTS` の形式: `<target> <version>` (省略可能)
-  - `<target>`: プラグイン名 (git, claude) または `marketplace`
+  - `<target>`: プラグイン名 (git, claude, catch-up) または `marketplace`
   - `<version>`: 新しいバージョン (例: 1.6.0)
 
 ## 作業開始前の準備
@@ -31,8 +31,9 @@ TaskCreate({ subject: "完了報告", description: "更新結果を報告", acti
 
 1. `git diff --cached --name-only` と `git diff --name-only` で変更ファイル一覧を取得
 2. 変更されたファイルのパスから target を推測:
-   - `git/` 配下のファイルが変更 → target は `git`
-   - `claude/` 配下のファイルが変更 → target は `claude`
+   - `plugins/git/` 配下のファイルが変更 → target は `git`
+   - `plugins/claude/` 配下のファイルが変更 → target は `claude`
+   - `plugins/catch-up/` 配下のファイルが変更 → target は `catch-up`
    - 複数のプラグインが変更されている場合 → 各プラグインを順に更新
    - `.claude-plugin/marketplace.json` のみ変更 → target は `marketplace`
 3. 現在のバージョンを取得し、変更の種類に応じて version を推測:
@@ -47,7 +48,7 @@ TaskCreate({ subject: "完了報告", description: "更新結果を報告", acti
 
 ### プラグインのバージョン更新の場合 (target がプラグイン名)
 
-1. `<target>/.claude-plugin/plugin.json` の `version` を `<version>` に更新
+1. `plugins/<target>/.claude-plugin/plugin.json` の `version` を `<version>` に更新
 2. `.claude-plugin/marketplace.json` の `plugins` 配列内で、`name` が `<target>` と一致するプラグインの `version` を `<version>` に更新
 3. `.claude-plugin/marketplace.json` の `metadata.version` のパッチバージョンをインクリメント (例: 1.6.0 → 1.6.1)
 
