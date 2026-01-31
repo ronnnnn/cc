@@ -20,7 +20,7 @@
       },
       "source": "./plugins/git",
       "homepage": "https://github.com/ronnnnn/cc/tree/main/plugins/git",
-      "repository": "https://github.com/ronnnnn/cc/",
+      "repository": "https://github.com/ronnnnn/cc",
       "license": "MIT",
       "keywords": [
         "git",
@@ -43,7 +43,7 @@
       },
       "source": "./plugins/claude",
       "homepage": "https://github.com/ronnnnn/cc/tree/main/plugins/claude",
-      "repository": "https://github.com/ronnnnn/cc/",
+      "repository": "https://github.com/ronnnnn/cc",
       "license": "MIT",
       "keywords": [
         "claude-md",
@@ -66,7 +66,7 @@
       },
       "source": "./plugins/catch-up",
       "homepage": "https://github.com/ronnnnn/cc/tree/main/plugins/catch-up",
-      "repository": "https://github.com/ronnnnn/cc/",
+      "repository": "https://github.com/ronnnnn/cc",
       "license": "MIT",
       "keywords": ["version", "release", "latest", "github", "update"],
       "category": "productivity"
@@ -81,7 +81,7 @@
       },
       "source": "./plugins/dev",
       "homepage": "https://github.com/ronnnnn/cc/tree/main/plugins/dev",
-      "repository": "https://github.com/ronnnnn/cc/",
+      "repository": "https://github.com/ronnnnn/cc",
       "license": "MIT",
       "keywords": ["dev", "comment", "code-comment", "documentation"],
       "category": "productivity"
