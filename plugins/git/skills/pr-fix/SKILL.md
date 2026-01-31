@@ -76,7 +76,7 @@ gh api repos/{owner}/{repo}/pulls/<number>/comments \
   --jq '.[] | select(.in_reply_to_id == null) | {id, path, line, body, user: .user.login, created_at}'
 
 # レビュースレッドの状態を確認 (GraphQL)
-# 注意: id はスレッドの resolve に必要なため必ず取得する
+# 注意: id (スレッド resolve 用) と databaseId (リアクション API 用) の両方を取得する
 gh api graphql -f query='
 query($owner: String!, $repo: String!, $number: Int!) {
   repository(owner: $owner, name: $repo) {
@@ -87,6 +87,7 @@ query($owner: String!, $repo: String!, $number: Int!) {
           isResolved
           comments(first: 10) {
             nodes {
+              databaseId
               body
               path
               line
@@ -305,23 +306,33 @@ git push
 
 ### 12. 返信の投稿・スレッド resolve
 
-承認後、リアクション追加・返信投稿・スレッド resolve を実行:
+承認後、リアクション追加・返信投稿・スレッド resolve を実行する。
+
+**返信は GraphQL mutation を使用する** (REST API はエンドポイントの URL 構造が複雑でエラーを起こしやすいため):
 
 ```bash
-# 元のコメントに 👍 リアクションを追加
-gh api repos/{owner}/{repo}/pulls/comments/<comment_id>/reactions \
+# 元のコメントに 👍 リアクションを追加 (REST API)
+# databaseId はステップ 2 の GraphQL クエリで取得した値を使用
+gh api repos/{owner}/{repo}/pulls/comments/<databaseId>/reactions \
   -f content="+1"
 
-# レビューコメントへの返信
-gh api repos/{owner}/{repo}/pulls/<pr_number>/comments/<comment_id>/replies \
-  -f body="返信内容"
+# レビュースレッドへの返信 (GraphQL mutation)
+# thread_id はステップ 2 で取得した reviewThreads の id を使用
+gh api graphql -f query='
+mutation($threadId: ID!, $body: String!) {
+  addPullRequestReviewThreadReply(input: {pullRequestReviewThreadId: $threadId, body: $body}) {
+    comment {
+      id
+      body
+    }
+  }
+}' -f threadId="<thread_id>" -f body="返信内容"
 ```
 
 **ユーザーが resolve を承認した場合:**
 
 ```bash
 # スレッドを resolve (GraphQL mutation)
-# thread_id はステップ 2 で取得した reviewThreads の id を使用
 gh api graphql -f query='
 mutation($threadId: ID!) {
   resolveReviewThread(input: {threadId: $threadId}) {
@@ -334,9 +345,9 @@ mutation($threadId: ID!) {
 
 **処理順序:**
 
-1. 元のコメントに 👍 リアクションを追加
-2. 返信を投稿
-3. resolve を実行 (承認された場合のみ)
+1. 元のコメントに 👍 リアクションを追加 (`databaseId` を使用)
+2. スレッドに返信を投稿 (`id` (GraphQL node ID) を使用)
+3. resolve を実行 (承認された場合のみ、`id` を使用)
 4. エラーが発生した場合は続行し、完了報告で失敗したスレッドを報告
 
 ### 13. 完了報告

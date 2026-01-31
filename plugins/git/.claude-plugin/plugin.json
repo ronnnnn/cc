@@ -1,6 +1,6 @@
 {
   "name": "git",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Git/GitHub ワークフロー向けスキル (コミット、PR 作成、PR レビュー、レビュー修正、PR 更新、ローカルレビュー)",
   "author": {
     "name": "ronnnnn",
