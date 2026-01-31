@@ -7,20 +7,20 @@
   },
   "metadata": {
     "description": "A collection of Claude Code plugins.",
-    "version": "2.0.0"
+    "version": "2.1.0"
   },
   "plugins": [
     {
       "name": "git",
       "description": "Git/GitHub ワークフロー向けスキル (コミット、PR 作成、PR レビュー、レビュー修正、PR 更新、ローカルレビュー)",
-      "version": "2.0.0",
+      "version": "2.0.1",
       "author": {
         "name": "ronnnnn",
         "email": "xxxx.xyzs.xxxx@gmail.com"
       },
       "source": "./plugins/git",
       "homepage": "https://github.com/ronnnnn/cc/tree/main/plugins/git",
-      "repository": "https://github.com/ronnnnn/cc/",
+      "repository": "https://github.com/ronnnnn/cc",
       "license": "MIT",
       "keywords": [
         "git",
@@ -43,7 +43,7 @@
       },
       "source": "./plugins/claude",
       "homepage": "https://github.com/ronnnnn/cc/tree/main/plugins/claude",
-      "repository": "https://github.com/ronnnnn/cc/",
+      "repository": "https://github.com/ronnnnn/cc",
       "license": "MIT",
       "keywords": [
         "claude-md",
@@ -66,9 +66,24 @@
       },
       "source": "./plugins/catch-up",
       "homepage": "https://github.com/ronnnnn/cc/tree/main/plugins/catch-up",
-      "repository": "https://github.com/ronnnnn/cc/",
+      "repository": "https://github.com/ronnnnn/cc",
       "license": "MIT",
       "keywords": ["version", "release", "latest", "github", "update"],
+      "category": "productivity"
+    },
+    {
+      "name": "dev",
+      "description": "開発支援スキル (コードコメント追加)",
+      "version": "1.0.0",
+      "author": {
+        "name": "ronnnnn",
+        "email": "xxxx.xyzs.xxxx@gmail.com"
+      },
+      "source": "./plugins/dev",
+      "homepage": "https://github.com/ronnnnn/cc/tree/main/plugins/dev",
+      "repository": "https://github.com/ronnnnn/cc",
+      "license": "MIT",
+      "keywords": ["dev", "comment", "code-comment", "documentation"],
       "category": "productivity"
     }
   ]

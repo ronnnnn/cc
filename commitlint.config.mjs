@@ -26,6 +26,7 @@ export default {
       [
         'catch-up',
         'claude',
+        'dev',
         'git',
       ],
     ],
