@@ -175,7 +175,9 @@ diff だけでは文脈が不十分な場合、変更対象ファイルの全体
 - **背景説明**: 「なぜこの変更をしたのか」が明確にわかること
 - **実装説明**: コードを読まなくても処理の流れが理解できること
 
-**大規模な差分 (変更ファイル 30 以上) の場合:**
+**大規模な差分 (目安: 変更ファイル 30 以上) の場合:**
+
+コンテキストウィンドウの制約上、全ファイルの diff を一度に処理できないため、以下の戦略を取る:
 
 - 全ファイルの diff を一度に読み込まず、変更ファイル一覧から主要な変更を特定する
 - ディレクトリ単位で変更の傾向をまとめ、重要なファイルに絞って詳細解説する
@@ -193,12 +195,14 @@ diff だけでは文脈が不十分な場合、変更対象ファイルの全体
 
 ### gh CLI が使用できない場合
 
-`gh api` コマンドで GitHub API に直接アクセスする:
+`gh api graphql` でメインワークフローと同じ GraphQL クエリを実行する:
 
 ```bash
+# ステップ 2 の GraphQL クエリを gh api graphql で実行
+gh api graphql -f query='...' -f owner=<owner> -f repo=<repo> -F number=<number>
+
+# PR メタデータは REST API で取得
 gh api repos/<owner>/<repo>/pulls/<number>
-gh api repos/<owner>/<repo>/pulls/<number>/comments
-gh api repos/<owner>/<repo>/pulls/<number>/reviews
 ```
 
 ### 外部リポジトリの PR の場合
