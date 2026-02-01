@@ -15,7 +15,6 @@ allowed-tools:
   - TaskCreate
   - TaskUpdate
   - TaskList
-version: 0.1.0
 ---
 
 # PR CI 失敗の調査・修正ワークフロー
