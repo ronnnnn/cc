@@ -73,20 +73,13 @@ tools: ['Bash', 'Read', 'Grep', 'Glob']
    **設定ファイルの検索:**
 
    ```bash
-   ls -la commitlint.config.{js,cjs,mjs,ts,cts} 2>/dev/null
-   ls -la .commitlintrc{,.json,.yaml,.yml,.js,.cjs,.mjs,.ts,.cts} 2>/dev/null
+   ls -la commitlint.config.* 2>/dev/null
+   ls -la .commitlintrc.* 2>/dev/null
    grep -l '"commitlint"' package.json 2>/dev/null
    ```
 
    **継承先 (子) ファイルの探索:**
-   設定ファイルが見つかった場合、それを継承している別のファイルがないか確認する:
-
-   ```bash
-   ls -la commitlint.config.*.{js,cjs,mjs,ts,cts} 2>/dev/null
-   ls -la .commitlintrc.*.{json,yaml,yml,js,cjs,mjs,ts,cts} 2>/dev/null
-   ```
-
-   継承先が見つかった場合はそちらを最終的な設定ファイルとして使用する。
+   複数の設定ファイルが見つかった場合、親子関係を確認する。継承先が見つかった場合はそちらを最終的な設定ファイルとして使用する。
 
    **設定ファイルの解析:**
    Read ツールで内容を確認し、以下のルールを抽出する:
