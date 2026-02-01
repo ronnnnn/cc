@@ -180,6 +180,11 @@ EOF
 git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null || echo "no-upstream"
 ```
 
+- upstream が設定されている場合: `origin/<branch>` のようなブランチ名が返る
+- upstream が未設定の場合: `no-upstream` が返る
+
+この結果に基づいてプッシュコマンドを切り替える。
+
 **AskUserQuestion でユーザーに確認:**
 
 ```
@@ -199,7 +204,10 @@ AskUserQuestion({
 **「プッシュする」が選択された場合:**
 
 ```bash
-# upstream が設定されていない場合は -u を付与
+# upstream が既に設定されている場合
+git push
+
+# upstream が設定されていない場合は -u を付与して設定
 git push -u origin HEAD
 ```
 
