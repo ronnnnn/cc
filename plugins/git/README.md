@@ -14,16 +14,16 @@ Git/GitHub 操作を効率化する Claude Code plugin です。
 | `/git:pr-fix`         | レビュー指摘を修正 (妥当性判断、コミット/返信前に承認)        |
 | `/git:pr-update`      | PR のタイトルと description を最新化                          |
 | `/git:review`         | ローカル変更を複数 AI でレビューし、指摘箇所を自動修正        |
-| `conventional-commit` | Conventional Commits と commitlint 設定ガイド                 |
 | `japanese-text-style` | 日本語テキストのスペース・句読点・括弧・文体ルール            |
 | `/git:pr-ci`          | CI 失敗の調査・修正 (ci-analyzer subagent で原因分析)         |
 | `code-review`         | 複数 AI (Claude/Codex/Gemini) へのレビュー依頼方法            |
 
 ### Agents
 
-| エージェント  | 説明                                                              |
-| ------------- | ----------------------------------------------------------------- |
-| `ci-analyzer` | CI 失敗のログを取得・分析し、原因と修正方針を構造化レポートで返却 |
+| エージェント      | 説明                                                                    |
+| ----------------- | ----------------------------------------------------------------------- |
+| `ci-analyzer`     | CI 失敗のログを取得・分析し、原因と修正方針を構造化レポートで返却       |
+| `commit-proposer` | 変更差分を分析し、commitlint 設定に準拠したコミットメッセージ候補を提案 |
 
 ## インストール
 
@@ -72,11 +72,10 @@ claude plugin install git@cc --scope project
 **ワークフロー:**
 
 1. 全変更 (unstaged + untracked) を自動ステージング
-2. commitlint 設定を確認 (存在する場合)
-3. 変更内容を分析
-4. **コミットメッセージ候補を最大 3 つ提示** (推奨度順)
-5. **ユーザー承認を取得**
-6. 選択されたメッセージでコミット実行
+2. **commit-proposer subagent** が差分分析・commitlint 確認・メッセージ候補生成
+3. **コミットメッセージ候補を最大 3 つ提示** (推奨度順)
+4. **ユーザー承認を取得**
+5. 選択されたメッセージでコミット実行
 
 ### PR 作成
 
@@ -107,9 +106,9 @@ claude plugin install git@cc --scope project
 1. 未解決 (unresolved) のレビューコメントを取得
 2. 各コメントの妥当性を判断
 3. 修正が必要なもののみ修正
-4. commitlint 設定を確認 (存在する場合)
+4. **commit-proposer subagent** でコミットメッセージ生成
 5. **コミット前にユーザー承認を取得**
-6. Conventional Commits 形式でコミット実行 (commitlint 設定があれば準拠)
+6. Conventional Commits 形式でコミット実行
 7. **返信コメント前にユーザー承認を取得**
 8. レビューコメントに返信
 
@@ -213,16 +212,13 @@ git/
 │   │   ├── SKILL.md         # 複数 AI レビューガイド
 │   │   └── references/
 │   │       └── mcp-prompts.md  # MCP プロンプトリファレンス
-│   ├── conventional-commit/
-│   │   ├── SKILL.md         # Conventional Commits ガイド
-│   │   └── references/
-│   │       └── commitlint-rules.md  # commitlint ルールリファレンス
 │   ├── japanese-text-style/
 │   │   └── SKILL.md         # 日本語テキストスタイルガイド
 │   └── pr-ci/
 │       └── SKILL.md         # CI 失敗の調査・修正スキル
 ├── agents/
-│   └── ci-analyzer.md       # CI 失敗分析エージェント
+│   ├── ci-analyzer.md       # CI 失敗分析エージェント
+│   └── commit-proposer.md   # コミットメッセージ提案エージェント
 └── README.md
 ```
 
