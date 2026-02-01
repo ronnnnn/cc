@@ -63,8 +63,11 @@ PR の CI 失敗を調査する専門エージェント。
    - 失敗した workflow run のログを取得する:
 
      ```bash
-     # PR に紐づく最新の run を取得
-     gh run list --branch <branch> --json databaseId,status,conclusion,name,workflowName --limit 10
+     # PR の HEAD コミット SHA を取得
+     HEAD_SHA=$(gh pr view <number> --json headRefOid --jq '.headRefOid')
+
+     # コミット SHA に紐づく最新の run を取得
+     gh run list --commit "$HEAD_SHA" --json databaseId,status,conclusion,name,workflowName --limit 10
 
      # 失敗した run のログを取得
      gh run view <run-id> --log-failed
