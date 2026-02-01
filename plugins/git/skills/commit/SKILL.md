@@ -37,6 +37,7 @@ TaskCreate({ subject: "全変更のステージング", description: "git add -A
 TaskCreate({ subject: "コミットメッセージ候補の生成", description: "commit-proposer subagent で差分分析・commitlint 確認・メッセージ候補生成", activeForm: "コミットメッセージ候補を生成中" })
 TaskCreate({ subject: "コミット前の承認確認", description: "ユーザーにコミットメッセージの承認を求める", activeForm: "コミット承認を確認中" })
 TaskCreate({ subject: "コミットの実行", description: "承認されたメッセージでコミットを実行", activeForm: "コミットを実行中" })
+TaskCreate({ subject: "プッシュの確認", description: "ユーザーにプッシュするか確認し、指示があればプッシュを実行", activeForm: "プッシュ確認中" })
 TaskCreate({ subject: "完了報告", description: "コミット結果を報告", activeForm: "完了報告を作成中" })
 ```
 
@@ -171,7 +172,41 @@ EOF
 )"
 ```
 
-### 6. 完了報告
+### 6. プッシュの確認
+
+コミット完了後、リモートへプッシュするか確認する。
+
+```bash
+# リモートブランチの追跡状況を確認
+git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null || echo "no-upstream"
+```
+
+**AskUserQuestion でユーザーに確認:**
+
+```
+AskUserQuestion({
+  questions: [{
+    question: "リモートにプッシュしますか？",
+    header: "Push",
+    options: [
+      { label: "プッシュする", description: "現在のブランチをリモートにプッシュします" },
+      { label: "スキップ", description: "プッシュせずに完了します" }
+    ],
+    multiSelect: false
+  }]
+})
+```
+
+**「プッシュする」が選択された場合:**
+
+```bash
+# upstream が設定されていない場合は -u を付与
+git push -u origin HEAD
+```
+
+**「スキップ」が選択された場合:** プッシュせずに次のステップへ進む。
+
+### 7. 完了報告
 
 ```bash
 # コミット結果を確認
@@ -188,6 +223,7 @@ git log -1 --oneline
 - **変更ファイル数:** N
 - **追加行数:** +X
 - **削除行数:** -Y
+- **プッシュ:** 済 / スキップ
 ```
 
 ## エラーハンドリング
