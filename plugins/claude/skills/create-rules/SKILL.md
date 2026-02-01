@@ -1,7 +1,6 @@
 ---
 name: create-rules
 description: このスキルは、「ルールを作成」「create rules」「create rules from PR」「extract rules from code」「save best practices to rules」「.claude/rules に規約を残す」「ベストプラクティスをルールに追加」「PR からルールを作成」「コード規約を .claude/rules に保存」「ルールファイルを整理」「rules を分割・統合」などのリクエスト、またはプロジェクト固有のベストプラクティスや規約を .claude/rules/ に抽出・保存する際に使用する。
-version: 0.1.0
 ---
 
 # Create Rules

@@ -12,7 +12,6 @@ allowed-tools:
   - TaskCreate
   - TaskUpdate
   - TaskList
-version: 0.1.0
 ---
 
 # ローカルレビューワークフロー

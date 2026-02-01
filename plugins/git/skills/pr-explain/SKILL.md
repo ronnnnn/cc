@@ -10,7 +10,6 @@ allowed-tools:
   - TaskCreate
   - TaskUpdate
   - TaskList
-version: 0.1.0
 ---
 
 # PR 解説ワークフロー

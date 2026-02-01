@@ -12,7 +12,6 @@ allowed-tools:
   - TaskUpdate
   - TaskList
   - AskUserQuestion
-version: 0.1.0
 ---
 
 # PR レビューワークフロー
