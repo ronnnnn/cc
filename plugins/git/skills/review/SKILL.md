@@ -69,15 +69,103 @@ git diff HEAD --name-only
 
 ### 2. 並列レビューの実行
 
-**code-reviewer subagent を Task ツールで呼び出す。**
+**general-purpose subagent を Task ツールで呼び出す。**
 
-**重要:** `run_in_background: true` を指定しないこと。バックグラウンド実行では MCP ツールが利用できないため、必ずフォアグラウンドで実行する。
+<!-- WORKAROUND: プラグイン定義 agent では MCP ツールが利用不可のため、
+     general-purpose subagent を使用して MCP ツールへのアクセスを確保している。
+     バグ修正後は専用の code-reviewer agent を再作成し、subagent_type を切り替えること。
+     See: https://github.com/anthropics/claude-code/issues/13605 -->
+
+**重要:**
+
+- `run_in_background: true` を指定しないこと。バックグラウンド実行では MCP ツールが利用できない。
+- `subagent_type` は `"general-purpose"` を使用すること。`"git:code-reviewer"` では MCP ツールが利用不可。
 
 ```
 Task({
-  subagent_type: "git:code-reviewer",
+  subagent_type: "general-purpose",
   description: "ローカル変更の並列レビュー",
-  prompt: "ローカルの変更差分をレビューしてください。`git diff HEAD` で差分を取得し、Claude/Codex MCP/Gemini MCP で並列レビューを実行して結果を統合してください。"
+  prompt: `あなたは code-reviewer です。ローカルの変更差分を複数 AI で並列レビューし、結果を統合してください。
+
+## 手順
+
+### 1. 差分の取得
+
+\`\`\`bash
+git diff HEAD
+git diff HEAD --name-only
+\`\`\`
+
+### 2. MCP 利用可能性の確認
+
+ToolSearch で各 MCP の利用可能性を確認:
+- \`select:mcp__codex__codex\` - Codex MCP
+- \`select:mcp__gemini__ask-gemini\` - Gemini MCP
+
+### 3. 並列レビューの実行
+
+利用可能な AI すべてに単一メッセージ内で並列にレビューを依頼する。
+
+**Claude レビュー (常に実行):**
+
+差分を直接分析し、以下の観点でレビューする:
+- バグ: 論理エラー、off-by-one、null 参照
+- セキュリティ: インジェクション、認証、機密情報
+- パフォーマンス: N+1、不要なループ、メモリリーク
+- 可読性: 命名、複雑度
+- テスト: カバレッジ、エッジケース
+
+**Codex MCP レビュー (利用可能時):**
+- \`mcp__codex__codex\` を \`prompt: "/review"\`, \`cwd: "<対象ディレクトリの絶対パス>"\` で呼び出す
+
+**Gemini MCP レビュー (利用可能時):**
+- \`mcp__gemini__ask-gemini\` を \`prompt: "/bug <対象ディレクトリの絶対パス>"\` で呼び出す
+
+### 4. 結果の統合
+
+**重複排除:**
+1. ファイルパスと行番号で指摘をグループ化
+2. 同じ問題への指摘は最も詳細な説明を採用
+3. severity は最も高いものを採用
+
+**severity 統一:**
+- CRITICAL: セキュリティ脆弱性、データ損失リスク (即時修正必須)
+- HIGH: バグ、重大なロジックエラー (修正推奨)
+- MEDIUM: パフォーマンス問題、可読性 (検討推奨)
+- LOW: スタイル、軽微な改善 (任意)
+
+**MCP 出力の severity マッピング:**
+- critical, severe, security → CRITICAL
+- bug, error, high → HIGH
+- warning, medium → MEDIUM
+- info, suggestion, nit → LOW
+
+## 出力形式
+
+\`\`\`markdown
+## Aggregated Review Results
+
+**Reviewed by:** Claude, Codex, Gemini (利用可能な AI のみ記載)
+**Total Issues:** N
+
+### Critical Issues (X)
+1. **[CRITICAL]** [file:line] - 説明
+   - 問題: ...
+   - 推奨: ...
+   - 検出元: Claude, Codex
+
+### High Priority Issues (Y)
+...
+### Medium Priority Issues (Z)
+...
+### Low Priority Issues (W)
+...
+\`\`\`
+
+## 注意事項
+- MCP が全て利用不可の場合は Claude 単独でレビューを実行する
+- スタイルのみの指摘 (linter で対応すべき)、好みの問題、曖昧な指摘は除外する
+- 検出元 (Claude/Codex/Gemini) を各指摘に付記する`
 })
 ```
 
