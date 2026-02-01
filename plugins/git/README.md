@@ -15,6 +15,7 @@ Git/GitHub 操作を効率化する Claude Code plugin です。
 | `/git:pr-update`      | PR のタイトルと description を最新化                          |
 | `/git:review`         | ローカル変更を複数 AI でレビューし、指摘箇所を自動修正        |
 | `japanese-text-style` | 日本語テキストのスペース・句読点・括弧・文体ルール            |
+| `/git:pr-explain`     | PR の変更内容を包括的に収集・分析し、丁寧に解説               |
 | `/git:pr-ci`          | CI 失敗の調査・修正 (ci-analyzer subagent で原因分析)         |
 
 ### Agents
@@ -142,6 +143,22 @@ claude plugin install git@cc --scope project
 4. **コメント投稿前にユーザー承認を取得**
 5. 承認後、PR にコメントを投稿
 
+### PR 解説
+
+```bash
+/git:pr-explain https://github.com/owner/repo/pull/123  # URL で指定
+/git:pr-explain 123                                      # PR 番号で指定
+```
+
+**ワークフロー:**
+
+1. PR のメタデータ、description、diff、レビューコメント、PR コメントを包括的に収集
+2. 変更対象のコードを読み、文脈を把握
+3. 以下の構造で丁寧に解説:
+   - **対応概要**: 変更内容を簡潔に説明
+   - **背景説明**: なぜその変更をしたか
+   - **実装説明**: 処理の流れを理解しやすい順序で解説
+
 ### CI 失敗の調査・修正
 
 ```bash
@@ -208,6 +225,8 @@ git/
 │   │   └── SKILL.md         # ローカルレビュースキル
 │   ├── japanese-text-style/
 │   │   └── SKILL.md         # 日本語テキストスタイルガイド
+│   ├── pr-explain/
+│   │   └── SKILL.md         # PR 解説スキル
 │   └── pr-ci/
 │       └── SKILL.md         # CI 失敗の調査・修正スキル
 ├── agents/
