@@ -23,7 +23,16 @@ description: |
 
 model: opus
 color: cyan
-tools: ['Bash', 'Read', 'Grep', 'Glob', 'ToolSearch']
+tools:
+  [
+    'Bash',
+    'Read',
+    'Grep',
+    'Glob',
+    'ToolSearch',
+    'mcp__codex__*',
+    'mcp__gemini__*',
+  ]
 ---
 
 複数の AI (Claude, Codex MCP, Gemini MCP) にコードレビューを並列依頼し、結果を統合・重複排除して返す専門エージェント。

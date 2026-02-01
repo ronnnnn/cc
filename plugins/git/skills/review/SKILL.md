@@ -71,6 +71,8 @@ git diff HEAD --name-only
 
 **code-reviewer subagent を Task ツールで呼び出す。**
 
+**重要:** `run_in_background: true` を指定しないこと。バックグラウンド実行では MCP ツールが利用できないため、必ずフォアグラウンドで実行する。
+
 ```
 Task({
   subagent_type: "git:code-reviewer",
