@@ -16,14 +16,14 @@ Git/GitHub 操作を効率化する Claude Code plugin です。
 | `/git:review`         | ローカル変更を複数 AI でレビューし、指摘箇所を自動修正        |
 | `japanese-text-style` | 日本語テキストのスペース・句読点・括弧・文体ルール            |
 | `/git:pr-ci`          | CI 失敗の調査・修正 (ci-analyzer subagent で原因分析)         |
-| `code-review`         | 複数 AI (Claude/Codex/Gemini) へのレビュー依頼方法            |
 
 ### Agents
 
-| エージェント      | 説明                                                                    |
-| ----------------- | ----------------------------------------------------------------------- |
-| `ci-analyzer`     | CI 失敗のログを取得・分析し、原因と修正方針を構造化レポートで返却       |
-| `commit-proposer` | 変更差分を分析し、commitlint 設定に準拠したコミットメッセージ候補を提案 |
+| エージェント      | 説明                                                                         |
+| ----------------- | ---------------------------------------------------------------------------- |
+| `ci-analyzer`     | CI 失敗のログを取得・分析し、原因と修正方針を構造化レポートで返却            |
+| `code-reviewer`   | 複数 AI (Claude/Codex MCP/Gemini MCP) で並列レビューし、結果を統合・重複排除 |
+| `commit-proposer` | 変更差分を分析し、commitlint 設定に準拠したコミットメッセージ候補を提案      |
 
 ## インストール
 
@@ -137,11 +137,10 @@ claude plugin install git@cc --scope project
 **ワークフロー:**
 
 1. PR の差分を取得
-2. **並列で複数 AI (Claude/Codex MCP/Gemini MCP) にレビュー依頼**
-3. 結果を統合・重複排除
-4. インラインコメント案を作成
-5. **コメント投稿前にユーザー承認を取得**
-6. 承認後、PR にコメントを投稿
+2. **code-reviewer subagent** で並列レビュー (Claude/Codex MCP/Gemini MCP)
+3. インラインコメント案を作成
+4. **コメント投稿前にユーザー承認を取得**
+5. 承認後、PR にコメントを投稿
 
 ### CI 失敗の調査・修正
 
@@ -169,11 +168,10 @@ claude plugin install git@cc --scope project
 **ワークフロー:**
 
 1. ローカル差分を取得 (staged + unstaged)
-2. **並列で複数 AI (Claude/Codex MCP/Gemini MCP) にレビュー依頼**
-3. 結果を統合・重複排除
-4. 修正が必要なものを**承認なしで自動修正**
-5. **指摘がなくなるまでレビュー・修正を繰り返す**
-6. 修正サマリを報告
+2. **code-reviewer subagent** で並列レビュー (Claude/Codex MCP/Gemini MCP)
+3. 修正が必要なものを**承認なしで自動修正**
+4. **指摘がなくなるまでレビュー・修正を繰り返す**
+5. 修正サマリを報告
 
 ## 前提条件
 
@@ -208,16 +206,13 @@ git/
 │   │   └── SKILL.md         # Description 更新スキル
 │   ├── review/
 │   │   └── SKILL.md         # ローカルレビュースキル
-│   ├── code-review/
-│   │   ├── SKILL.md         # 複数 AI レビューガイド
-│   │   └── references/
-│   │       └── mcp-prompts.md  # MCP プロンプトリファレンス
 │   ├── japanese-text-style/
 │   │   └── SKILL.md         # 日本語テキストスタイルガイド
 │   └── pr-ci/
 │       └── SKILL.md         # CI 失敗の調査・修正スキル
 ├── agents/
 │   ├── ci-analyzer.md       # CI 失敗分析エージェント
+│   ├── code-reviewer.md     # 複数 AI 並列レビューエージェント
 │   └── commit-proposer.md   # コミットメッセージ提案エージェント
 └── README.md
 ```
