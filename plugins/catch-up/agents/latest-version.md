@@ -30,7 +30,7 @@ description: |
   </commentary>
   </example>
 
-model: haiku
+model: sonnet
 color: cyan
 tools: ['Bash', 'WebFetch', 'WebSearch']
 ---
