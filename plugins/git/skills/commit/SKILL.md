@@ -6,6 +6,7 @@ allowed-tools:
   - Read
   - Glob
   - Grep
+  - Task
   - TaskCreate
   - TaskUpdate
   - TaskList
@@ -33,9 +34,7 @@ version: 0.1.0
 ```
 TaskCreate({ subject: "変更状態の確認", description: "git status で現在の変更状態を確認", activeForm: "変更状態を確認中" })
 TaskCreate({ subject: "全変更のステージング", description: "git add -A で全変更をステージング", activeForm: "変更をステージング中" })
-TaskCreate({ subject: "commitlint 設定の確認", description: "commitlint 設定ファイルを探索・解析", activeForm: "commitlint 設定を確認中" })
-TaskCreate({ subject: "変更内容の分析", description: "git diff --cached で変更内容を分析", activeForm: "変更内容を分析中" })
-TaskCreate({ subject: "コミットメッセージ候補の提示", description: "Conventional Commits 形式で候補を生成", activeForm: "コミットメッセージ候補を提示中" })
+TaskCreate({ subject: "コミットメッセージ候補の生成", description: "commit-proposer subagent で差分分析・commitlint 確認・メッセージ候補生成", activeForm: "コミットメッセージ候補を生成中" })
 TaskCreate({ subject: "コミット前の承認確認", description: "ユーザーにコミットメッセージの承認を求める", activeForm: "コミット承認を確認中" })
 TaskCreate({ subject: "コミットの実行", description: "承認されたメッセージでコミットを実行", activeForm: "コミットを実行中" })
 TaskCreate({ subject: "完了報告", description: "コミット結果を報告", activeForm: "完了報告を作成中" })
@@ -70,94 +69,30 @@ git add -A
 git status
 ```
 
-### 3. commitlint 設定の確認
+### 3. コミットメッセージ候補の生成
 
-**`conventional-commit` スキルを参照して、コミットメッセージの形式を決定する。**
+**commit-proposer subagent を Task ツールで呼び出す。**
 
-```bash
-# commitlint 設定ファイルを探す
-ls -la commitlint.config.{js,cjs,mjs,ts,cts} 2>/dev/null || \
-ls -la .commitlintrc{,.json,.yaml,.yml,.js,.cjs,.mjs,.ts,.cts} 2>/dev/null || \
-grep -l '"commitlint"' package.json 2>/dev/null
+```
+Task({
+  subagent_type: "git:commit-proposer",
+  description: "コミットメッセージ候補の生成",
+  prompt: "ステージング済みの変更に対してコミットメッセージ候補を最大 3 つ提案してください。"
+})
 ```
 
-設定ファイルが見つかった場合:
+subagent が以下を自動で実行する:
 
-**1. 継承先 (子) ファイルの探索:**
+- `git diff --cached` で変更差分を分析
+- commitlint 設定ファイルを検索・解析
+- `git log` で既存コミットの言語・スタイルを確認
+- Conventional Commits 形式のメッセージ候補を最大 3 つ生成
 
-```bash
-# 見つけた設定ファイルを継承している別のファイルがないか確認
-ls -la commitlint.config.*.{js,cjs,mjs,ts,cts} 2>/dev/null
-ls -la .commitlintrc.*.{js,cjs,mjs,ts,cts} 2>/dev/null
-```
+subagent から返却された提案を次のステップで使用する。
 
-継承先ファイルが見つかった場合は、そちらを最終的な設定ファイルとして使用。
+### 4. コミット前の承認確認
 
-**2. 設定ファイルの解析:**
-
-Read ツールで内容を確認し、以下を抽出:
-
-- `type-enum`: 許可される type 一覧
-- `scope-enum`: 許可される scope 一覧
-- `scope-empty`: scope の必須/任意
-- `extends`: 継承元設定 (継承チェーンを再帰的に解決)
-
-詳細な解析方法は `conventional-commit` スキルを参照。
-
-### 4. 変更内容の分析
-
-```bash
-# ステージングされた変更の差分を確認
-git diff --cached --stat
-
-# 変更されたファイル一覧
-git diff --cached --name-only
-
-# 詳細な差分 (必要に応じて)
-git diff --cached
-```
-
-変更内容を分析し、以下を判断する:
-
-- 変更の種類 (新機能、バグ修正、リファクタリング等)
-- 影響範囲 (scope の決定)
-- 変更の要約
-
-### 5. コミットメッセージ候補の提示
-
-**Conventional Commits 形式でメッセージ候補を最大 3 つ生成し、推奨度順に提示する。**
-
-**type の選択基準:**
-
-| type       | 使用場面                                            |
-| ---------- | --------------------------------------------------- |
-| `feat`     | 新機能の追加                                        |
-| `fix`      | バグ修正                                            |
-| `docs`     | ドキュメントのみの変更                              |
-| `style`    | コードの意味に影響しない変更 (空白、フォーマット等) |
-| `refactor` | バグ修正でも機能追加でもないコード変更              |
-| `perf`     | パフォーマンス改善                                  |
-| `test`     | テストの追加・修正                                  |
-| `chore`    | ビルドプロセスやツールの変更                        |
-| `build`    | ビルドシステムや外部依存関係に影響する変更          |
-| `ci`       | CI 設定ファイルやスクリプトの変更                   |
-
-**scope の推測:**
-
-- 単一ディレクトリの変更 → そのディレクトリ名
-- 複数ディレクトリの変更 → 共通の親または省略
-- 設定ファイルの変更 → `config` または省略
-
-**subject のルール:**
-
-- 命令形で書く
-- 先頭を小文字にする (英語の場合)
-- 末尾にピリオドを付けない
-- 50 文字以内を目安
-
-### 6. コミット前の承認確認
-
-**必須:** コミットメッセージ候補をユーザーに提示し、承認を求める。
+**必須:** commit-proposer の提案をユーザーに提示し、承認を求める。
 
 **提示フォーマット:**
 
@@ -211,7 +146,7 @@ git diff --cached
 
 ユーザーが修正案を入力した場合は、その内容でコミットを実行する。
 
-### 7. コミットの実行
+### 5. コミットの実行
 
 承認されたメッセージでコミットを実行:
 
@@ -236,7 +171,7 @@ EOF
 )"
 ```
 
-### 8. 完了報告
+### 6. 完了報告
 
 ```bash
 # コミット結果を確認

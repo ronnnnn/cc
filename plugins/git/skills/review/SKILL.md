@@ -1,6 +1,6 @@
 ---
 name: review
-description: ローカルの変更 (staged/unstaged) をレビューし、指摘箇所を自動修正する。修正がなくなるまで繰り返す。
+description: ローカルの変更 (staged/unstaged) をレビューし、指摘箇所を自動修正する。指摘がなくなるまで最大 3 回繰り返す。
 allowed-tools:
   - Bash
   - Read
@@ -12,7 +12,6 @@ allowed-tools:
   - TaskCreate
   - TaskUpdate
   - TaskList
-  - ToolSearch
 version: 0.1.0
 ---
 
@@ -34,9 +33,7 @@ version: 0.1.0
 
 ```
 TaskCreate({ subject: "ローカル差分の取得", description: "git diff HEAD で全変更を取得", activeForm: "差分を取得中" })
-TaskCreate({ subject: "MCP 利用可能性の確認", description: "Codex/Gemini MCP の利用可能性を確認", activeForm: "MCP を確認中" })
-TaskCreate({ subject: "並列レビューの実行", description: "Claude/Codex/Gemini で並列レビュー", activeForm: "並列レビューを実行中" })
-TaskCreate({ subject: "レビュー結果の統合", description: "重複排除と severity 統一", activeForm: "結果を統合中" })
+TaskCreate({ subject: "並列レビューの実行", description: "code-reviewer subagent で並列レビュー", activeForm: "並列レビューを実行中" })
 TaskCreate({ subject: "自動修正の実行", description: "修正が必要な指摘を自動修正", activeForm: "自動修正を実行中" })
 TaskCreate({ subject: "再レビュー", description: "修正後に再度レビュー (最大 3 回)", activeForm: "再レビューを実行中" })
 TaskCreate({ subject: "完了報告", description: "修正サマリと残課題を報告", activeForm: "完了報告を作成中" })
@@ -70,93 +67,31 @@ git diff HEAD --name-only
 レビュー対象の変更がありません。
 ```
 
-### 2. MCP 利用可能性の確認
+### 2. 並列レビューの実行
 
-ToolSearch tool で各 MCP の利用可能性を確認:
+**code-reviewer subagent を Task ツールで呼び出す。**
 
 ```
-ToolSearch: select:mcp__codex__codex
-ToolSearch: select:mcp__gemini__ask-gemini
+Task({
+  subagent_type: "git:code-reviewer",
+  description: "ローカル変更の並列レビュー",
+  prompt: "ローカルの変更差分をレビューしてください。`git diff HEAD` で差分を取得し、Claude/Codex MCP/Gemini MCP で並列レビューを実行して結果を統合してください。"
+})
 ```
 
-利用可能な MCP をリストアップする。
+subagent が以下を自動で実行する:
 
-### 3. 並列レビューの実行
+- MCP (Codex, Gemini) の利用可能性確認
+- Claude 自身のレビュー + 利用可能な MCP に並列依頼
+- 結果の統合・重複排除・severity 統一
 
-**`code-review` スキルを参照して、各 AI へのレビュー依頼方法を確認する。**
+subagent から返却された統合結果に基づき、修正可能性を判断する:
 
-Task tool で 3 つの sub agent を**並列に**起動する。各 sub agent は自分で差分を取得する。
+**自動修正対象:**
 
-```markdown
-# Task 1: Claude レビュー
-
-Task tool:
-subagent_type: general-purpose
-prompt: |
-ローカルの変更をレビューしてください。
-
-    手順:
-    1. `git diff HEAD` でローカルの差分を取得
-    2. 差分をレビューし、バグ、セキュリティ問題、パフォーマンス問題を確認
-
-    出力フォーマット:
-    ## Issues Found
-    1. **[SEVERITY: CRITICAL/HIGH/MEDIUM/LOW]** [file:line] - 説明
-       - 問題: ...
-       - 修正案: 具体的なコード修正案
-
-# Task 2: Codex レビュー (MCP 利用可能時)
-
-Task tool:
-subagent_type: general-purpose
-prompt: |
-Codex MCP を使用してローカル変更をレビューしてください。
-
-    手順:
-    1. ToolSearch で mcp__codex__codex を選択
-    2. codex ツールを実行:
-       prompt: "/review"
-       cwd: "<カレントディレクトリの絶対パス>"
-    3. Codex の結果を以下のフォーマットに変換して返す
-
-    出力フォーマット:
-    ## Issues Found
-    1. **[SEVERITY: CRITICAL/HIGH/MEDIUM/LOW]** [file:line] - 説明
-       - 問題: ...
-       - 修正案: 具体的なコード修正案
-
-# Task 3: Gemini レビュー (MCP 利用可能時)
-
-Task tool:
-subagent_type: general-purpose
-prompt: |
-Gemini MCP を使用してローカル変更をレビューしてください。
-
-    手順:
-    1. ToolSearch で mcp__gemini__ask-gemini を選択
-    2. ask-gemini ツールを実行:
-       prompt: "/bug <カレントディレクトリの絶対パス>"
-    3. Gemini の結果を以下のフォーマットに変換して返す
-
-    出力フォーマット:
-    ## Issues Found
-    1. **[SEVERITY: CRITICAL/HIGH/MEDIUM/LOW]** [file:line] - 説明
-       - 問題: ...
-       - 修正案: 具体的なコード修正案
-```
-
-**重要:** 3 つの Task を単一のメッセージ内で並列に呼び出すこと。
-
-### 4. レビュー結果の統合
-
-各 AI からの結果を統合する:
-
-1. **重複排除**: 同じファイル・行への指摘はマージ
-2. **severity 統一**: CRITICAL > HIGH > MEDIUM > LOW
-3. **修正可能性判断**: 以下の指摘のみ自動修正対象
-   - 具体的な修正案がある
-   - ファイル・行番号が明確
-   - 機械的に修正可能
+- 具体的な修正案がある
+- ファイル・行番号が明確
+- 機械的に修正可能
 
 **自動修正しない指摘:**
 
@@ -164,7 +99,7 @@ Gemini MCP を使用してローカル変更をレビューしてください。
 - 複数ファイルにまたがる修正
 - 判断が必要な修正
 
-### 5. 自動修正の実行
+### 3. 自動修正の実行
 
 修正が必要な指摘に対して、承認なしで自動修正を行う:
 
@@ -183,7 +118,7 @@ Gemini MCP を使用してローカル変更をレビューしてください。
    ...
 ```
 
-### 6. 再レビュー (必要な場合)
+### 4. 再レビュー (必要な場合)
 
 修正後、再度レビューを実行する:
 
@@ -194,7 +129,7 @@ git diff HEAD
 
 **繰り返し条件:**
 
-- 新たな指摘がある場合 → ステップ 3 に戻る
+- 新たな指摘がある場合 → ステップ 2 に戻る
 - 指摘がない場合 → 完了報告へ
 
 **最大繰り返し回数:** 3 回
@@ -211,7 +146,7 @@ git diff HEAD
    - 推奨: ...
 ```
 
-### 7. 完了報告
+### 5. 完了報告
 
 ```markdown
 ## ローカルレビュー完了
@@ -237,10 +172,6 @@ git diff HEAD
 
 ## エラーハンドリング
 
-### MCP が利用できない場合
-
-Claude 単独でレビューを実行し、修正を行う。
-
 ### 修正に失敗した場合
 
 ```markdown
@@ -251,23 +182,4 @@ Claude 単独でレビューを実行し、修正を行う。
 - **src/api/users.ts:42**
   - 理由: 該当行が見つかりません (ファイルが変更された可能性)
   - 対応: 手動での修正が必要
-```
-
-### 変更が大きすぎる場合
-
-まずはコードベース全体を対象にレビューを試みる。
-各 AI がトークン制限やサイズ制限で処理できない場合のみ、主要なファイルに絞ってレビューを行う:
-
-```markdown
-変更が大きいため、主要なファイルに絞ってレビューします。
-
-重点レビュー対象:
-
-- src/core/\*.ts (コア機能)
-- src/api/\*.ts (API エンドポイント)
-
-除外:
-
-- \*.test.ts (テストファイル)
-- \*.d.ts (型定義)
 ```

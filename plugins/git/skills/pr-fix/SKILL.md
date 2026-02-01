@@ -10,6 +10,7 @@ allowed-tools:
   - Grep
   - Write
   - AskUserQuestion
+  - Task
   - TaskCreate
   - TaskUpdate
   - TaskList
@@ -26,7 +27,7 @@ PR のレビューコメントを確認し、必要な修正を行う。
 2. **レビューの妥当性を判断し、修正が必要なもののみ修正する**
 3. **コミット前に必ずユーザーの承認を取る** - 自動でコミットしない
 4. **返信コメント前に必ずユーザーの承認を取る** - 自動で返信を投稿しない
-5. **コミットメッセージは Conventional Commits / commitlint 設定に準拠する**
+5. **コミットメッセージは commit-proposer subagent で Conventional Commits / commitlint 設定に準拠して生成する**
 6. **コミットメッセージ・返信コメントの言語は対象リポジトリに従う** - 既存の PR やコミット履歴を確認し、リポジトリで使用されている言語 (日本語/英語等) に合わせる
 7. **日本語でコミットメッセージ・返信コメントを書く場合は `japanese-text-style` スキルに従う** - スペース、句読点、括弧のルールを適用する
 8. **修正は最小限に留める** - レビュー指摘以外の変更は含めない
@@ -42,7 +43,8 @@ TaskCreate({ subject: "未解決のレビューコメントを取得", descripti
 TaskCreate({ subject: "レビューコメントの分析", description: "各コメントの妥当性を判断", activeForm: "レビューコメントを分析中" })
 TaskCreate({ subject: "修正計画の提示", description: "ユーザーに修正計画の承認を求める", activeForm: "修正計画を提示中" })
 TaskCreate({ subject: "コード修正の実行", description: "承認された修正を適用", activeForm: "コードを修正中" })
-TaskCreate({ subject: "commitlint 設定の確認", description: "commitlint 設定ファイルを探索・解析", activeForm: "commitlint 設定を確認中" })
+TaskCreate({ subject: "変更のステージング", description: "修正したファイルを git add でステージング", activeForm: "変更をステージング中" })
+TaskCreate({ subject: "コミットメッセージの生成", description: "commit-proposer subagent でメッセージ候補を生成", activeForm: "コミットメッセージを生成中" })
 TaskCreate({ subject: "コミット前の承認確認", description: "ユーザーにコミットの承認を求める", activeForm: "コミット承認を確認中" })
 TaskCreate({ subject: "コミットの実行", description: "承認されたメッセージでコミット", activeForm: "コミットを実行中" })
 TaskCreate({ subject: "プッシュの実行", description: "git push でリモートに反映", activeForm: "プッシュを実行中" })
@@ -169,40 +171,29 @@ query($owner: String!, $repo: String!, $number: Int!) {
 git diff
 ```
 
-### 6. commitlint 設定の確認
+### 6. 変更のステージング
 
-**`conventional-commit` スキルを参照して、コミットメッセージの形式を決定する。**
-
-```bash
-# commitlint 設定ファイルを探す
-ls -la commitlint.config.{js,cjs,mjs,ts,cts} 2>/dev/null || \
-ls -la .commitlintrc{,.json,.yaml,.yml,.js,.cjs,.mjs,.ts,.cts} 2>/dev/null || \
-grep -l '"commitlint"' package.json 2>/dev/null
-```
-
-設定ファイルが見つかった場合:
-
-**1. 継承先 (子) ファイルの探索:**
+修正したファイルをステージングする:
 
 ```bash
-# 見つけた設定ファイルを継承している別のファイルがないか確認
-ls -la commitlint.config.*.{js,cjs,mjs,ts,cts} .commitlintrc.*.{json,yaml,yml,js,cjs,mjs,ts,cts} 2>/dev/null
+git add -A
 ```
 
-継承先ファイルが見つかった場合は、そちらを最終的な設定ファイルとして使用。
+### 7. コミットメッセージの生成
 
-**2. 設定ファイルの解析:**
+**commit-proposer subagent を Task ツールで呼び出す。**
 
-Read ツールで内容を確認し、以下を抽出:
+```
+Task({
+  subagent_type: "git:commit-proposer",
+  description: "コミットメッセージ候補の生成",
+  prompt: "ステージング済みの変更に対してコミットメッセージ候補を提案してください。コンテキスト: レビュー指摘に基づく修正です。"
+})
+```
 
-- `type-enum`: 許可される type 一覧
-- `scope-enum`: 許可される scope 一覧
-- `scope-empty`: scope の必須/任意
-- `extends`: 継承元設定 (継承チェーンを再帰的に解決)
+subagent が変更差分の分析、commitlint 設定の確認、メッセージ候補の生成を実行する。
 
-詳細な解析方法は `conventional-commit` スキルを参照。
-
-### 7. コミット前の承認確認
+### 8. コミット前の承認確認
 
 **必須:** 修正内容をユーザーに提示し、コミットの承認を求める。
 
@@ -237,19 +228,18 @@ fix(<scope>): レビュー指摘に基づく修正
 - レビュー指摘でスタイル修正 → `style`
 - レビュー指摘でドキュメント修正 → `docs`
 
-### 8. コミットの実行
+### 9. コミットの実行
 
 承認後、コミットを実行:
 
 ```bash
-git add -A
 git commit -m "<type>(<scope>): レビュー指摘に基づく修正
 
 - [修正内容 1]
 - [修正内容 2]"
 ```
 
-### 9. プッシュの実行
+### 10. プッシュの実行
 
 コミット完了後、リモートにプッシュ:
 
@@ -257,7 +247,7 @@ git commit -m "<type>(<scope>): レビュー指摘に基づく修正
 git push
 ```
 
-### 10. 返信コメントの作成
+### 11. 返信コメントの作成
 
 各レビューコメントへの返信を作成する。
 
@@ -269,7 +259,7 @@ git push
 | 議論結果で修正 | `ご指摘の通り修正しました。[補足説明]`                                        |
 | 対応しない     | `[理由] のため、現状のままとさせてください。ご意見があればお知らせください。` |
 
-### 11. 返信・resolve の承認確認
+### 12. 返信・resolve の承認確認
 
 **必須:** 返信内容と resolve 対象をユーザーに提示し、承認を求める:
 
@@ -304,7 +294,7 @@ git push
 | 対応不要と判断         | ✅           |
 | 議論継続中             | ❌           |
 
-### 12. 返信の投稿・スレッド resolve
+### 13. 返信の投稿・スレッド resolve
 
 承認後、リアクション追加・返信投稿・スレッド resolve を実行する。
 
@@ -350,7 +340,7 @@ mutation($threadId: ID!) {
 3. resolve を実行 (承認された場合のみ、`id` を使用)
 4. エラーが発生した場合は続行し、完了報告で失敗したスレッドを報告
 
-### 13. 完了報告
+### 14. 完了報告
 
 ```
 ## 修正完了

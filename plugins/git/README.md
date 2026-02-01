@@ -14,9 +14,16 @@ Git/GitHub 操作を効率化する Claude Code plugin です。
 | `/git:pr-fix`         | レビュー指摘を修正 (妥当性判断、コミット/返信前に承認)        |
 | `/git:pr-update`      | PR のタイトルと description を最新化                          |
 | `/git:review`         | ローカル変更を複数 AI でレビューし、指摘箇所を自動修正        |
-| `conventional-commit` | Conventional Commits と commitlint 設定ガイド                 |
 | `japanese-text-style` | 日本語テキストのスペース・句読点・括弧・文体ルール            |
-| `code-review`         | 複数 AI (Claude/Codex/Gemini) へのレビュー依頼方法            |
+| `/git:pr-ci`          | CI 失敗の調査・修正 (ci-analyzer subagent で原因分析)         |
+
+### Agents
+
+| エージェント      | 説明                                                                         |
+| ----------------- | ---------------------------------------------------------------------------- |
+| `ci-analyzer`     | CI 失敗のログを取得・分析し、原因と修正方針を構造化レポートで返却            |
+| `code-reviewer`   | 複数 AI (Claude/Codex MCP/Gemini MCP) で並列レビューし、結果を統合・重複排除 |
+| `commit-proposer` | 変更差分を分析し、commitlint 設定に準拠したコミットメッセージ候補を提案      |
 
 ## インストール
 
@@ -65,11 +72,10 @@ claude plugin install git@cc --scope project
 **ワークフロー:**
 
 1. 全変更 (unstaged + untracked) を自動ステージング
-2. commitlint 設定を確認 (存在する場合)
-3. 変更内容を分析
-4. **コミットメッセージ候補を最大 3 つ提示** (推奨度順)
-5. **ユーザー承認を取得**
-6. 選択されたメッセージでコミット実行
+2. **commit-proposer subagent** が差分分析・commitlint 確認・メッセージ候補生成
+3. **コミットメッセージ候補を最大 3 つ提示** (推奨度順)
+4. **ユーザー承認を取得**
+5. 選択されたメッセージでコミット実行
 
 ### PR 作成
 
@@ -100,9 +106,9 @@ claude plugin install git@cc --scope project
 1. 未解決 (unresolved) のレビューコメントを取得
 2. 各コメントの妥当性を判断
 3. 修正が必要なもののみ修正
-4. commitlint 設定を確認 (存在する場合)
+4. **commit-proposer subagent** でコミットメッセージ生成
 5. **コミット前にユーザー承認を取得**
-6. Conventional Commits 形式でコミット実行 (commitlint 設定があれば準拠)
+6. Conventional Commits 形式でコミット実行
 7. **返信コメント前にユーザー承認を取得**
 8. レビューコメントに返信
 
@@ -131,11 +137,27 @@ claude plugin install git@cc --scope project
 **ワークフロー:**
 
 1. PR の差分を取得
-2. **並列で複数 AI (Claude/Codex MCP/Gemini MCP) にレビュー依頼**
-3. 結果を統合・重複排除
-4. インラインコメント案を作成
-5. **コメント投稿前にユーザー承認を取得**
-6. 承認後、PR にコメントを投稿
+2. **code-reviewer subagent** で並列レビュー (Claude/Codex MCP/Gemini MCP)
+3. インラインコメント案を作成
+4. **コメント投稿前にユーザー承認を取得**
+5. 承認後、PR にコメントを投稿
+
+### CI 失敗の調査・修正
+
+```bash
+/git:pr-ci      # 現在のブランチの PR の CI を調査・修正
+/git:pr-ci 123  # PR #123 の CI を調査・修正
+```
+
+**ワークフロー:**
+
+1. PR の CI チェック状態を取得
+2. **ci-analyzer subagent** が失敗ログを分析し原因を特定
+3. 分析結果と修正計画をユーザーに提示
+4. **修正方針の承認を取得**
+5. コードを修正しローカルで検証
+6. **コミット前にユーザー承認を取得**
+7. Conventional Commits 形式でコミット・プッシュ
 
 ### ローカルレビュー
 
@@ -146,11 +168,10 @@ claude plugin install git@cc --scope project
 **ワークフロー:**
 
 1. ローカル差分を取得 (staged + unstaged)
-2. **並列で複数 AI (Claude/Codex MCP/Gemini MCP) にレビュー依頼**
-3. 結果を統合・重複排除
-4. 修正が必要なものを**承認なしで自動修正**
-5. **指摘がなくなるまでレビュー・修正を繰り返す**
-6. 修正サマリを報告
+2. **code-reviewer subagent** で並列レビュー (Claude/Codex MCP/Gemini MCP)
+3. 修正が必要なものを**承認なしで自動修正**
+4. **指摘がなくなるまでレビュー・修正を繰り返す**
+5. 修正サマリを報告
 
 ## 前提条件
 
@@ -185,16 +206,14 @@ git/
 │   │   └── SKILL.md         # Description 更新スキル
 │   ├── review/
 │   │   └── SKILL.md         # ローカルレビュースキル
-│   ├── code-review/
-│   │   ├── SKILL.md         # 複数 AI レビューガイド
-│   │   └── references/
-│   │       └── mcp-prompts.md  # MCP プロンプトリファレンス
-│   ├── conventional-commit/
-│   │   ├── SKILL.md         # Conventional Commits ガイド
-│   │   └── references/
-│   │       └── commitlint-rules.md  # commitlint ルールリファレンス
-│   └── japanese-text-style/
-│       └── SKILL.md         # 日本語テキストスタイルガイド
+│   ├── japanese-text-style/
+│   │   └── SKILL.md         # 日本語テキストスタイルガイド
+│   └── pr-ci/
+│       └── SKILL.md         # CI 失敗の調査・修正スキル
+├── agents/
+│   ├── ci-analyzer.md       # CI 失敗分析エージェント
+│   ├── code-reviewer.md     # 複数 AI 並列レビューエージェント
+│   └── commit-proposer.md   # コミットメッセージ提案エージェント
 └── README.md
 ```
 
