@@ -16,7 +16,14 @@ Git/GitHub 操作を効率化する Claude Code plugin です。
 | `/git:review`         | ローカル変更を複数 AI でレビューし、指摘箇所を自動修正        |
 | `conventional-commit` | Conventional Commits と commitlint 設定ガイド                 |
 | `japanese-text-style` | 日本語テキストのスペース・句読点・括弧・文体ルール            |
+| `/git:pr-ci`          | CI 失敗の調査・修正 (ci-analyzer subagent で原因分析)         |
 | `code-review`         | 複数 AI (Claude/Codex/Gemini) へのレビュー依頼方法            |
+
+### Agents
+
+| エージェント  | 説明                                                              |
+| ------------- | ----------------------------------------------------------------- |
+| `ci-analyzer` | CI 失敗のログを取得・分析し、原因と修正方針を構造化レポートで返却 |
 
 ## インストール
 
@@ -137,6 +144,23 @@ claude plugin install git@cc --scope project
 5. **コメント投稿前にユーザー承認を取得**
 6. 承認後、PR にコメントを投稿
 
+### CI 失敗の調査・修正
+
+```bash
+/git:pr-ci      # 現在のブランチの PR の CI を調査・修正
+/git:pr-ci 123  # PR #123 の CI を調査・修正
+```
+
+**ワークフロー:**
+
+1. PR の CI チェック状態を取得
+2. **ci-analyzer subagent** が失敗ログを分析し原因を特定
+3. 分析結果と修正計画をユーザーに提示
+4. **修正方針の承認を取得**
+5. コードを修正しローカルで検証
+6. **コミット前にユーザー承認を取得**
+7. Conventional Commits 形式でコミット・プッシュ
+
 ### ローカルレビュー
 
 ```bash
@@ -193,8 +217,12 @@ git/
 │   │   ├── SKILL.md         # Conventional Commits ガイド
 │   │   └── references/
 │   │       └── commitlint-rules.md  # commitlint ルールリファレンス
-│   └── japanese-text-style/
-│       └── SKILL.md         # 日本語テキストスタイルガイド
+│   ├── japanese-text-style/
+│   │   └── SKILL.md         # 日本語テキストスタイルガイド
+│   └── pr-ci/
+│       └── SKILL.md         # CI 失敗の調査・修正スキル
+├── agents/
+│   └── ci-analyzer.md       # CI 失敗分析エージェント
 └── README.md
 ```
 
