@@ -79,7 +79,9 @@ tools: ['Bash', 'Read', 'Grep', 'Glob']
    ```
 
    **設定ファイルの解決:**
-   設定ファイルが見つかったら、その `extends` フィールドから継承チェーンをたどる。複数の設定ファイルが見つかった場合は、commitlint の標準的な優先順位 (commitlint.config > .commitlintrc > package.json) に従い、最も優先度の高いものを使用する。
+   設定ファイルが見つかったら、その `extends` フィールドから継承チェーンをたどる。
+   複数の設定ファイルが見つかった場合は、commitlint の標準的な優先順位 (commitlint.config > .commitlintrc > package.json) に従い、最も優先度の高いものを使用する。
+   同じ優先順位のファイルが見つかった場合は、継承関係を考慮して最も具体的な設定を使用する。
 
    **設定ファイルの解析:**
    Read ツールで内容を確認し、以下のルールを抽出する:
