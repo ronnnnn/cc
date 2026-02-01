@@ -43,6 +43,7 @@ TaskCreate({ subject: "未解決のレビューコメントを取得", descripti
 TaskCreate({ subject: "レビューコメントの分析", description: "各コメントの妥当性を判断", activeForm: "レビューコメントを分析中" })
 TaskCreate({ subject: "修正計画の提示", description: "ユーザーに修正計画の承認を求める", activeForm: "修正計画を提示中" })
 TaskCreate({ subject: "コード修正の実行", description: "承認された修正を適用", activeForm: "コードを修正中" })
+TaskCreate({ subject: "変更のステージング", description: "修正したファイルを git add でステージング", activeForm: "変更をステージング中" })
 TaskCreate({ subject: "コミットメッセージの生成", description: "commit-proposer subagent でメッセージ候補を生成", activeForm: "コミットメッセージを生成中" })
 TaskCreate({ subject: "コミット前の承認確認", description: "ユーザーにコミットの承認を求める", activeForm: "コミット承認を確認中" })
 TaskCreate({ subject: "コミットの実行", description: "承認されたメッセージでコミット", activeForm: "コミットを実行中" })
@@ -170,7 +171,15 @@ query($owner: String!, $repo: String!, $number: Int!) {
 git diff
 ```
 
-### 6. コミットメッセージの生成
+### 6. 変更のステージング
+
+修正したファイルをステージングする:
+
+```bash
+git add -A
+```
+
+### 7. コミットメッセージの生成
 
 **commit-proposer subagent を Task ツールで呼び出す。**
 
@@ -184,7 +193,7 @@ Task({
 
 subagent が変更差分の分析、commitlint 設定の確認、メッセージ候補の生成を実行する。
 
-### 7. コミット前の承認確認
+### 8. コミット前の承認確認
 
 **必須:** 修正内容をユーザーに提示し、コミットの承認を求める。
 
@@ -219,19 +228,18 @@ fix(<scope>): レビュー指摘に基づく修正
 - レビュー指摘でスタイル修正 → `style`
 - レビュー指摘でドキュメント修正 → `docs`
 
-### 8. コミットの実行
+### 9. コミットの実行
 
 承認後、コミットを実行:
 
 ```bash
-git add -A
 git commit -m "<type>(<scope>): レビュー指摘に基づく修正
 
 - [修正内容 1]
 - [修正内容 2]"
 ```
 
-### 9. プッシュの実行
+### 10. プッシュの実行
 
 コミット完了後、リモートにプッシュ:
 
@@ -239,7 +247,7 @@ git commit -m "<type>(<scope>): レビュー指摘に基づく修正
 git push
 ```
 
-### 10. 返信コメントの作成
+### 11. 返信コメントの作成
 
 各レビューコメントへの返信を作成する。
 
@@ -251,7 +259,7 @@ git push
 | 議論結果で修正 | `ご指摘の通り修正しました。[補足説明]`                                        |
 | 対応しない     | `[理由] のため、現状のままとさせてください。ご意見があればお知らせください。` |
 
-### 11. 返信・resolve の承認確認
+### 12. 返信・resolve の承認確認
 
 **必須:** 返信内容と resolve 対象をユーザーに提示し、承認を求める:
 
@@ -286,7 +294,7 @@ git push
 | 対応不要と判断         | ✅           |
 | 議論継続中             | ❌           |
 
-### 12. 返信の投稿・スレッド resolve
+### 13. 返信の投稿・スレッド resolve
 
 承認後、リアクション追加・返信投稿・スレッド resolve を実行する。
 
@@ -332,7 +340,7 @@ mutation($threadId: ID!) {
 3. resolve を実行 (承認された場合のみ、`id` を使用)
 4. エラーが発生した場合は続行し、完了報告で失敗したスレッドを報告
 
-### 13. 完了報告
+### 14. 完了報告
 
 ```
 ## 修正完了
