@@ -102,10 +102,11 @@ gh pr view <number> --json state,mergeable --jq '{state, mergeable}'
 #### 2b. 未解決レビューコメントの取得
 
 ```bash
-gh api graphql -f query='
-query($owner: String!, $repo: String!, $number: Int!) {
-  repository(owner: $owner, name: $repo) {
-    pullRequest(number: $number) {
+# <owner>, <repo>, <number> は実際の値に置き換える
+gh api graphql -F query='
+query {
+  repository(owner: "<owner>", name: "<repo>") {
+    pullRequest(number: <number>) {
       reviewThreads(first: 100) {
         nodes {
           id
@@ -123,7 +124,7 @@ query($owner: String!, $repo: String!, $number: Int!) {
       }
     }
   }
-}' -f owner=<owner> -f repo=<repo> -F number=<number>
+}'
 ```
 
 `isResolved: false` のスレッドのみ対象。未解決コメントがあれば `HAD_ACTIVITY = true` にする。
@@ -189,20 +190,22 @@ gh run list --commit "$HEAD_SHA" --json databaseId,status,conclusion,name
    gh api repos/{owner}/{repo}/pulls/comments/<databaseId>/reactions -f content="+1"
 
    # スレッドに返信 (GraphQL mutation、thread id 使用)
-   gh api graphql -f query='
-   mutation($threadId: ID!, $body: String!) {
-     addPullRequestReviewThreadReply(input: {pullRequestReviewThreadId: $threadId, body: $body}) {
+   # <thread_id>, <body> は実際の値に置き換える
+   gh api graphql -F query='
+   mutation {
+     addPullRequestReviewThreadReply(input: {pullRequestReviewThreadId: "<thread_id>", body: "<body>"}) {
        comment { id body }
      }
-   }' -f threadId="<thread_id>" -f body="返信内容"
+   }'
 
    # スレッドを resolve
-   gh api graphql -f query='
-   mutation($threadId: ID!) {
-     resolveReviewThread(input: {threadId: $threadId}) {
+   # <thread_id> は実際の値に置き換える
+   gh api graphql -F query='
+   mutation {
+     resolveReviewThread(input: {threadId: "<thread_id>"}) {
        thread { isResolved }
      }
-   }' -f threadId="<thread_id>"
+   }'
    ```
 
 **処理順序:** リアクション追加 → 返信投稿 → resolve。エラーが発生しても続行し、失敗を記録する。
