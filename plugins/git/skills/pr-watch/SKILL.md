@@ -1,0 +1,347 @@
+---
+name: pr-watch
+description: |
+  このスキルは、「PR を監視して」「PR をウォッチして」「PR を見張って」「watch PR」「monitor PR」「PR の監視を開始」「レビューと CI を自動修正して」「PR を自動で直して」「PR を自動修正して」などのリクエスト、または PR のレビューコメントと CI 失敗を 2 分間隔で定期監視し、自動で修正・コミット・プッシュ・返信を行う際に使用する。pr-fix と pr-ci の機能を統合し、ユーザー確認なしに自律実行する。最大 30 分間監視する (活動検出時は最大 120 分)。
+argument-hint: '[<pr-number>]'
+allowed-tools:
+  - Bash
+  - Read
+  - Edit
+  - Glob
+  - Grep
+  - Write
+  - Task
+  - TaskCreate
+  - TaskUpdate
+  - TaskList
+---
+
+# PR 監視・自動修正ワークフロー
+
+PR のレビューコメントと CI 失敗を定期監視し、検出次第自動で修正・コミット・プッシュ・返信を実行する。
+
+## 重要な原則
+
+1. **ユーザー確認は一切行わない** - 全ステップを自律的に実行する。修正ファイル数や変更規模に関わらず確認をスキップする
+2. **レビュー修正を CI 修正より優先する** - 同時に検出した場合はレビューを先に処理する。レビュー修正のプッシュ後、CI 結果が更新されるのを待ってから CI 修正に取りかかる
+3. **修正は最小限に留める** - レビュー指摘・CI エラーの修正に必要な変更のみ
+4. **コミットメッセージは commit-proposer subagent で生成する** - Conventional Commits / commitlint 設定に準拠
+5. **コミットメッセージ・返信コメントの言語は対象リポジトリに従う** - 既存の PR やコミット履歴を確認し、使用されている言語に合わせる
+6. **日本語でコミットメッセージ・返信コメントを書く場合は `japanese-text-style` スキルに従う**
+7. **対応不要と判断したレビューコメントは理由を返信して resolve する**
+8. **コンフリクトを検出したらユーザーに通知して監視を終了する**
+
+## 監視ルール
+
+| パラメータ   | 値                                                         |
+| ------------ | ---------------------------------------------------------- |
+| 監視間隔     | 2 分                                                       |
+| アイドル上限 | 30 分 (レビュー/CI 失敗が一度も検出されなかった場合に終了) |
+| 絶対上限     | 120 分 (`HAD_ACTIVITY` に関わらず強制終了)                 |
+| 即時終了条件 | コンフリクト検出、PR クローズ/マージ済み                   |
+| 修正発生時   | `START_TIME` をリセットせず引き続き監視を継続              |
+
+## 状態管理
+
+監視ループ全体で以下の状態を管理する:
+
+- `PR_NUMBER`: PR 番号
+- `OWNER`, `REPO`: リポジトリ情報
+- `START_TIME`: 監視開始時刻 (UNIX タイムスタンプ)
+- `HAD_ACTIVITY`: false (レビュー/CI 失敗を一度でも検出したら true にし、以降リセットしない)
+- `UNFIXABLE_RUNS`: 修正不可能と判断した CI run ID のリスト (以降のサイクルで同じ失敗の再処理をスキップする)
+- `CYCLE_COUNT`: 実行サイクル数
+- `REVIEW_COMMITS`: レビュー修正コミット数
+- `CI_COMMITS`: CI 修正コミット数
+- `REPLIED_COMMENTS`: 返信済みコメント数
+- `RESOLVED_THREADS`: resolve 済みスレッド数
+
+## 作業開始前の準備
+
+**必須:** 作業開始前に TaskCreate ツールで以下のタスクを登録する:
+
+```
+TaskCreate({ subject: "PR の特定", description: "引数または現在のブランチから PR を特定", activeForm: "PR を特定中" })
+TaskCreate({ subject: "監視ループの実行", description: "2 分間隔で PR の状態を確認し、レビュー/CI 失敗を検出・修正", activeForm: "PR を監視中" })
+TaskCreate({ subject: "監視終了・完了報告", description: "監視結果を集計して報告", activeForm: "完了報告を作成中" })
+```
+
+各ステップの開始時に TaskUpdate で `in_progress` に、完了時に `completed` に更新する。
+
+## 実行手順
+
+### 1. PR の特定
+
+引数で PR 番号が指定されていない場合、現在のブランチから PR を特定する:
+
+```bash
+gh pr view --json number,title,headRefName,state --jq '{number, title, headRefName, state}'
+```
+
+- PR が `MERGED` または `CLOSED` の場合は監視を開始せず終了する
+- PR が見つからない場合は「現在のブランチに紐づく PR が見つかりません。PR 番号を指定して再実行してください。」と報告して終了する
+
+状態変数を初期化する。
+
+### 2. 監視ループ
+
+以下のサイクルを繰り返す。各サイクルの先頭で経過時間を確認する:
+
+- 120 分を超過 → 無条件で監視を終了する
+- 30 分を超過 かつ `HAD_ACTIVITY` が false → 監視を終了する
+
+#### 2a. PR 状態チェック
+
+```bash
+gh pr view <number> --json state,mergeable --jq '{state, mergeable}'
+```
+
+- `state` が `MERGED` / `CLOSED` → 監視終了
+- `mergeable` が `CONFLICTING` → ユーザーに通知して監視終了
+
+#### 2b. 未解決レビューコメントの取得
+
+```bash
+gh api graphql -f query='
+query($owner: String!, $repo: String!, $number: Int!) {
+  repository(owner: $owner, name: $repo) {
+    pullRequest(number: $number) {
+      reviewThreads(first: 100) {
+        nodes {
+          id
+          isResolved
+          comments(first: 10) {
+            nodes {
+              databaseId
+              body
+              path
+              line
+              author { login }
+            }
+          }
+        }
+      }
+    }
+  }
+}' -f owner=<owner> -f repo=<repo> -F number=<number>
+```
+
+`isResolved: false` のスレッドのみ対象。未解決コメントがあれば `HAD_ACTIVITY = true` にする。
+
+#### 2c. CI 失敗の確認
+
+```bash
+HEAD_SHA=$(gh pr view <number> --json headRefOid --jq '.headRefOid')
+gh run list --commit "$HEAD_SHA" --json databaseId,status,conclusion,name --limit 10
+```
+
+- `conclusion` が `failure` の run があれば `HAD_ACTIVITY = true` にする
+- `status` が `in_progress` の run がある場合、このサイクルでは CI 修正をスキップする (CI 結果が確定するのを待つ)
+- run 結果が空 (プッシュ直後で CI 未開始) の場合も CI 修正をスキップする
+- `UNFIXABLE_RUNS` に含まれる run ID はスキップする
+
+#### 2d. レビュー修正の実行 (未解決コメントがある場合)
+
+**妥当性判断の基準:**
+
+| 指摘の種類                       | 判断       | 対応                                       |
+| -------------------------------- | ---------- | ------------------------------------------ |
+| コードの正確性に関する指摘       | 修正が必要 | コードを修正                               |
+| セキュリティに関する指摘         | 修正が必要 | コードを修正                               |
+| パフォーマンスに関する指摘       | 修正が必要 | コードを修正                               |
+| スタイルや好みの問題 (`nits:`)   | 内容次第   | コードを修正または、理由を返信して resolve |
+| 誤解に基づく指摘                 | 対応不要   | 説明を返信して resolve                     |
+| 既に別のコミットで対応済みの指摘 | 対応不要   | 対応済みの旨を返信して resolve             |
+
+**処理フロー:**
+
+1. 各未解決コメントの妥当性を上記基準で判断する
+2. 修正が必要なコメントに対してコードを修正する
+3. 修正したファイルをステージングする: `git add <修正ファイル>`
+4. commit-proposer subagent でコミットメッセージを生成する:
+
+   ```
+   Task({
+     subagent_type: "git:commit-proposer",
+     description: "コミットメッセージ候補の生成",
+     prompt: "ステージング済みの変更に対してコミットメッセージ候補を提案してください。コンテキスト: レビュー指摘に基づく修正です。"
+   })
+   ```
+
+   subagent がエラーを返した場合は、変更差分から Conventional Commits 形式のメッセージを自前で生成する。
+
+5. 推奨メッセージ (候補 1) でコミットする
+
+   ```bash
+   git commit -m "$(cat <<'EOF'
+   <type>(<scope>): <subject>
+
+   <body>
+   EOF
+   )"
+   ```
+
+6. `git push` でリモートに反映する
+7. 各コメントに返信・リアクション・resolve を実行する:
+
+   ```bash
+   # 元のコメントに +1 リアクション (databaseId 使用)
+   gh api repos/{owner}/{repo}/pulls/comments/<databaseId>/reactions -f content="+1"
+
+   # スレッドに返信 (GraphQL mutation、thread id 使用)
+   gh api graphql -f query='
+   mutation($threadId: ID!, $body: String!) {
+     addPullRequestReviewThreadReply(input: {pullRequestReviewThreadId: $threadId, body: $body}) {
+       comment { id body }
+     }
+   }' -f threadId="<thread_id>" -f body="返信内容"
+
+   # スレッドを resolve
+   gh api graphql -f query='
+   mutation($threadId: ID!) {
+     resolveReviewThread(input: {threadId: $threadId}) {
+       thread { isResolved }
+     }
+   }' -f threadId="<thread_id>"
+   ```
+
+**処理順序:** リアクション追加 → 返信投稿 → resolve。エラーが発生しても続行し、失敗を記録する。
+
+**返信テンプレート:**
+
+| 対応タイプ | 返信例                                        |
+| ---------- | --------------------------------------------- |
+| 修正完了   | `修正しました。ご指摘ありがとうございます。`  |
+| 対応しない | `[理由] のため、現状のままとさせてください。` |
+| 対応済み   | `[コミット hash] で対応済みです。`            |
+
+**ソース参照ルール:**
+
+理由を添えて返信する場合 (対応しない、内容次第で対応不要と判断した場合など)、信頼できるソースの情報を参照できるときはコメントにも記載する。
+
+- 公式ドキュメント (言語仕様、フレームワーク公式ドキュメント等) の URL
+- プロジェクト内の既存コード・設定ファイルのパスと行番号
+- lint ルールやコーディング規約の該当セクション
+- RFC やセキュリティアドバイザリ等の公的な技術文書
+
+**例:**
+
+```
+Go の仕様上、nil map への読み取りはゼロ値を返すためパニックしません。
+ref: https://go.dev/ref/spec#Index_expressions
+
+現状のままとさせてください。
+```
+
+カウンタを更新: `REVIEW_COMMITS`, `REPLIED_COMMENTS`, `RESOLVED_THREADS`。
+
+#### 2e. CI 修正の実行 (失敗がある場合)
+
+**処理フロー:**
+
+1. ci-analyzer subagent で失敗原因を調査する:
+
+   ```
+   Task({
+     subagent_type: "git:ci-analyzer",
+     description: "CI 失敗原因の調査",
+     prompt: "PR #<number> (ブランチ: <branch>) の CI 失敗を調査してください。"
+   })
+   ```
+
+   subagent がエラーを返した場合は、直接 `gh run view <run-id> --log-failed` でログを取得して分析する。
+
+2. 自動修正可能なエラーのみ修正する
+
+   | エラー種別             | 自動修正 |
+   | ---------------------- | -------- |
+   | Lint/フォーマット      | 可能     |
+   | 型エラー・ビルドエラー | 可能     |
+   | テスト失敗             | 可能     |
+   | 依存関係               | 可能     |
+   | 環境変数・secret       | **不可** |
+   | 権限・認証             | **不可** |
+
+3. 修正不可能なエラーの run ID を `UNFIXABLE_RUNS` に追加し、以降のサイクルで再処理をスキップする。完了報告で通知する
+4. 修正したファイルをステージング: `git add <修正ファイル>`
+5. commit-proposer subagent でコミットメッセージを生成する (エラー時は自前生成にフォールバック)
+6. 推奨メッセージでコミットする
+7. `git push` でリモートに反映する
+
+カウンタを更新: `CI_COMMITS`。
+
+#### 2f. 次のサイクルへ
+
+レビュー修正・CI 修正のいずれも不要だった場合、2 分間スリープする:
+
+```bash
+# Bash ツールの timeout パラメータを 150000 (150 秒) に設定して実行
+sleep 120
+```
+
+修正を行った場合はスリープせず即座に次のサイクルへ進む (プッシュ直後の CI 結果を早く確認するため)。ただし、CI が `in_progress` の場合はステップ 2c のスキップ条件により、新しい CI 結果が確定するまで待機する。
+
+`CYCLE_COUNT` をインクリメントする。
+
+### 3. 監視終了・完了報告
+
+```
+## PR 監視完了
+
+- PR: #<number> (<title>)
+- 監視時間: <elapsed> 分
+- 監視サイクル数: N
+
+### レビュー修正
+- 修正コミット数: X
+- 返信済みコメント数: Y
+- resolve 済みスレッド数: Z
+
+### CI 修正
+- 修正コミット数: A
+- 修正不可能だったエラー: (該当する場合のみ記載)
+
+### 終了理由
+<アイドルタイムアウト (30 分) / 絶対上限到達 (120 分) / PR マージ済み / PR クローズ済み / コンフリクト検出>
+
+PR URL: <url>
+```
+
+**初回チェックでレビュー/CI 失敗がなく、全 CI が成功している場合:**
+
+```
+## PR 状態確認完了
+
+全ての CI チェックが成功しており、未解決のレビューコメントもありません。
+監視を開始しましたが、現時点で対応が必要な項目はありません。
+30 分間の監視を継続します。新しいレビューや CI 失敗が発生次第、自動修正します。
+```
+
+## エラーハンドリング
+
+### コンフリクト検出時
+
+```
+## コンフリクト検出 - 監視を終了します
+
+PR #<number> でコンフリクトが検出されました。
+手動でコンフリクトを解消してから、再度 `/pr-watch` を実行してください。
+```
+
+### gh CLI エラー時
+
+`gh api` コマンドで GitHub API に直接アクセスする。それでも失敗する場合はエラーをログに記録して次のサイクルに進む。3 サイクル連続で GitHub API エラーが発生した場合は、ネットワーク障害と判断して監視を終了する。
+
+### プッシュ失敗時
+
+```bash
+git pull --rebase origin <branch>
+git push
+```
+
+rebase が失敗した場合はコンフリクトとして扱い、監視を終了する。
+
+### subagent エラー時
+
+- **commit-proposer エラー:** 変更差分から Conventional Commits 形式のメッセージを自前で生成する。`git diff --cached --stat` と `git log --oneline -5` を参考にする
+- **ci-analyzer エラー:** 直接 `gh run view <run-id> --log-failed` でログを取得し、エラーメッセージを分析して修正を試みる
