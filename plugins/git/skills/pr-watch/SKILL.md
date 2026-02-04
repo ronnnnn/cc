@@ -132,7 +132,7 @@ query($owner: String!, $repo: String!, $number: Int!) {
 
 ```bash
 HEAD_SHA=$(gh pr view <number> --json headRefOid --jq '.headRefOid')
-gh run list --commit "$HEAD_SHA" --json databaseId,status,conclusion,name --limit 10
+gh run list --commit "$HEAD_SHA" --json databaseId,status,conclusion,name
 ```
 
 - `conclusion` が `failure` の run があれば `HAD_ACTIVITY = true` にする
@@ -275,7 +275,7 @@ ref: https://go.dev/ref/spec#Index_expressions
 レビュー修正・CI 修正のいずれも不要だった場合、2 分間スリープする:
 
 ```bash
-# Bash ツールの timeout パラメータを 150000 (150 秒) に設定して実行
+# Bash ツールの timeout パラメータは安全マージンとして 150000 (150 秒) 程度に設定し、実際のスリープは 120 秒とする
 sleep 120
 ```
 
