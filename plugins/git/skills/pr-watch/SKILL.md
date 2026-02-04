@@ -1,7 +1,7 @@
 ---
 name: pr-watch
 description: |
-  このスキルは、「PR を監視して」「PR をウォッチして」「PR を見張って」「watch PR」「monitor PR」「PR の監視を開始」「レビューと CI を自動修正して」「PR を自動で直して」「PR を自動修正して」などのリクエスト、または PR のレビューコメントと CI 失敗を 2 分間隔で定期監視し、自動で修正・コミット・プッシュ・返信を行う際に使用する。pr-fix と pr-ci の機能を統合し、ユーザー確認なしに自律実行する。最大 30 分間監視する (活動検出時は最大 120 分)。
+  このスキルは、「PR を監視して」「PR をウォッチして」「PR を見張って」「watch PR」「monitor PR」「PR の監視を開始」「レビューと CI を自動修正して」「PR を自動で直して」「PR を自動修正して」などとリクエストした時に使用する。PR のレビューコメントと CI 失敗を 2 分間隔で定期監視し、自動で修正・コミット・プッシュ・返信を行う。pr-fix と pr-ci の機能を統合し、ユーザー確認なしに自律実行する。最大 30 分間監視する (活動検出時は最大 120 分)。
 argument-hint: '[<pr-number>]'
 allowed-tools:
   - Bash
@@ -174,6 +174,7 @@ gh run list --commit "$HEAD_SHA" --json databaseId,status,conclusion,name
 5. 推奨メッセージ (候補 1) でコミットする
 
    ```bash
+   # <type>, <scope>, <subject>, <body> は commit-proposer の出力で置き換える
    git commit -m "$(cat <<'EOF'
    <type>(<scope>): <subject>
 
@@ -278,7 +279,7 @@ ref: https://go.dev/ref/spec#Index_expressions
 レビュー修正・CI 修正のいずれも不要だった場合、2 分間スリープする:
 
 ```bash
-# Bash ツールの timeout パラメータは安全マージンとして 150000 (150 秒) 程度に設定し、実際のスリープは 120 秒とする
+# Bash ツールの timeout パラメータ (ミリ秒) は安全マージンとして 180000 (180 秒) に設定し、実際のスリープは 120 秒とする
 sleep 120
 ```
 
