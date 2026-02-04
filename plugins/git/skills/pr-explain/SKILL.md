@@ -87,10 +87,11 @@ gh pr diff <number>
 
 ```bash
 # レビュースレッドのコメントを取得 (GraphQL で完全な議論を取得)
-gh api graphql -f query='
-query($owner: String!, $repo: String!, $number: Int!) {
-  repository(owner: $owner, name: $repo) {
-    pullRequest(number: $number) {
+# <owner>, <repo>, <number> は実際の値に置き換える
+gh api graphql -F query='
+query {
+  repository(owner: "<owner>", name: "<repo>") {
+    pullRequest(number: <number>) {
       reviews(first: 50) {
         nodes {
           body
@@ -114,7 +115,7 @@ query($owner: String!, $repo: String!, $number: Int!) {
       }
     }
   }
-}' -f owner=<owner> -f repo=<repo> -F number=<number>
+}'
 ```
 
 **PR コメント (一般):**
@@ -198,7 +199,8 @@ diff だけでは文脈が不十分な場合、変更対象ファイルの全体
 
 ```bash
 # ステップ 2 の GraphQL クエリを gh api graphql で実行
-gh api graphql -f query='...' -f owner=<owner> -f repo=<repo> -F number=<number>
+# <owner>, <repo>, <number> は実際の値に置き換える
+gh api graphql -F query='...'
 
 # PR メタデータは REST API で取得
 gh api repos/<owner>/<repo>/pulls/<number>

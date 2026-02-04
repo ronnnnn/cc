@@ -1,7 +1,7 @@
 ---
 name: commit-proposer
 description: |
-  ステージング済みの変更差分を分析し、commitlint 設定を確認した上で、Conventional Commits 形式のコミットメッセージ候補を提案する subagent。commit, pr-fix, pr-ci, pr-create スキルから Task ツールで呼び出される。
+  ステージング済みの変更差分を分析し、commitlint 設定を確認した上で、Conventional Commits 形式のコミットメッセージ候補を提案する subagent。commit, pr-fix, pr-ci, pr-create, pr-watch スキルから Task ツールで呼び出される。
 
   <example>
   Context: commit スキルがコミットメッセージ候補の生成を依頼する

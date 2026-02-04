@@ -78,10 +78,11 @@ gh api repos/{owner}/{repo}/pulls/<number>/comments \
 
 # レビュースレッドの状態を確認 (GraphQL)
 # 注意: id (スレッド resolve 用) と databaseId (リアクション API 用) の両方を取得する
-gh api graphql -f query='
-query($owner: String!, $repo: String!, $number: Int!) {
-  repository(owner: $owner, name: $repo) {
-    pullRequest(number: $number) {
+# <owner>, <repo>, <number> は実際の値に置き換える
+gh api graphql -F query='
+query {
+  repository(owner: "<owner>", name: "<repo>") {
+    pullRequest(number: <number>) {
       reviewThreads(first: 100) {
         nodes {
           id
@@ -99,7 +100,7 @@ query($owner: String!, $repo: String!, $number: Int!) {
       }
     }
   }
-}' -f owner=<owner> -f repo=<repo> -F number=<number>
+}'
 ```
 
 **注意:** `isResolved: false` のスレッドのみを対象とする。
@@ -258,6 +259,24 @@ git push
 | 議論結果で修正 | `ご指摘の通り修正しました。[補足説明]`                                        |
 | 対応しない     | `[理由] のため、現状のままとさせてください。ご意見があればお知らせください。` |
 
+**ソース参照ルール:**
+
+理由を添えて返信する場合 (対応しない、議論結果で修正など)、信頼できるソースの情報を参照できるときはコメントにも記載する。
+
+- 公式ドキュメント (言語仕様、フレームワーク公式ドキュメント、API ドキュメント等) の URL
+- プロジェクト内の既存コード・設定ファイルのパスと行番号
+- lint ルールやコーディング規約の該当セクション
+- RFC やセキュリティアドバイザリ等の公的な技術文書
+
+**例:**
+
+```
+現在の実装は React 公式ドキュメントの推奨パターンに沿っています。
+ref: https://react.dev/reference/react/useEffect#removing-unnecessary-object-dependencies
+
+現状のままとさせてください。ご意見があればお知らせください。
+```
+
 ### 12. 返信・resolve の承認確認
 
 **必須:** 返信内容と resolve 対象をユーザーに提示し、承認を求める:
@@ -307,29 +326,31 @@ gh api repos/{owner}/{repo}/pulls/comments/<databaseId>/reactions \
 
 # レビュースレッドへの返信 (GraphQL mutation)
 # thread_id はステップ 2 で取得した reviewThreads の id を使用
-gh api graphql -f query='
-mutation($threadId: ID!, $body: String!) {
-  addPullRequestReviewThreadReply(input: {pullRequestReviewThreadId: $threadId, body: $body}) {
+# <thread_id>, <body> は実際の値に置き換える
+gh api graphql -F query='
+mutation {
+  addPullRequestReviewThreadReply(input: {pullRequestReviewThreadId: "<thread_id>", body: "<body>"}) {
     comment {
       id
       body
     }
   }
-}' -f threadId="<thread_id>" -f body="返信内容"
+}'
 ```
 
 **ユーザーが resolve を承認した場合:**
 
 ```bash
 # スレッドを resolve (GraphQL mutation)
-gh api graphql -f query='
-mutation($threadId: ID!) {
-  resolveReviewThread(input: {threadId: $threadId}) {
+# <thread_id> は実際の値に置き換える
+gh api graphql -F query='
+mutation {
+  resolveReviewThread(input: {threadId: "<thread_id>"}) {
     thread {
       isResolved
     }
   }
-}' -f threadId="<thread_id>"
+}'
 ```
 
 **処理順序:**
