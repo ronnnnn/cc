@@ -74,6 +74,7 @@ ls -la CLAUDE.md 2>/dev/null
 
 以下のセクションを必須で含める:
 
+<!-- prettier-ignore -->
 ```markdown
 # [プロジェクト名]
 
@@ -106,7 +107,6 @@ ls -la CLAUDE.md 2>/dev/null
 
 優先順位: LSP → deepwiki MCP → Gemini MCP → context7 MCP → WebSearch
 
-<!-- prettier-ignore -->
 ※ Gemini MCP は mcp__gemini__ask-gemini で google_web_search を使用
 ```
 
