@@ -106,7 +106,8 @@ ls -la CLAUDE.md 2>/dev/null
 
 優先順位: LSP → deepwiki MCP → Gemini MCP → context7 MCP → WebSearch
 
-※ Gemini MCP は mcp**gemini**ask-gemini で google_web_search を使用
+<!-- prettier-ignore -->
+※ Gemini MCP は mcp__gemini__ask-gemini で google_web_search を使用
 ```
 
 ### 6. 最適化
