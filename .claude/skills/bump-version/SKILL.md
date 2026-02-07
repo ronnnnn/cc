@@ -49,7 +49,10 @@ TaskCreate({ subject: "完了報告", description: "更新結果を報告", acti
 
 1. `plugins/<target>/.claude-plugin/plugin.json` の `version` を `<version>` に更新
 2. `.claude-plugin/marketplace.json` の `plugins` 配列内で、`name` が `<target>` と一致するプラグインの `version` を `<version>` に更新
-3. `.claude-plugin/marketplace.json` の `metadata.version` のパッチバージョンをインクリメント (例: 1.6.0 → 1.6.1)
+3. `.claude-plugin/marketplace.json` の `metadata.version` を、プラグインと同じレベルでインクリメント:
+   - プラグインがパッチ更新 → marketplace もパッチをインクリメント (例: 2.7.0 → 2.7.1)
+   - プラグインがマイナー更新 → marketplace もマイナーをインクリメント (例: 2.7.0 → 2.8.0)
+   - プラグインがメジャー更新 → marketplace もメジャーをインクリメント (例: 2.7.0 → 3.0.0)
 
 ### マーケットプレースのバージョン更新の場合 (target が marketplace)
 
