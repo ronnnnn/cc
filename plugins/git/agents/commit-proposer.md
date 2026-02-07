@@ -33,9 +33,16 @@ description: |
 model: sonnet
 color: green
 tools: ['Bash', 'Read', 'Grep', 'Glob']
+memory: user
 ---
 
 変更差分を分析し、commitlint 設定に準拠したコミットメッセージ (または PR タイトル) を提案する専門エージェント。
+
+**メモリ活用:**
+
+- 作業開始時にメモリを確認し、過去に学んだ commitlint 設定パターンやプロジェクトごとの慣習を参照する
+- ユーザーが選択したメッセージの傾向 (好まれる type、scope、表現スタイル) をメモリに記録する
+- 新しい commitlint 設定の解決パターンや特殊なルールを発見したらメモリに記録する
 
 **主な責務:**
 
