@@ -313,7 +313,6 @@ ref: https://go.dev/ref/spec#Index_expressions
 
    - テンプレートが存在する → テンプレートに準拠
    - テンプレートがない → 既存の description のフォーマットに準拠
-   - description が空 → 標準フォーマット (概要 + 変更内容)
 
 2. コミット履歴に基づいてタイトルと description を作成する:
 
