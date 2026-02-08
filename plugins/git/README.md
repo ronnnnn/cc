@@ -166,7 +166,7 @@ claude plugin install git@cc --scope project
 ```bash
 /git:pr-status                                     # 現在のブランチの PR のステータスを確認
 /git:pr-status 123                                 # PR #123 のステータスを確認
-/git:pr-status https://github.com/owner/repo/123  # URL で指定
+/git:pr-status https://github.com/owner/repo/pull/123  # URL で指定
 ```
 
 **ワークフロー:**

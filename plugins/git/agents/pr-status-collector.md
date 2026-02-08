@@ -69,7 +69,7 @@ PR のステータス情報を収集する専門エージェント。
    **CI ステータス:**
 
    ```bash
-   gh pr checks <number> --json name,state,description,link
+   gh pr checks <number> --json name,status,conclusion,link
    ```
 
    **レビューステータス:**
@@ -134,9 +134,9 @@ PR のステータス情報を収集する専門エージェント。
 
    ### CI チェック
 
-   | チェック名 | ステータス                        | 詳細          |
-   | ---------- | --------------------------------- | ------------- |
-   | <name>     | <SUCCESS/FAILURE/PENDING/SKIPPED> | <description> |
+   | チェック名 | status   | conclusion                     |
+   | ---------- | -------- | ------------------------------ |
+   | <name>     | <status> | <SUCCESS/FAILURE/SKIPPED/null> |
 
    ### レビューステータス
 
