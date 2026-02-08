@@ -1,7 +1,7 @@
 {
   "name": "git",
-  "version": "2.8.0",
-  "description": "Git/GitHub ワークフロー向けスキル (コミット、PR 作成、PR レビュー、レビュー修正、PR 更新、PR 解説、ローカルレビュー、CI 分析・修正、PR 監視・自動修正)",
+  "version": "2.9.0",
+  "description": "Git/GitHub ワークフロー向けスキル (コミット、PR 作成、PR レビュー、レビュー修正、PR 更新、PR 解説、PR ステータス、ローカルレビュー、CI 分析・修正、PR 監視・自動修正)",
   "author": {
     "name": "ronnnnn",
     "email": "xxxx.xyzs.xxxx@gmail.com"
@@ -18,6 +18,7 @@
     "review",
     "workflow",
     "watch",
-    "monitor"
+    "monitor",
+    "status"
   ]
 }

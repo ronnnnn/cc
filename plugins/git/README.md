@@ -17,14 +17,16 @@ Git/GitHub 操作を効率化する Claude Code plugin です。
 | `/git:japanese-text-style` | 日本語テキストのスペース・句読点・括弧・文体ルール              |
 | `/git:pr-explain`          | PR の変更内容を包括的に収集・分析し、丁寧に解説                 |
 | `/git:pr-ci`               | CI 失敗の調査・修正 (ci-analyzer subagent で原因分析)           |
+| `/git:pr-status`           | PR のステータス (CI、レビュー、マージ可否) を簡潔に報告         |
 | `/git:pr-watch`            | PR を定期監視し、レビュー/CI 失敗を自動修正・コミット・プッシュ |
 
 ### Agents
 
-| エージェント      | 説明                                                                    |
-| ----------------- | ----------------------------------------------------------------------- |
-| `ci-analyzer`     | CI 失敗のログを取得・分析し、原因と修正方針を構造化レポートで返却       |
-| `commit-proposer` | 変更差分を分析し、commitlint 設定に準拠したコミットメッセージ候補を提案 |
+| エージェント          | 説明                                                                    |
+| --------------------- | ----------------------------------------------------------------------- |
+| `ci-analyzer`         | CI 失敗のログを取得・分析し、原因と修正方針を構造化レポートで返却       |
+| `commit-proposer`     | 変更差分を分析し、commitlint 設定に準拠したコミットメッセージ候補を提案 |
+| `pr-status-collector` | PR のステータス情報 (メタデータ、CI、レビュー、マージ可否) を収集       |
 
 ## インストール
 
@@ -159,6 +161,24 @@ claude plugin install git@cc --scope project
    - **背景説明**: なぜその変更をしたか
    - **実装説明**: 処理の流れを理解しやすい順序で解説
 
+### PR ステータス確認
+
+```bash
+/git:pr-status                                     # 現在のブランチの PR のステータスを確認
+/git:pr-status 123                                 # PR #123 のステータスを確認
+/git:pr-status https://github.com/owner/repo/123  # URL で指定
+```
+
+**ワークフロー:**
+
+1. PR のメタデータ、CI、レビュー、マージ可否を **pr-status-collector subagent** で並列収集
+2. 簡潔なステータスレポートを作成:
+   - **基本情報**: タイトル、作成者、ブランチ、変更規模
+   - **CI ステータス**: 各チェックの成功/失敗/進行中
+   - **レビューステータス**: 承認状況と未解決コメントのサマリ
+   - **マージ可否**: コンフリクト有無、必須チェック通過状況
+   - **次のアクション**: 状況に応じた推奨アクション
+
 ### CI 失敗の調査・修正
 
 ```bash
@@ -245,11 +265,14 @@ git/
 │   │   └── SKILL.md         # PR 解説スキル
 │   ├── pr-ci/
 │   │   └── SKILL.md         # CI 失敗の調査・修正スキル
-│   └── pr-watch/
-│       └── SKILL.md         # PR 監視・自動修正スキル
+│   ├── pr-watch/
+│   │   └── SKILL.md         # PR 監視・自動修正スキル
+│   └── pr-status/
+│       └── SKILL.md         # PR ステータス報告スキル
 ├── agents/
-│   ├── ci-analyzer.md       # CI 失敗分析エージェント
-│   └── commit-proposer.md   # コミットメッセージ提案エージェント
+│   ├── ci-analyzer.md          # CI 失敗分析エージェント
+│   ├── commit-proposer.md      # コミットメッセージ提案エージェント
+│   └── pr-status-collector.md  # PR ステータス情報収集エージェント
 └── README.md
 ```
 
