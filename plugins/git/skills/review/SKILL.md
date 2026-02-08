@@ -32,7 +32,7 @@ allowed-tools:
 
 ## 作業開始前の準備
 
-**必須:** 作業開始前に TaskCreate ツールで以下のステップをタスクとして登録する:
+**必須:** 作業開始前に TaskList で残存タスクを確認し、存在する場合は全て TaskUpdate({ status: "deleted" }) で削除する。その後、TaskCreate ツールで以下のステップをタスクとして登録する:
 
 ```
 TaskCreate({ subject: "ローカル差分の取得", description: "git diff HEAD で全変更を取得", activeForm: "差分を取得中" })

@@ -9,7 +9,7 @@ description: このスキルは、「ルールを作成」「create rules」「c
 
 ## 作業開始前の準備
 
-**必須:** 作業開始前に TaskCreate ツールで以下のステップをタスクとして登録する:
+**必須:** 作業開始前に TaskList で残存タスクを確認し、存在する場合は全て TaskUpdate({ status: "deleted" }) で削除する。その後、TaskCreate ツールで以下のステップをタスクとして登録する:
 
 ```
 TaskCreate({ subject: "分析対象の特定", description: "PR URL または AskUserQuestion でスコープを決定", activeForm: "分析対象を特定中" })
