@@ -14,7 +14,7 @@ TeamCreate({ team_name: "do-<timestamp>" })
 
 **コーディングタスクの場合** (Codex 委譲):
 
-ステップ 2 で作成した設計書と `codex-delegation.md` の実行手順を組み合わせて teammate のプロンプトを構築する。
+ステップ 2 で作成した設計書と `references/codex-delegation.md` の実行手順を組み合わせて teammate のプロンプトを構築する。
 
 ```
 Task({
