@@ -32,6 +32,10 @@ Task({
 
 <codex-delegation.md の手順 1〜5 を挿入>
 
+## 制約事項
+
+<codex-delegation.md の制約事項を挿入>
+
 ## チーム連携
 
 ### 他の teammate との連携

@@ -152,6 +152,10 @@ Task({
 ## 実行手順
 
 <references/codex-delegation.md の手順 1〜5 を挿入>
+
+## 制約事項
+
+<references/codex-delegation.md の制約事項を挿入>
 `
 })
 ```
@@ -240,5 +244,5 @@ AskUserQuestion({
 ### Codex 委譲の失敗
 
 - Codex セッション開始に失敗 → subagent 自身がコーディングを実行 (フォールバック)
-- Codex がタスクを完了できない → `codex-reply` で最大 2 回追加指示、それでも失敗した場合は subagent が直接実装
+- Codex がタスクを完了できない → `mcp__codex__codex-reply` で最大 2 回追加指示、それでも失敗した場合は subagent が直接実装
 - テスト作成のみ失敗 → コーディング結果は保持し、テスト作成失敗のみを報告
