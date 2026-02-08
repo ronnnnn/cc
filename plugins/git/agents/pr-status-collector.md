@@ -81,10 +81,14 @@ PR のステータス情報を収集する専門エージェント。
    **レビュースレッド (未解決コメント):**
 
    ```bash
-   gh api graphql -f query='
-   query {
-     repository(owner: "<owner>", name: "<repo>") {
-       pullRequest(number: <number>) {
+   gh api graphql \
+     -f owner='<owner>' \
+     -f repo='<repo>' \
+     -F number='<number>' \
+     -f query='
+   query($owner: String!, $repo: String!, $number: Int!) {
+     repository(owner: $owner, name: $repo) {
+       pullRequest(number: $number) {
          reviewThreads(first: 100) {
            nodes {
              isResolved
