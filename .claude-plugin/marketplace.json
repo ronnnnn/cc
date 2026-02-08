@@ -7,7 +7,7 @@
   },
   "metadata": {
     "description": "A collection of Claude Code plugins.",
-    "version": "2.9.2"
+    "version": "2.10.0"
   },
   "plugins": [
     {
@@ -38,7 +38,7 @@
     {
       "name": "claude",
       "description": "CLAUDE.md の作成・更新・品質管理、.claude/rules の作成、行動計画の作成、並列タスク実行を支援",
-      "version": "2.3.0",
+      "version": "2.4.0",
       "author": {
         "name": "ronnnnn",
         "email": "xxxx.xyzs.xxxx@gmail.com"

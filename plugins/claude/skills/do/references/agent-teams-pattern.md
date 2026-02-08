@@ -12,31 +12,63 @@ TeamCreate({ team_name: "do-<timestamp>" })
 
 各タスクに対して TaskCreate でタスクを登録し、Task で teammate を**単一メッセージ内で並列に起動**する。
 
+**コーディングタスクの場合** (Codex 委譲):
+
+ステップ 2 で作成した設計書と `codex-delegation.md` の実行手順を組み合わせて teammate のプロンプトを構築する。
+
 ```
-// タスクごとに teammate を起動
 Task({
   team_name: "do-<timestamp>",
   name: "task-1",
   subagent_type: "general-purpose",
-  description: "<タスク 1 の要約>",
-  prompt: `あなたは task-1 です。以下のタスクを実行してください:
+  description: "<タスクの要約>",
+  prompt: `あなたは task-1 です。以下のコーディングタスクを Codex MCP に委譲して実行する。
 
-<タスク 1 の詳細な指示>
+## 設計書
 
-## 手順
+<ステップ 2 で作成した設計書を挿入>
 
-### 1. タスクの実行
-指示に従ってタスクを実行する。
+## 実行手順
 
-### 2. 他の teammate との連携
+<codex-delegation.md の手順 1〜5 を挿入>
+
+## チーム連携
+
+### 他の teammate との連携
 他の teammate から SendMessage で発見が共有された場合、自分のタスクに関連があれば反応する。
 自分の発見が他の teammate に有益な場合は、SendMessage で共有する。
 
-### 3. 結果の送信
+### 結果の送信
+最終結果を lead に SendMessage で送信する。結果には codex-delegation.md の手順 5 の報告項目を含める。
+
+### タスク完了
+TaskUpdate で自分のタスクを completed に更新する。`
+})
+```
+
+**非コーディングタスクの場合** (従来どおり):
+
+```
+Task({
+  team_name: "do-<timestamp>",
+  name: "task-2",
+  subagent_type: "general-purpose",
+  description: "<タスクの要約>",
+  prompt: `あなたは task-2 です。以下のタスクを実行してください:
+
+<タスクの詳細な指示>
+
+## チーム連携
+
+### 他の teammate との連携
+他の teammate から SendMessage で発見が共有された場合、自分のタスクに関連があれば反応する。
+自分の発見が他の teammate に有益な場合は、SendMessage で共有する。
+
+### 結果の送信
 最終結果を lead に SendMessage で送信する。形式:
 
 \`\`\`markdown
-## Task 1 Results
+## Task Results
 
 **タスク:** <タスク名>
 **ステータス:** 完了 / 部分完了 / 失敗
@@ -48,16 +80,8 @@ Task({
 <詳細な結果>
 \`\`\`
 
-### 4. タスク完了
+### タスク完了
 TaskUpdate で自分のタスクを completed に更新する。`
-})
-
-Task({
-  team_name: "do-<timestamp>",
-  name: "task-2",
-  subagent_type: "general-purpose",
-  description: "<タスク 2 の要約>",
-  prompt: `...`  // 同様のフォーマット
 })
 
 // ... 残りのタスクも同様
