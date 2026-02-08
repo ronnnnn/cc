@@ -7,6 +7,7 @@ allowed-tools:
   - Read
   - Glob
   - Grep
+  - Skill
   - Task
   - TaskCreate
   - TaskUpdate
@@ -33,6 +34,7 @@ allowed-tools:
 
 ```
 TaskCreate({ subject: "事前確認", description: "ブランチ状態、リモート差分を確認", activeForm: "事前確認を実行中" })
+TaskCreate({ subject: "未コミット変更のコミット", description: "unstaged/staged の変更がある場合のみ commit スキルを実行", activeForm: "未コミット変更をコミット中" })
 TaskCreate({ subject: "PR テンプレートの確認", description: "PULL_REQUEST_TEMPLATE.md を探索・読み込み", activeForm: "PR テンプレートを確認中" })
 TaskCreate({ subject: "PR タイトルの生成", description: "commit-proposer subagent で commitlint 設定を確認し PR タイトル候補を生成", activeForm: "PR タイトルを生成中" })
 TaskCreate({ subject: "ラベルの選択", description: "リポジトリのラベル一覧から適切なものを選択", activeForm: "ラベルを選択中" })
@@ -63,13 +65,27 @@ git remote show origin | grep 'HEAD branch'
 
 **確認事項:**
 
-- 未コミットの変更がないこと
+- 未コミットの変更があるか (次のステップで対応)
 - リモートにプッシュ済みであること
 - ベースブランチとの差分があること
 
 未プッシュの場合は `git push -u origin <branch>` を実行する。
 
-### 2. PR テンプレートの確認
+### 2. 未コミット変更のコミット
+
+`git status` の結果から unstaged または staged の変更がある場合のみ実行する。変更がない場合はこのステップをスキップする。
+
+**変更がある場合:** commit スキルを Skill ツールで呼び出す。
+
+```
+Skill({ skill: "commit" })
+```
+
+commit スキルがステージング、コミットメッセージ生成、ユーザー承認、コミット実行を行う。
+
+コミット完了後、未プッシュであれば `git push -u origin <branch>` を実行する。
+
+### 3. PR テンプレートの確認
 
 ```bash
 # テンプレートファイルを探す
@@ -80,7 +96,7 @@ ls -la docs/PULL_REQUEST_TEMPLATE.md 2>/dev/null
 
 テンプレートが存在する場合は Read ツールで内容を確認し、そのフォーマットに準拠した description を作成する。
 
-### 3. PR タイトルの生成
+### 4. PR タイトルの生成
 
 **commit-proposer subagent を Task ツールで呼び出す。**
 
@@ -94,7 +110,7 @@ Task({
 
 subagent がコミット履歴の分析、commitlint 設定の確認、PR タイトル候補の生成を実行する。
 
-### 4. ラベルの選択
+### 5. ラベルの選択
 
 ```bash
 # リポジトリのラベル一覧を取得
@@ -115,7 +131,7 @@ gh label list --json name,description
 
 存在しないラベルは使用しない。
 
-### 5. CODEOWNERS の確認
+### 6. CODEOWNERS の確認
 
 ```bash
 # CODEOWNERS ファイルを探す
@@ -129,7 +145,7 @@ CODEOWNERS が存在する場合:
 1. 変更されたファイルのパスを確認
 2. 該当するオーナーを Reviewer として設定
 
-### 6. Draft PR 作成
+### 7. Draft PR 作成
 
 Draft PR を作成する:
 
@@ -144,7 +160,7 @@ gh pr create \
   --reviewer "<reviewer1>,<reviewer2>"
 ```
 
-### 7. 完了報告
+### 8. 完了報告
 
 作成された PR の URL を報告し、ブラウザで開く:
 
