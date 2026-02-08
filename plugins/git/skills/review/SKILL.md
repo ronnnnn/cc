@@ -167,7 +167,7 @@ ToolSearch で各 MCP の利用可能性を確認:
 - \`mcp__codex__codex\` を \`prompt: "/review"\`, \`cwd: "<対象ディレクトリの絶対パス>"\` で呼び出す
 
 **Gemini MCP レビュー (利用可能時):**
-- \`mcp__gemini__ask-gemini\` を \`prompt: "/bug <対象ディレクトリの絶対パス>"\` で呼び出す
+- \`mcp__gemini__ask-gemini\` を \`prompt: "/code-review <対象ディレクトリの絶対パス>"\` で呼び出す
 
 ### 4. 結果の統合
 
@@ -435,7 +435,7 @@ ToolSearch で確認: \`select:mcp__gemini__ask-gemini\`
 利用不可の場合は、その旨を lead に SendMessage で報告し、タスクを完了する。
 
 ### 2. Gemini MCP でレビュー
-\`mcp__gemini__ask-gemini\` を \`prompt: "/bug <対象ディレクトリの絶対パス>"\` で呼び出す。
+\`mcp__gemini__ask-gemini\` を \`prompt: "/code-review <対象ディレクトリの絶対パス>"\` で呼び出す。
 
 ### 3. 結果の送信
 Gemini の出力を lead に SendMessage で送信する。severity マッピング:
