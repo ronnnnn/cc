@@ -8,7 +8,8 @@ SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // empty' 2>/dev/null || \
   true)
 
 # TMPDIR はユーザー固有のため、シンボリックリンク攻撃のリスクを軽減
-SESSION_DIR="${TMPDIR:-/tmp}claude-caffeinate"
+SESSION_DIR="${TMPDIR:-/tmp}"
+SESSION_DIR="${SESSION_DIR%/}/claude-caffeinate"
 PID_FILE="$SESSION_DIR/caffeinate.pid"
 LOCK_DIR="$SESSION_DIR/.lock"
 
