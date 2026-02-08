@@ -34,7 +34,7 @@ PR のレビューコメントを確認し、必要な修正を行う。
 
 ## 作業開始前の準備
 
-**必須:** 作業開始前に TaskCreate ツールで以下のステップをタスクとして登録する:
+**必須:** 作業開始前に TaskList で残存タスクを確認し、存在する場合は全て TaskUpdate({ status: "deleted" }) で削除する。その後、TaskCreate ツールで以下のステップをタスクとして登録する:
 
 ```
 TaskCreate({ subject: "PR の特定", description: "引数または現在のブランチから PR を特定", activeForm: "PR を特定中" })

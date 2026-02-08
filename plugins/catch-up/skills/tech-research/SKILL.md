@@ -27,7 +27,7 @@ description: |
 
 ## 作業開始前の準備
 
-**必須:** 作業開始前に TaskCreate ツールで以下のステップをタスクとして登録する:
+**必須:** 作業開始前に TaskList で残存タスクを確認し、存在する場合は全て TaskUpdate({ status: "deleted" }) で削除する。その後、TaskCreate ツールで以下のステップをタスクとして登録する:
 
 ```
 TaskCreate({ subject: "調査対象の分類", description: "リクエストをカテゴリに分類し、使用するソースを決定", activeForm: "調査対象を分類中" })

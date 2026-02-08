@@ -27,7 +27,7 @@ argument-hint: [path]
 
 ## 作業開始前の準備
 
-**必須:** 作業開始前に TaskCreate ツールで以下のステップをタスクとして登録する:
+**必須:** 作業開始前に TaskList で残存タスクを確認し、存在する場合は全て TaskUpdate({ status: "deleted" }) で削除する。その後、TaskCreate ツールで以下のステップをタスクとして登録する:
 
 ```
 TaskCreate({ subject: "プロジェクト構造の分析", description: "パッケージマネージャー/ビルドツールを検出", activeForm: "プロジェクト構造を分析中" })

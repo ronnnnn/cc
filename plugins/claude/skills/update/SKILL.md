@@ -26,7 +26,7 @@ argument-hint: [path]
 
 ## 作業開始前の準備
 
-**必須:** 作業開始前に TaskCreate ツールで以下のステップをタスクとして登録する:
+**必須:** 作業開始前に TaskList で残存タスクを確認し、存在する場合は全て TaskUpdate({ status: "deleted" }) で削除する。その後、TaskCreate ツールで以下のステップをタスクとして登録する:
 
 ```
 TaskCreate({ subject: "CLAUDE.md の読み込み", description: "ファイルを読み込み、文字数を計測", activeForm: "CLAUDE.md を読み込み中" })

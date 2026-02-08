@@ -1,6 +1,6 @@
 # Claude Plugin
 
-CLAUDE.md ファイルの作成・更新・品質管理を支援する Claude Code plugin です。
+CLAUDE.md ファイルの作成・更新・品質管理、.claude/rules の作成を支援する Claude Code plugin です。
 
 ## 機能
 
@@ -11,7 +11,6 @@ CLAUDE.md ファイルの作成・更新・品質管理を支援する Claude Co
 | `/claude:init`    | CLAUDE.md を新規作成 (プロジェクト分析、テンプレート生成) |
 | `/claude:update`  | CLAUDE.md を精査・最適化 (冗長削除、必須セクション確認)   |
 | `create-rules`    | .claude/rules にプロジェクト固有の規約を抽出・保存        |
-| `plan`            | 資料を分析してフェーズ別行動計画を作成                    |
 | `claude-md-style` | CLAUDE.md スタイルガイド・ベストプラクティス              |
 
 ### Agents
@@ -123,10 +122,6 @@ claude/
 │   │   ├── SKILL.md         # ルール作成スキル
 │   │   └── references/
 │   │       └── rules-format.md
-│   ├── plan/
-│   │   ├── SKILL.md         # 行動計画スキル
-│   │   └── references/
-│   │       └── plan-format.md
 │   └── claude-md-style/
 │       └── SKILL.md         # スタイルガイドスキル
 └── README.md
