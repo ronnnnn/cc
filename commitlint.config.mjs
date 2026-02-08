@@ -24,6 +24,7 @@ export default {
       2,
       'always',
       [
+        'caffeine',
         'catch-up',
         'claude',
         'dev',

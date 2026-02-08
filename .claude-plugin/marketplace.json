@@ -7,7 +7,7 @@
   },
   "metadata": {
     "description": "A collection of Claude Code plugins.",
-    "version": "3.1.0"
+    "version": "3.2.0"
   },
   "plugins": [
     {
@@ -69,6 +69,21 @@
       "repository": "https://github.com/ronnnnn/cc",
       "license": "MIT",
       "keywords": ["version", "release", "latest", "github", "update"],
+      "category": "productivity"
+    },
+    {
+      "name": "caffeine",
+      "description": "Claude Code セッション中に macOS のスリープ・スクリーンセーバーを自動抑制",
+      "version": "1.0.0",
+      "author": {
+        "name": "ronnnnn",
+        "email": "xxxx.xyzs.xxxx@gmail.com"
+      },
+      "source": "./plugins/caffeine",
+      "homepage": "https://github.com/ronnnnn/cc/tree/main/plugins/caffeine",
+      "repository": "https://github.com/ronnnnn/cc",
+      "license": "MIT",
+      "keywords": ["macos", "sleep", "caffeinate", "screensaver"],
       "category": "productivity"
     },
     {

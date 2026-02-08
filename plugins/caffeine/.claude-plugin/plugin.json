@@ -1,0 +1,12 @@
+{
+  "name": "caffeine",
+  "version": "1.0.0",
+  "description": "Claude Code セッション中に macOS のスリープ・スクリーンセーバーを抑制する。SessionStart/SessionEnd フックで caffeinate を自動管理。",
+  "author": {
+    "name": "ronnnnn"
+  },
+  "homepage": "https://github.com/ronnnnn/cc/tree/main/plugins/caffeine",
+  "repository": "https://github.com/ronnnnn/cc",
+  "license": "MIT",
+  "keywords": ["macos", "sleep", "caffeinate", "screensaver"]
+}
