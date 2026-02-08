@@ -14,7 +14,11 @@ if [ -n "$SESSION_ID" ]; then
 fi
 
 # 他のセッションが残っていれば何もしない
-REMAINING=$(find "$SESSION_DIR" -name "session-*" 2>/dev/null | wc -l | tr -d ' ')
+if [ -d "$SESSION_DIR" ]; then
+  REMAINING=$(find "$SESSION_DIR" -name "session-*" 2>/dev/null | wc -l | tr -d ' ')
+else
+  REMAINING=0
+fi
 if [ "$REMAINING" -gt 0 ]; then
   exit 0
 fi
