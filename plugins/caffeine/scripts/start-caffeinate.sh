@@ -1,12 +1,25 @@
 #!/bin/bash
 set -euo pipefail
 
-PID_FILE="/tmp/claude-caffeinate.pid"
+# stdin から session_id を取得
+INPUT=$(cat)
+SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // empty' 2>/dev/null || true)
 
-# 既に caffeinate が動作中ならスキップ
+SESSION_DIR="/tmp/claude-caffeinate"
+PID_FILE="$SESSION_DIR/caffeinate.pid"
+
+mkdir -p "$SESSION_DIR"
+
+# セッションマーカーを作成
+if [ -n "$SESSION_ID" ]; then
+  touch "$SESSION_DIR/session-$SESSION_ID"
+fi
+
+# caffeinate が動作中でなければ起動
 if [ -f "$PID_FILE" ]; then
-  OLD_PID=$(cat "$PID_FILE")
-  if kill -0 "$OLD_PID" 2>/dev/null; then
+  OLD_PID=$(cat "$PID_FILE" 2>/dev/null || true)
+  if [[ "$OLD_PID" =~ ^[0-9]+$ ]] && [ "$OLD_PID" -gt 0 ] && \
+     ps -p "$OLD_PID" -o comm= 2>/dev/null | grep -qx "caffeinate"; then
     exit 0
   fi
   rm -f "$PID_FILE"
@@ -17,7 +30,7 @@ fi
 # -i: アイドルスリープ防止
 # -m: ディスクスリープ防止
 # -s: システムスリープ防止 (AC 電源時)
-caffeinate -dims &
+nohup caffeinate -dims > /dev/null 2>&1 &
 echo $! > "$PID_FILE"
 
 exit 0

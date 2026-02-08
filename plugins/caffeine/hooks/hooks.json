@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/start-caffeinate.sh",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/start-caffeinate.sh\"",
             "timeout": 10
           }
         ]
@@ -19,7 +19,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/stop-caffeinate.sh",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/stop-caffeinate.sh\"",
             "timeout": 10
           }
         ]
