@@ -1,0 +1,29 @@
+{
+  "description": "Claude Code セッション中の macOS スリープ・スクリーンセーバー抑制",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/start-caffeinate.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/scripts/stop-caffeinate.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
