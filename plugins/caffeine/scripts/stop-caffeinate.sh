@@ -22,9 +22,7 @@ if [ -d "$SESSION_DIR" ]; then
     sleep 0.1
     WAITED=$((WAITED + 1))
     if [ "$WAITED" -ge 100 ]; then
-      rmdir "$LOCK_DIR" 2>/dev/null || true
-      mkdir "$LOCK_DIR" 2>/dev/null || true
-      break
+      exit 0
     fi
   done
 fi

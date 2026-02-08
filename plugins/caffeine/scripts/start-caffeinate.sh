@@ -23,9 +23,7 @@ while ! mkdir "$LOCK_DIR" 2>/dev/null; do
   sleep 0.1
   WAITED=$((WAITED + 1))
   if [ "$WAITED" -ge 100 ]; then
-    rmdir "$LOCK_DIR" 2>/dev/null || true
-    mkdir "$LOCK_DIR" 2>/dev/null || true
-    break
+    exit 0
   fi
 done
 
@@ -49,7 +47,7 @@ fi
 # -i: アイドルスリープ防止
 # -m: ディスクスリープ防止
 # -s: システムスリープ防止 (AC 電源時)
-nohup caffeinate -dims > /dev/null 2>&1 &
+nohup /usr/bin/caffeinate -dims > /dev/null 2>&1 &
 echo $! > "$PID_FILE"
 
 exit 0
