@@ -32,12 +32,13 @@ if [ -n "$SESSION_ID" ]; then
   touch "$SESSION_DIR/session-$SESSION_ID"
 fi
 
-# caffeinate が動作中でなければ起動
+# 既存の caffeinate プロセスを停止 (PID ファイルベース)
 if [ -f "$PID_FILE" ]; then
   OLD_PID=$(cat "$PID_FILE" 2>/dev/null || true)
-  if [[ "$OLD_PID" =~ ^[0-9]+$ ]] && [ "$OLD_PID" -gt 0 ] && \
-     ps -p "$OLD_PID" -o comm= 2>/dev/null | grep -qx "caffeinate"; then
-    exit 0
+  if [[ "$OLD_PID" =~ ^[0-9]+$ ]] && [ "$OLD_PID" -gt 0 ]; then
+    if ps -p "$OLD_PID" -o comm= 2>/dev/null | grep -qx "caffeinate"; then
+      kill "$OLD_PID" 2>/dev/null || true
+    fi
   fi
   rm -f "$PID_FILE"
 fi
