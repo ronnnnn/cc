@@ -33,7 +33,7 @@ if [ -n "$SESSION_ID" ]; then
 fi
 
 # 古いセッションマーカーを削除 (SessionEnd 未発火時の残留対策)
-find "$SESSION_DIR" -type f -name "session-*" -mmin +240 -delete 2>/dev/null || true
+find "$SESSION_DIR" -type f -name "session-*" -mmin +120 -delete 2>/dev/null || true
 
 # 他のセッションが残っていれば何もしない
 if [ -d "$SESSION_DIR" ]; then

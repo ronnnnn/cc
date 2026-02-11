@@ -28,7 +28,7 @@ while ! mkdir "$LOCK_DIR" 2>/dev/null; do
 done
 
 # 古いセッションマーカーを削除 (SessionEnd 未発火時の残留対策)
-find "$SESSION_DIR" -type f -name "session-*" -mmin +240 -delete 2>/dev/null || true
+find "$SESSION_DIR" -type f -name "session-*" -mmin +120 -delete 2>/dev/null || true
 
 # 残存マーカーの mtime を更新 (長時間セッションの保護)
 find "$SESSION_DIR" -type f -name "session-*" -exec touch {} + 2>/dev/null || true
