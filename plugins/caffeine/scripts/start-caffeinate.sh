@@ -28,7 +28,10 @@ while ! mkdir "$LOCK_DIR" 2>/dev/null; do
 done
 
 # 古いセッションマーカーを削除 (SessionEnd 未発火時の残留対策)
-find "$SESSION_DIR" -name "session-*" -mmin +240 -delete 2>/dev/null || true
+find "$SESSION_DIR" -type f -name "session-*" -mmin +240 -delete 2>/dev/null || true
+
+# 残存マーカーの mtime を更新 (長時間セッションの保護)
+find "$SESSION_DIR" -type f -name "session-*" -exec touch {} + 2>/dev/null || true
 
 # セッションマーカーを作成
 if [ -n "$SESSION_ID" ]; then
@@ -39,7 +42,7 @@ fi
 if [ -f "$PID_FILE" ]; then
   OLD_PID=$(cat "$PID_FILE" 2>/dev/null || true)
   if [[ "$OLD_PID" =~ ^[0-9]+$ ]] && [ "$OLD_PID" -gt 0 ]; then
-    if ps -p "$OLD_PID" -o comm= 2>/dev/null | grep -q "caffeinate"; then
+    if ps -p "$OLD_PID" -o comm= 2>/dev/null | grep -Eq '(^|/)caffeinate$'; then
       kill "$OLD_PID" 2>/dev/null || true
     fi
   fi

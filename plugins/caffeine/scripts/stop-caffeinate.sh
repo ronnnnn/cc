@@ -33,11 +33,11 @@ if [ -n "$SESSION_ID" ]; then
 fi
 
 # 古いセッションマーカーを削除 (SessionEnd 未発火時の残留対策)
-find "$SESSION_DIR" -name "session-*" -mmin +240 -delete 2>/dev/null || true
+find "$SESSION_DIR" -type f -name "session-*" -mmin +240 -delete 2>/dev/null || true
 
 # 他のセッションが残っていれば何もしない
 if [ -d "$SESSION_DIR" ]; then
-  REMAINING=$(find "$SESSION_DIR" -name "session-*" 2>/dev/null | wc -l | tr -d ' ')
+  REMAINING=$(find "$SESSION_DIR" -type f -name "session-*" 2>/dev/null | wc -l | tr -d ' ')
 else
   REMAINING=0
 fi
@@ -49,7 +49,7 @@ fi
 if [ -f "$PID_FILE" ]; then
   PID=$(cat "$PID_FILE" 2>/dev/null || true)
   if [[ "$PID" =~ ^[0-9]+$ ]] && [ "$PID" -gt 0 ]; then
-    if ps -p "$PID" -o comm= 2>/dev/null | grep -q "caffeinate"; then
+    if ps -p "$PID" -o comm= 2>/dev/null | grep -Eq '(^|/)caffeinate$'; then
       kill "$PID" 2>/dev/null || true
     fi
   fi
