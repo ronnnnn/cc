@@ -1,6 +1,6 @@
 {
   "name": "caffeine",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Claude Code セッション中に macOS のスリープ・スクリーンセーバーを抑制する。SessionStart/SessionEnd フックで caffeinate を自動管理。",
   "author": {
     "name": "ronnnnn"
