@@ -154,9 +154,7 @@ ToolSearch で各 MCP の利用可能性を確認:
 
 ### 3. 並列レビューの実行
 
-利用可能な AI すべてに単一メッセージ内で並列にレビューを依頼する。
-
-**Claude レビュー (常に実行):**
+**Claude レビュー (常に実行・フォアグラウンド):**
 
 差分を直接分析し、以下の観点でレビューする:
 - バグ: 論理エラー、off-by-one、null 参照
@@ -166,10 +164,18 @@ ToolSearch で各 MCP の利用可能性を確認:
 - テスト: カバレッジ、エッジケース
 
 **Codex MCP レビュー (利用可能時):**
-- \`mcp__codex__codex\` を \`prompt: "/review <PR の URL>"\` で呼び出す
+1. ToolSearch で \`select:mcp__codex__codex\` の利用可能性を確認
+2. 利用可能な場合、\`mcp__codex__codex\` を \`prompt: "/review <PR の URL>"\` で呼び出す
 
 **Gemini MCP レビュー (利用可能時):**
-- \`mcp__gemini__ask-gemini\` を \`prompt: "/code-review <PR の URL>"\` で呼び出す
+1. ToolSearch で \`select:mcp__gemini__ask-gemini\` の利用可能性を確認
+2. 利用可能な場合、\`mcp__gemini__ask-gemini\` を \`prompt: "/code-review <PR の URL>"\` で呼び出す
+
+**実行順序:**
+1. Codex/Gemini の ToolSearch を並列実行
+2. Claude レビューと利用可能な MCP レビューを単一メッセージ内で並列実行 (全てフォアグラウンド)
+
+注: Pattern A では全てフォアグラウンドで MCP ツールを実行する前提のため、個々の MCP 呼び出しに対する明示的なタイムアウト制御は行わない。タイムアウトやリトライ制御が必要な長時間処理は Pattern B (Agent Teams) で実装すること。
 
 ### 4. 結果の統合
 
@@ -222,7 +228,7 @@ ToolSearch で各 MCP の利用可能性を確認:
 subagent が以下を自動で実行する:
 
 - MCP (Codex, Gemini) の利用可能性確認
-- Claude 自身のレビュー + 利用可能な MCP に並列依頼
+- Claude レビューと利用可能な MCP レビュー (Codex/Gemini) を単一メッセージ内で並列実行
 - 結果の統合・重複排除・severity 統一
 
 → ステップ 5 (指摘のフィルタリング) へ進む
@@ -452,6 +458,14 @@ TaskUpdate で自分のタスクを completed に更新する。`
 ##### B-3. 結果の収集
 
 TaskList で全 reviewer タスクの完了を待機する。各 reviewer からの SendMessage は自動的に配信される。
+
+**10 分タイムアウト:**
+
+TaskList や SendMessage にはタイムアウトパラメータがないため、Bash で手動管理する。reviewer 起動直後に `date +%s` を実行し、開始時刻を記録する。メッセージ受信時や TaskList 確認時に再度 `date +%s` で経過時間を確認し、開始から 600 秒 (10 分) 以上経過しても結果を送信していない reviewer がいれば:
+
+1. `SendMessage({ type: "shutdown_request", recipient: "<reviewer-name>" })` でシャットダウンを要求
+2. その reviewer の結果なしで続行する
+3. タイムアウトした reviewer は結果統合時に「タイムアウトにより結果なし」と記録する
 
 ##### B-4. 結果の統合
 
