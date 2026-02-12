@@ -162,6 +162,13 @@ WebFetch:
 - 具体的なキーワードで絞り込む
 - 英語で検索すると情報量が多い
 
+## 例外的な優先順位
+
+以下の内容については、通常の優先順位に関わらず専用 MCP を最優先で使用する:
+
+- **terraform に関する内容**: terraform MCP (`mcp__terraform__*`) が最優先
+- **Google Cloud に関する内容**: google-developer-knowledge MCP (`mcp__google-developer-knowledge__*`) が最優先
+
 ## フォールバック戦略
 
 上位ソースで情報が得られない場合のフォールバックパターン:
