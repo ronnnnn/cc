@@ -470,7 +470,7 @@ TaskList で全 reviewer タスクの完了を待機する。各 reviewer から
 
 **10 分タイムアウト:**
 
-reviewer 起動直後に Bash で `date +%s` を実行し、開始時刻を記録する。メッセージ受信時や TaskList 確認時に再度 `date +%s` で経過時間を確認し、開始から 600 秒 (10 分) 以上経過しても結果を送信していない reviewer がいれば:
+TaskList や SendMessage にはタイムアウトパラメータがないため、Bash で手動管理する。reviewer 起動直後に `date +%s` を実行し、開始時刻を記録する。メッセージ受信時や TaskList 確認時に再度 `date +%s` で経過時間を確認し、開始から 600 秒 (10 分) 以上経過しても結果を送信していない reviewer がいれば:
 
 1. `SendMessage({ type: "shutdown_request", recipient: "<reviewer-name>" })` でシャットダウンを要求
 2. その reviewer の結果なしで続行する
