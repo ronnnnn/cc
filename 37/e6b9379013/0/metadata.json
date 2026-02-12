@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "37e6b9379013",
+  "session_id": "a2103211-deeb-43e9-845e-37626d6bc1d8",
+  "strategy": "auto-commit",
+  "created_at": "2026-02-12T15:15:11.9406Z",
+  "branch": "feat-fact-check",
+  "checkpoints_count": 1,
+  "files_touched": [
+    ".claude-plugin/marketplace.json",
+    "plugins/catch-up/.claude-plugin/plugin.json",
+    "plugins/claude/.claude-plugin/plugin.json",
+    "plugins/git/.claude-plugin/plugin.json"
+  ],
+  "agent": "Claude Code",
+  "transcript_identifier_at_start": "f01e901c-928f-4961-909e-0cbf7b87fe00",
+  "checkpoint_transcript_start": 122,
+  "transcript_lines_at_start": 122,
+  "token_usage": {
+    "input_tokens": 16,
+    "cache_creation_tokens": 8525,
+    "cache_read_tokens": 1152143,
+    "output_tokens": 1601,
+    "api_call_count": 15
+  }
+}
