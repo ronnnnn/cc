@@ -25,6 +25,12 @@ description: |
 | 5      | WebFetch     | 公式サイト・GitHub・特定 URL のコンテンツ取得 | WebFetch                                                                                                 |
 | 6      | WebSearch    | 最新情報・ブログ・リリースノートの検索        | WebSearch                                                                                                |
 
+**例外 (上記の優先順位より優先):**
+
+- terraform に関する内容は terraform MCP (`mcp__terraform__*`) が最優先
+- Google Cloud に関する内容は google-developer-knowledge MCP (`mcp__google-developer-knowledge__*`) が最優先
+- Claude Code に関する内容は claude-code-guide agent (`subagent_type: "claude-code-guide"`) が最優先
+
 ## 作業開始前の準備
 
 **必須:** 作業開始前に TaskList で残存タスクを確認し、存在する場合は全て TaskUpdate({ status: "deleted" }) で削除する。その後、TaskCreate ツールで以下のステップをタスクとして登録する:

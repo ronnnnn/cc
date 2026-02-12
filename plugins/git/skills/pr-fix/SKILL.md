@@ -39,7 +39,7 @@ PR のレビューコメントを確認し、必要な修正を行う。
 ```
 TaskCreate({ subject: "PR の特定", description: "引数または現在のブランチから PR を特定", activeForm: "PR を特定中" })
 TaskCreate({ subject: "未解決のレビューコメントを取得", description: "GraphQL で isResolved: false のスレッドを取得", activeForm: "レビューコメントを取得中" })
-TaskCreate({ subject: "レビューコメントの分析", description: "各コメントの妥当性を判断", activeForm: "レビューコメントを分析中" })
+TaskCreate({ subject: "レビューコメントの分析とファクトチェック", description: "各コメントの妥当性を判断し、技術的主張をファクトチェック", activeForm: "レビューコメントを分析・ファクトチェック中" })
 TaskCreate({ subject: "修正計画の提示", description: "ユーザーに修正計画の承認を求める", activeForm: "修正計画を提示中" })
 TaskCreate({ subject: "コード修正の実行", description: "承認された修正を適用", activeForm: "コードを修正中" })
 TaskCreate({ subject: "変更のステージング", description: "修正したファイルを git add でステージング", activeForm: "変更をステージング中" })
@@ -105,7 +105,7 @@ query {
 
 **注意:** `isResolved: false` のスレッドのみを対象とする。
 
-### 3. レビューコメントの分析
+### 3. レビューコメントの分析とファクトチェック
 
 各未解決コメントについて、以下を判断する:
 
@@ -122,6 +122,35 @@ query {
 - パフォーマンスに関する指摘 → 検討が必要
 - スタイルや好みの問題 (`nits:`) → 対応は任意
 - 誤解に基づく指摘 → 説明で対応
+
+**ファクトチェック (必須):**
+
+レビューの指摘を鵜呑みにせず、技術的な主張や根拠が正しいか検証する。特に以下のケースでは必ずファクトチェックを行う:
+
+- 言語仕様・ランタイムの挙動に関する指摘
+- フレームワーク・ライブラリの API や推奨パターンに関する指摘
+- セキュリティに関する指摘
+- パフォーマンスに関する指摘
+- 「〜すべき」「〜は非推奨」など規範的な主張
+
+**ファクトチェックのソース優先順位:**
+
+| 優先度 | ソース       | 用途                                     |
+| ------ | ------------ | ---------------------------------------- |
+| 1      | LSP          | コードベース内の定義・参照・型情報の確認 |
+| 2      | deepwiki MCP | OSS リポジトリの Wiki・ドキュメント      |
+| 3      | Gemini MCP   | Google 検索による最新情報の取得          |
+| 4      | context7 MCP | ライブラリの公式ドキュメントとコード例   |
+| 5      | WebFetch     | 公式サイト・GitHub・特定 URL の確認      |
+| 6      | WebSearch    | 最新情報・ブログ・リリースノートの検索   |
+
+**例外 (上記の優先順位より優先):**
+
+- terraform に関する内容は terraform MCP (`mcp__terraform__*`) が最優先
+- Google Cloud に関する内容は google-developer-knowledge MCP (`mcp__google-developer-knowledge__*`) が最優先
+- Claude Code に関する内容は claude-code-guide agent (`subagent_type: "claude-code-guide"`) が最優先
+
+ファクトチェックの結果は修正計画の提示 (ステップ 4) に含め、指摘が誤りだった場合はその根拠をソース付きで示す。
 
 ### 4. 修正計画の提示
 

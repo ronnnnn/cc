@@ -1,6 +1,6 @@
 {
   "name": "claude",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "CLAUDE.md の作成・更新・品質管理、.claude/rules の作成を支援",
   "author": {
     "name": "ronnnnn",

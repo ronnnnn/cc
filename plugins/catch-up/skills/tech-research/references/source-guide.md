@@ -80,7 +80,28 @@ mcp__deepwiki__ask_question:
 | Terraform  | hashicorp/terraform  |
 | Docker     | moby/moby            |
 
-## context7 MCP (優先度 3)
+## Gemini MCP (優先度 3)
+
+### 対象ユースケース
+
+- Google 検索グラウンディングで最新の Web 情報を取得したい
+- リリース情報、公式発表を確認したい
+- 最新のベストプラクティスやトレンドを知りたい
+
+### 使い方
+
+```
+# ToolSearch で gemini ツールをロード
+ToolSearch: select:mcp__gemini__ask-gemini
+
+# google_web_search ツールの使用を指示
+mcp__gemini__ask-gemini:
+  prompt: "google_web_search ツールを使って <検索対象> の最新情報を調べてください"
+```
+
+**重要**: プロンプトには必ず `google_web_search` ツールを使うよう指示を含める。
+
+## context7 MCP (優先度 4)
 
 ### 対象ユースケース
 
@@ -111,7 +132,7 @@ mcp__context7__query-docs:
 | マイグレーション | "migration guide v2 to v3"        |
 | 特定機能         | "server components data fetching" |
 
-## WebFetch (優先度 4)
+## WebFetch (優先度 5)
 
 ### 対象ユースケース
 
@@ -137,7 +158,7 @@ WebFetch:
 | Go パッケージ   | `https://pkg.go.dev/{module}`                |
 | Rust crate      | `https://crates.io/crates/{name}`            |
 
-## WebSearch (優先度 5)
+## WebSearch (優先度 6)
 
 ### 対象ユースケース
 
@@ -161,6 +182,14 @@ WebFetch:
 - 公式ソースを優先するため site: フィルターを活用
 - 具体的なキーワードで絞り込む
 - 英語で検索すると情報量が多い
+
+## 例外的な優先順位
+
+以下の内容については、通常の優先順位に関わらず専用 MCP を最優先で使用する:
+
+- **terraform に関する内容**: terraform MCP (`mcp__terraform__*`) が最優先
+- **Google Cloud に関する内容**: google-developer-knowledge MCP (`mcp__google-developer-knowledge__*`) が最優先
+- **Claude Code に関する内容**: claude-code-guide agent (`subagent_type: "claude-code-guide"`) が最優先
 
 ## フォールバック戦略
 
