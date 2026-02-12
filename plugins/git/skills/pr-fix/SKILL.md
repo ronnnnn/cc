@@ -39,7 +39,7 @@ PR のレビューコメントを確認し、必要な修正を行う。
 ```
 TaskCreate({ subject: "PR の特定", description: "引数または現在のブランチから PR を特定", activeForm: "PR を特定中" })
 TaskCreate({ subject: "未解決のレビューコメントを取得", description: "GraphQL で isResolved: false のスレッドを取得", activeForm: "レビューコメントを取得中" })
-TaskCreate({ subject: "レビューコメントの分析", description: "各コメントの妥当性を判断", activeForm: "レビューコメントを分析中" })
+TaskCreate({ subject: "レビューコメントの分析とファクトチェック", description: "各コメントの妥当性を判断し、技術的主張をファクトチェック", activeForm: "レビューコメントを分析・ファクトチェック中" })
 TaskCreate({ subject: "修正計画の提示", description: "ユーザーに修正計画の承認を求める", activeForm: "修正計画を提示中" })
 TaskCreate({ subject: "コード修正の実行", description: "承認された修正を適用", activeForm: "コードを修正中" })
 TaskCreate({ subject: "変更のステージング", description: "修正したファイルを git add でステージング", activeForm: "変更をステージング中" })
