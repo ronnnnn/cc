@@ -1,0 +1,35 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "7e16b04d8357",
+  "strategy": "manual-commit",
+  "branch": "update-review-setting",
+  "checkpoints_count": 0,
+  "files_touched": [
+    ".claude-plugin/marketplace.json",
+    "plugins/catch-up/.claude-plugin/plugin.json",
+    "plugins/catch-up/skills/tech-research/SKILL.md",
+    "plugins/catch-up/skills/tech-research/references/source-guide.md",
+    "plugins/claude/.claude-plugin/plugin.json",
+    "plugins/claude/skills/claude-md-style/SKILL.md",
+    "plugins/git/.claude-plugin/plugin.json",
+    "plugins/git/skills/pr-fix/SKILL.md",
+    "plugins/git/skills/pr-watch/SKILL.md",
+    "plugins/git/skills/references/fact-check-guide.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/7e/16b04d8357/0/metadata.json",
+      "transcript": "/7e/16b04d8357/0/full.jsonl",
+      "context": "/7e/16b04d8357/0/context.md",
+      "content_hash": "/7e/16b04d8357/0/content_hash.txt",
+      "prompt": "/7e/16b04d8357/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 122,
+    "cache_creation_tokens": 117393,
+    "cache_read_tokens": 11298268,
+    "output_tokens": 12214,
+    "api_call_count": 111
+  }
+}

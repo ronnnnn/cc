@@ -1,0 +1,38 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "7e16b04d8357",
+  "session_id": "a2103211-deeb-43e9-845e-37626d6bc1d8",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-12T16:44:43.912181Z",
+  "branch": "update-review-setting",
+  "checkpoints_count": 0,
+  "files_touched": [
+    ".claude-plugin/marketplace.json",
+    "plugins/catch-up/.claude-plugin/plugin.json",
+    "plugins/catch-up/skills/tech-research/SKILL.md",
+    "plugins/catch-up/skills/tech-research/references/source-guide.md",
+    "plugins/claude/.claude-plugin/plugin.json",
+    "plugins/claude/skills/claude-md-style/SKILL.md",
+    "plugins/git/.claude-plugin/plugin.json",
+    "plugins/git/skills/pr-fix/SKILL.md",
+    "plugins/git/skills/pr-watch/SKILL.md",
+    "plugins/git/skills/references/fact-check-guide.md"
+  ],
+  "agent": "Claude Code",
+  "token_usage": {
+    "input_tokens": 122,
+    "cache_creation_tokens": 117393,
+    "cache_read_tokens": 11298268,
+    "output_tokens": 12214,
+    "api_call_count": 111
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-12T16:43:58.935736Z",
+    "agent_lines": 20,
+    "human_added": 21,
+    "human_modified": 40,
+    "human_removed": 0,
+    "total_committed": 81,
+    "agent_percentage": 24.691358024691358
+  }
+}
