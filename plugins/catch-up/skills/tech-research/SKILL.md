@@ -29,6 +29,7 @@ description: |
 
 - terraform に関する内容は terraform MCP (`mcp__terraform__*`) が最優先
 - Google Cloud に関する内容は google-developer-knowledge MCP (`mcp__google-developer-knowledge__*`) が最優先
+- Claude Code に関する内容は claude-code-guide agent (`subagent_type: "claude-code-guide"`) が最優先
 
 ## 作業開始前の準備
 

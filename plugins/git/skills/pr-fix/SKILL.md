@@ -148,6 +148,7 @@ query {
 
 - terraform に関する内容は terraform MCP (`mcp__terraform__*`) が最優先
 - Google Cloud に関する内容は google-developer-knowledge MCP (`mcp__google-developer-knowledge__*`) が最優先
+- Claude Code に関する内容は claude-code-guide agent (`subagent_type: "claude-code-guide"`) が最優先
 
 ファクトチェックの結果は修正計画の提示 (ステップ 4) に含め、指摘が誤りだった場合はその根拠をソース付きで示す。
 

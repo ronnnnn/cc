@@ -181,6 +181,7 @@ gh run list --commit "$HEAD_SHA" --json databaseId,status,conclusion,name
 
 - terraform に関する内容は terraform MCP (`mcp__terraform__*`) が最優先
 - Google Cloud に関する内容は google-developer-knowledge MCP (`mcp__google-developer-knowledge__*`) が最優先
+- Claude Code に関する内容は claude-code-guide agent (`subagent_type: "claude-code-guide"`) が最優先
 
 ファクトチェックの結果、指摘が誤りだった場合はその根拠をソース付きで返信コメントに記載する。
 
