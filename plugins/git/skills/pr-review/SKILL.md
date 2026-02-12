@@ -163,26 +163,19 @@ ToolSearch で各 MCP の利用可能性を確認:
 - 可読性: 命名、複雑度、コメント
 - テスト: カバレッジ、エッジケース
 
-**Codex MCP レビュー (利用可能時・バックグラウンド + 10 分タイムアウト):**
+**Codex MCP レビュー (利用可能時):**
 1. ToolSearch で \`select:mcp__codex__codex\` の利用可能性を確認
-2. 利用可能な場合、Task(\`run_in_background: true\`) でバックグラウンド起動:
-   - \`mcp__codex__codex\` を \`prompt: "/review <PR の URL>"\` で呼び出す
-3. TaskOutput(\`timeout: 600000\`) で結果を待機
-4. タイムアウト時は TaskStop で中断し「Codex レビュータイムアウト」と記録
+2. 利用可能な場合、\`mcp__codex__codex\` を \`prompt: "/review <PR の URL>"\` で呼び出す
 
-**Gemini MCP レビュー (利用可能時・バックグラウンド + 10 分タイムアウト):**
+**Gemini MCP レビュー (利用可能時):**
 1. ToolSearch で \`select:mcp__gemini__ask-gemini\` の利用可能性を確認
-2. 利用可能な場合、Task(\`run_in_background: true\`) でバックグラウンド起動:
-   - \`mcp__gemini__ask-gemini\` を \`prompt: "/code-review <PR の URL>"\` で呼び出す
-3. TaskOutput(\`timeout: 600000\`) で結果を待機
-4. タイムアウト時は TaskStop で中断し「Gemini レビュータイムアウト」と記録
+2. 利用可能な場合、\`mcp__gemini__ask-gemini\` を \`prompt: "/code-review <PR の URL>"\` で呼び出す
 
 **実行順序:**
 1. Codex/Gemini の ToolSearch を並列実行
-2. 利用可能な MCP レビューを Task でバックグラウンド起動 (並列)
-3. Claude レビューをフォアグラウンドで直接実行
-4. 各 MCP レビューの結果を TaskOutput(timeout: 600000) で取得
-5. タイムアウトしたものは TaskStop で中断し、結果なしとして扱う
+2. Claude レビューと利用可能な MCP レビューを単一メッセージ内で並列実行 (全てフォアグラウンド)
+
+注: Pattern A ではバックグラウンド実行で MCP ツールが利用不可のため、タイムアウト制御は行わない。タイムアウトが必要な場合は Pattern B (Agent Teams) を使用すること。
 
 ### 4. 結果の統合
 
@@ -235,9 +228,7 @@ ToolSearch で各 MCP の利用可能性を確認:
 subagent が以下を自動で実行する:
 
 - MCP (Codex, Gemini) の利用可能性確認
-- Codex/Gemini を `run_in_background: true` でバックグラウンド起動 (10 分タイムアウト付き)
-- Claude 自身のレビュー (フォアグラウンド)
-- 各 MCP レビューを `TaskOutput(timeout: 600000)` で待機、タイムアウト時は `TaskStop` で中断
+- Claude レビューと利用可能な MCP レビュー (Codex/Gemini) を単一メッセージ内で並列実行
 - 結果の統合・重複排除・severity 統一
 
 → ステップ 5 (指摘のフィルタリング) へ進む
