@@ -95,10 +95,9 @@ add why comments
 **ワークフロー:**
 
 1. 引数からタスクを抽出・分類
-2. コーディングタスクの詳細設計を作成
-3. subagent / Agent Teams を自動選択
-4. 並列実行
-5. 結果を集約して報告
+2. subagent / Agent Teams を自動選択
+3. 並列実行
+4. 結果を集約して報告
 
 ### 行動計画作成
 
@@ -135,7 +134,6 @@ dev/
 │   │   ├── SKILL.md         # 並列タスク実行スキル
 │   │   └── references/
 │   │       ├── agent-teams-pattern.md
-│   │       ├── codex-delegation.md
 │   │       └── report-format.md
 │   └── plan/
 │       ├── SKILL.md         # 行動計画スキル
