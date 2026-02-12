@@ -60,7 +60,7 @@ TaskList で全 teammate タスクの完了を待機する。各 teammate から
 ```
 // 全 teammate にシャットダウンを要求
 SendMessage({ type: "shutdown_request", recipient: "<task-n>" })
-SendMessage({ type: "shutdown_request", recipient: "task-2" })
+SendMessage({ type: "shutdown_request", recipient: "<task-n>" })
 // ... 残りの teammate も同様
 
 // 全 teammate のシャットダウン完了後
