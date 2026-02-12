@@ -7,13 +7,13 @@
   },
   "metadata": {
     "description": "A collection of Claude Code plugins.",
-    "version": "3.4.1"
+    "version": "3.5.0"
   },
   "plugins": [
     {
       "name": "git",
       "description": "Git/GitHub ワークフロー向けスキル (コミット、PR 作成、PR レビュー、レビュー修正、PR 更新、PR 解説、PR ステータス、ローカルレビュー、CI 分析・修正、PR 監視・自動修正)",
-      "version": "2.10.1",
+      "version": "2.11.0",
       "author": {
         "name": "ronnnnn",
         "email": "xxxx.xyzs.xxxx@gmail.com"
