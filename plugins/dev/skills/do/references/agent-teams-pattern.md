@@ -15,10 +15,10 @@ TeamCreate({ team_name: "do-<timestamp>" })
 ```
 Task({
   team_name: "do-<timestamp>",
-  name: "task-1",
+  name: "<task-n>",
   subagent_type: "general-purpose",
   description: "<タスクの要約>",
-  prompt: `あなたは task-1 です。以下のタスクを実行してください:
+  prompt: `あなたは <task-n> です。以下のタスクを実行してください:
 
 <タスクの詳細な指示>
 
@@ -59,7 +59,7 @@ TaskList で全 teammate タスクの完了を待機する。各 teammate から
 
 ```
 // 全 teammate にシャットダウンを要求
-SendMessage({ type: "shutdown_request", recipient: "task-1" })
+SendMessage({ type: "shutdown_request", recipient: "<task-n>" })
 SendMessage({ type: "shutdown_request", recipient: "task-2" })
 // ... 残りの teammate も同様
 
