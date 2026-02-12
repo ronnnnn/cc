@@ -1,0 +1,13 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "8012f8b23dca",
+  "session_id": "a2103211-deeb-43e9-845e-37626d6bc1d8",
+  "strategy": "auto-commit",
+  "created_at": "2026-02-12T15:16:31.621224Z",
+  "branch": "feat-fact-check",
+  "checkpoints_count": 0,
+  "files_touched": null,
+  "agent": "Claude Code",
+  "is_task": true,
+  "tool_use_id": "toolu_014g1TEQGkN1eLt4US6ZGszw"
+}
