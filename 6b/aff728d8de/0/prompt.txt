@@ -1,0 +1,6 @@
+pr-fix や pr-watch のレビュー修正の際に、レビューの指摘内容を鵜呑みにせず、検証や信頼できるソースからのファクトチェックにより、指摘が正しい確認するようにして
+ファクトチェックのソースは tech-research と同じ優先順位で確認して
+
+tech-research や claude-md-style に例外的な優先順位として下記を含めてほしい
+- terraform に関する内容は terraform MCP が最優先
+- Google Cloud に関する内容は google-developer-knowledge MCP が最優先

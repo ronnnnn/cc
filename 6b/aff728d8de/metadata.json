@@ -1,0 +1,30 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "6baff728d8de",
+  "strategy": "auto-commit",
+  "branch": "feat-fact-check",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "plugins/catch-up/skills/tech-research/SKILL.md",
+    "plugins/catch-up/skills/tech-research/references/source-guide.md",
+    "plugins/claude/skills/claude-md-style/SKILL.md",
+    "plugins/git/skills/pr-fix/SKILL.md",
+    "plugins/git/skills/pr-watch/SKILL.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/6b/aff728d8de/0/metadata.json",
+      "transcript": "/6b/aff728d8de/0/full.jsonl",
+      "context": "",
+      "content_hash": "/6b/aff728d8de/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 10,
+    "cache_creation_tokens": 41753,
+    "cache_read_tokens": 411271,
+    "output_tokens": 370,
+    "api_call_count": 8
+  }
+}
