@@ -3,7 +3,7 @@
   "checkpoint_id": "b6870a83b53b",
   "strategy": "manual-commit",
   "branch": "feat-wt",
-  "checkpoints_count": 0,
+  "checkpoints_count": 4,
   "files_touched": [
     ".claude-plugin/marketplace.json",
     "commitlint.config.mjs",
@@ -11,7 +11,8 @@
     "plugins/claude/skills/create-rules/SKILL.md",
     "plugins/git/.claude-plugin/plugin.json",
     "plugins/git/skills/pr-create/SKILL.md",
-    "plugins/git/skills/pr-explain/SKILL.md"
+    "plugins/git/skills/pr-explain/SKILL.md",
+    "plugins/git/skills/wt/SKILL.md"
   ],
   "sessions": [
     {
@@ -27,13 +28,20 @@
       "context": "/b6/870a83b53b/1/context.md",
       "content_hash": "/b6/870a83b53b/1/content_hash.txt",
       "prompt": "/b6/870a83b53b/1/prompt.txt"
+    },
+    {
+      "metadata": "/b6/870a83b53b/2/metadata.json",
+      "transcript": "/b6/870a83b53b/2/full.jsonl",
+      "context": "/b6/870a83b53b/2/context.md",
+      "content_hash": "/b6/870a83b53b/2/content_hash.txt",
+      "prompt": "/b6/870a83b53b/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 106,
-    "cache_creation_tokens": 78347,
-    "cache_read_tokens": 9704868,
-    "output_tokens": 4192,
-    "api_call_count": 102
+    "input_tokens": 183,
+    "cache_creation_tokens": 172568,
+    "cache_read_tokens": 15806952,
+    "output_tokens": 7695,
+    "api_call_count": 165
   }
 }
