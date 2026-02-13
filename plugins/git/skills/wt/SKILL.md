@@ -123,6 +123,10 @@ if [ -e "$DIR/bare.git" ]; then
   echo "Error: bare.git が既に存在します" >&2
   exit 1
 fi
+if [ "$BRANCH" = "bare.git" ]; then
+  echo "Error: ブランチ名 'bare.git' は bare リポジトリのディレクトリ名と衝突します" >&2
+  exit 1
+fi
 
 # 変換前の remote 設定を記録
 REMOTE_BEFORE=$(git -C "$DIR" remote -v)
