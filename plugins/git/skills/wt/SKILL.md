@@ -139,22 +139,25 @@ REMOTE_BEFORE=$(git -C "$DIR" remote -v)
 WORK_TMPDIR=""
 trap '
   echo "Error: 変換に失敗しました。復旧を試みます..." >&2
+  # 1. worktree ディレクトリを先に削除 (ファイル復元時の衝突を防ぐ)
+  if [ -d "$DIR/$BRANCH" ]; then
+    rm -rf "$DIR/$BRANCH" 2>/dev/null || true
+    echo "worktree ディレクトリを削除しました" >&2
+  fi
+  # 2. bare 変換を元に戻す
+  if [ -d "$DIR/bare.git" ] && [ ! -d "$DIR/.git" ]; then
+    git -C "$DIR/bare.git" worktree remove "../$BRANCH" 2>/dev/null || true
+    mv "$DIR/bare.git" "$DIR/.git" 2>/dev/null || true
+    git -C "$DIR" config core.bare false 2>/dev/null || true
+    echo ".git を復元しました" >&2
+  fi
+  # 3. 退避ファイルを復元
   if [ -n "$WORK_TMPDIR" ] && [ -d "$WORK_TMPDIR" ] && [ "$(ls -A "$WORK_TMPDIR" 2>/dev/null)" ]; then
     shopt -s nullglob dotglob 2>/dev/null
     mv "$WORK_TMPDIR"/* "$DIR/" 2>/dev/null || true
     shopt -u nullglob dotglob 2>/dev/null
     rm -rf "$WORK_TMPDIR" 2>/dev/null || true
     echo "退避ファイルを復元しました" >&2
-  fi
-  if [ -d "$DIR/bare.git" ] && [ ! -d "$DIR/.git" ]; then
-    git -C "$DIR/bare.git" worktree remove "../$BRANCH" 2>/dev/null || true
-    mv "$DIR/bare.git" "$DIR/.git"
-    git -C "$DIR" config core.bare false
-    echo ".git を復元しました" >&2
-  fi
-  if [ -d "$DIR/$BRANCH" ]; then
-    rm -rf "$DIR/$BRANCH"
-    echo "worktree ディレクトリを削除しました" >&2
   fi
 ' ERR
 
