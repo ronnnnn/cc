@@ -23,7 +23,7 @@ allowed-tools:
 1. **PR タイトル・description の言語は対象リポジトリに従う** - 既存の PR やコミット履歴を確認し、リポジトリで使用されている言語 (日本語/英語等) に合わせる
 2. **日本語で PR タイトル・description を書く場合は `japanese-text-style` スキルに従う** - スペース、句読点、括弧のルールを適用する
 3. **PR は常に Draft として作成する**
-4. **PR タイトルは commit-proposer subagent で commitlint 設定 / Conventional Commits に準拠して生成する**
+4. **PR タイトルは Conventional Commits に準拠する** - コミットが 1 つの場合はそのメッセージをそのまま使用し、2 つ以上の場合は commit-proposer subagent で生成する
 5. **PR テンプレートがある場合は必ず準拠する**
 6. **ラベルはリポジトリに存在するもののみ使用する**
 7. **Reviewer は CODEOWNERS に記載されているユーザーのみ設定する**
@@ -36,7 +36,7 @@ allowed-tools:
 TaskCreate({ subject: "事前確認", description: "ブランチ状態、リモート差分を確認", activeForm: "事前確認を実行中" })
 TaskCreate({ subject: "未コミット変更のコミット", description: "unstaged/staged の変更がある場合のみ commit スキルを実行", activeForm: "未コミット変更をコミット中" })
 TaskCreate({ subject: "PR テンプレートの確認", description: "PULL_REQUEST_TEMPLATE.md を探索・読み込み", activeForm: "PR テンプレートを確認中" })
-TaskCreate({ subject: "PR タイトルの生成", description: "commit-proposer subagent で commitlint 設定を確認し PR タイトル候補を生成", activeForm: "PR タイトルを生成中" })
+TaskCreate({ subject: "PR タイトルの生成", description: "コミットが 1 つならそのメッセージを使用、2 つ以上なら commit-proposer subagent で生成", activeForm: "PR タイトルを生成中" })
 TaskCreate({ subject: "ラベルの選択", description: "リポジトリのラベル一覧から適切なものを選択", activeForm: "ラベルを選択中" })
 TaskCreate({ subject: "CODEOWNERS の確認", description: "CODEOWNERS から Reviewer を特定", activeForm: "CODEOWNERS を確認中" })
 TaskCreate({ subject: "Draft PR 作成", description: "gh pr create --draft で PR を作成", activeForm: "Draft PR を作成中" })
@@ -49,18 +49,18 @@ TaskCreate({ subject: "完了報告", description: "PR URL を報告し、ブラ
 
 ### 1. 事前確認
 
-以下を並列で確認する:
+以下を確認する:
 
 ```bash
 # 現在のブランチと状態を確認
 git status
 git branch --show-current
 
-# リモートとの差分を確認
-git log origin/main..HEAD --oneline
-
 # ベースブランチを確認 (引数で指定されていない場合は main または master)
 git remote show origin | grep 'HEAD branch'
+
+# リモートとの差分を確認 (<base> は上記で確認したベースブランチに置き換える)
+git log origin/<base>..HEAD --oneline
 ```
 
 **確認事項:**
@@ -98,7 +98,11 @@ ls -la docs/PULL_REQUEST_TEMPLATE.md 2>/dev/null
 
 ### 4. PR タイトルの生成
 
-**commit-proposer subagent を Task ツールで呼び出す。**
+`git log origin/<base>..HEAD --oneline` を実行し、コミット数を確認する (ステップ 2 で新規コミットが追加された可能性があるため、必ずここで再取得する)。
+
+**コミットが 1 つの場合:** `git log origin/<base>..HEAD -1 --format='%s'` で subject のみ取得し、そのまま PR タイトルとして使用する。commit-proposer subagent の呼び出しはスキップする。
+
+**コミットが 2 つ以上の場合:** commit-proposer subagent を Task ツールで呼び出す。
 
 ```
 Task({

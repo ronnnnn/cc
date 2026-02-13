@@ -20,6 +20,7 @@ export default {
         'test', // テストの追加・修正
       ],
     ],
+    "subject-case": [0], // 日本語 + 英略語 (PR, CI, API 等) の混在で誤検知するため無効化
     "scope-enum": [
       2,
       'always',
