@@ -143,7 +143,7 @@ git -C "$DIR/bare.git" config wt.nocopy .idea
 # 元のファイルを一時ディレクトリに退避 (bare.git 以外)
 # 同一ファイルシステム上に作成し mv が rename で完了するようにする
 WORK_TMPDIR=$(mktemp -d "$DIR/.wt-tmp-XXXXXXXX")
-trap 'echo "一時ディレクトリ: $WORK_TMPDIR" >&2' ERR
+trap 'rm -rf "$WORK_TMPDIR" 2>/dev/null || true; echo "一時ディレクトリを削除しました: $WORK_TMPDIR" >&2' ERR EXIT
 
 shopt -s nullglob dotglob
 for item in "$DIR"/*; do
@@ -229,11 +229,10 @@ detached HEAD 状態では変換できません。ブランチをチェックア
 
 ### 変換途中で失敗した場合
 
-`set -e` により即座に停止する。`trap` により一時ディレクトリのパスが標準エラーに出力される。以下の手順で復旧を試みる:
+`set -e` により即座に停止する。`trap` により一時ディレクトリは自動削除され、そのパスが標準エラーに出力される。以下の手順で復旧を試みる:
 
 1. `bare.git` が存在し `.git` がない場合 → `mv "$DIR/bare.git" "$DIR/.git"` と `git config core.bare false` で元に戻す
-2. 一時ディレクトリにファイルが残っている場合 → ファイルを元のディレクトリに戻す
-3. worktree が作成済みの場合 → `git -C "$DIR/bare.git" worktree remove "$BRANCH"` で削除
+2. worktree が作成済みの場合 → `git -C "$DIR/bare.git" worktree remove "$BRANCH"` で削除
 
 ## 注意事項
 
