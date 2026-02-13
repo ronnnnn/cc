@@ -3,7 +3,7 @@
   "checkpoint_id": "b6870a83b53b",
   "strategy": "manual-commit",
   "branch": "feat-wt",
-  "checkpoints_count": 4,
+  "checkpoints_count": 1,
   "files_touched": [
     ".claude-plugin/marketplace.json",
     "commitlint.config.mjs",
@@ -38,10 +38,10 @@
     }
   ],
   "token_usage": {
-    "input_tokens": 183,
-    "cache_creation_tokens": 172568,
-    "cache_read_tokens": 15806952,
-    "output_tokens": 7695,
-    "api_call_count": 165
+    "input_tokens": 213,
+    "cache_creation_tokens": 242038,
+    "cache_read_tokens": 23093018,
+    "output_tokens": 10013,
+    "api_call_count": 206
   }
 }

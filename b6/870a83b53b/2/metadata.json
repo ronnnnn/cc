@@ -3,30 +3,33 @@
   "checkpoint_id": "b6870a83b53b",
   "session_id": "b14e11fb-7669-4a4b-a3ba-6114f70ac23f",
   "strategy": "manual-commit",
-  "created_at": "2026-02-13T16:50:24.889312Z",
+  "created_at": "2026-02-13T17:44:12.273068Z",
   "branch": "feat-wt",
-  "checkpoints_count": 4,
+  "checkpoints_count": 1,
   "files_touched": [
     ".claude-plugin/marketplace.json",
     "plugins/git/.claude-plugin/plugin.json",
     "plugins/git/skills/wt/SKILL.md"
   ],
   "agent": "Claude Code",
+  "transcript_identifier_at_start": "0f4081f3-b83d-400c-902f-8e1834f06547",
+  "checkpoint_transcript_start": 607,
+  "transcript_lines_at_start": 607,
   "token_usage": {
-    "input_tokens": 77,
-    "cache_creation_tokens": 94221,
-    "cache_read_tokens": 6102084,
-    "output_tokens": 3503,
-    "api_call_count": 63
+    "input_tokens": 107,
+    "cache_creation_tokens": 163691,
+    "cache_read_tokens": 13388150,
+    "output_tokens": 5821,
+    "api_call_count": 104
   },
   "initial_attribution": {
-    "calculated_at": "2026-02-13T16:49:53.759202Z",
-    "agent_lines": 227,
-    "human_added": 36,
-    "human_modified": 0,
+    "calculated_at": "2026-02-13T17:43:30.603262Z",
+    "agent_lines": 29,
+    "human_added": 47,
+    "human_modified": 5,
     "human_removed": 0,
-    "total_committed": 263,
-    "agent_percentage": 86.31178707224335
+    "total_committed": 81,
+    "agent_percentage": 35.80246913580247
   },
   "transcript_path": ".claude/projects/-Users-s01059-Documents-agent-cc/b14e11fb-7669-4a4b-a3ba-6114f70ac23f.jsonl"
 }
