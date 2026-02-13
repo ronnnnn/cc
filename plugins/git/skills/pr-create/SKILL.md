@@ -49,7 +49,7 @@ TaskCreate({ subject: "完了報告", description: "PR URL を報告し、ブラ
 
 ### 1. 事前確認
 
-以下を並列で確認する:
+以下を確認する:
 
 ```bash
 # 現在のブランチと状態を確認
@@ -59,7 +59,7 @@ git branch --show-current
 # ベースブランチを確認 (引数で指定されていない場合は main または master)
 git remote show origin | grep 'HEAD branch'
 
-# リモートとの差分を確認 (<base> は確認したベースブランチに置き換える)
+# リモートとの差分を確認 (<base> は上記で確認したベースブランチに置き換える)
 git log origin/<base>..HEAD --oneline
 ```
 
@@ -100,7 +100,7 @@ ls -la docs/PULL_REQUEST_TEMPLATE.md 2>/dev/null
 
 `git log origin/<base>..HEAD --oneline` を実行し、コミット数を確認する (ステップ 2 で新規コミットが追加された可能性があるため、必ずここで再取得する)。
 
-**コミットが 1 つの場合:** `git log -1 --format='%s'` で subject のみ取得し、そのまま PR タイトルとして使用する。commit-proposer subagent の呼び出しはスキップする。
+**コミットが 1 つの場合:** `git log origin/<base>..HEAD -1 --format='%s'` で subject のみ取得し、そのまま PR タイトルとして使用する。commit-proposer subagent の呼び出しはスキップする。
 
 **コミットが 2 つ以上の場合:** commit-proposer subagent を Task ツールで呼び出す。
 
