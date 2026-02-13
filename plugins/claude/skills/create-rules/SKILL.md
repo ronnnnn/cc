@@ -12,7 +12,7 @@ description: このスキルは、「ルールを作成」「create rules」「c
 **必須:** 作業開始前に TaskList で残存タスクを確認し、存在する場合は全て TaskUpdate({ status: "deleted" }) で削除する。その後、TaskCreate ツールで以下のステップをタスクとして登録する:
 
 ```
-TaskCreate({ subject: "分析対象の特定", description: "PR URL または AskUserQuestion でスコープを決定", activeForm: "分析対象を特定中" })
+TaskCreate({ subject: "分析対象の特定", description: "PR URL、staged/unstaged diff、または AskUserQuestion でスコープを決定", activeForm: "分析対象を特定中" })
 TaskCreate({ subject: "既存ルールの確認", description: ".claude/rules/ の既存ファイルを把握", activeForm: "既存ルールを確認中" })
 TaskCreate({ subject: "コード分析と規約抽出", description: "プロジェクト固有の規約を抽出", activeForm: "コードを分析中" })
 TaskCreate({ subject: "ルールファイルの設計", description: "paths スコープとファイル分割を設計", activeForm: "ルールファイルを設計中" })
