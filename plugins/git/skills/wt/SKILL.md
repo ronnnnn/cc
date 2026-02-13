@@ -149,6 +149,7 @@ trap '
     git -C "$DIR/bare.git" worktree prune 2>/dev/null || true
     mv "$DIR/bare.git" "$DIR/.git" 2>/dev/null || true
     git -C "$DIR" config core.bare false 2>/dev/null || true
+    git -C "$DIR" config --remove-section wt 2>/dev/null || true
     echo ".git を復元しました" >&2
   fi
   # 3. 退避ファイルを復元
@@ -189,6 +190,9 @@ git -C "$DIR/bare.git" worktree add "../$BRANCH" "$BRANCH"
 
 # 退避したファイルを worktree にコピー (checkout 済みファイルを上書き)
 cp -a "$WORK_TMPDIR/." "$DIR/$BRANCH/"
+
+# 変換成功 — 復旧用 trap を解除
+trap - ERR
 
 # 一時ディレクトリを削除
 rm -rf "$WORK_TMPDIR"
