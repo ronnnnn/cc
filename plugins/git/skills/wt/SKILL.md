@@ -146,7 +146,7 @@ trap '
   fi
   # 2. bare 変換を元に戻す
   if [ -d "$DIR/bare.git" ] && [ ! -d "$DIR/.git" ]; then
-    git -C "$DIR/bare.git" worktree remove "../$BRANCH" 2>/dev/null || true
+    git -C "$DIR/bare.git" worktree prune 2>/dev/null || true
     mv "$DIR/bare.git" "$DIR/.git" 2>/dev/null || true
     git -C "$DIR" config core.bare false 2>/dev/null || true
     echo ".git を復元しました" >&2
