@@ -127,9 +127,36 @@ if [ "$BRANCH" = "bare.git" ]; then
   echo "Error: ブランチ名 'bare.git' は bare リポジトリのディレクトリ名と衝突します" >&2
   exit 1
 fi
+if [ -f "$DIR/.gitmodules" ]; then
+  echo "Error: submodule を含むリポジトリは非対応です" >&2
+  exit 1
+fi
 
 # 変換前の remote 設定を記録
 REMOTE_BEFORE=$(git -C "$DIR" remote -v)
+
+# 復旧用 trap を .git 移動前に設定 (WORK_TMPDIR は後で設定されるため条件付き)
+WORK_TMPDIR=""
+trap '
+  echo "Error: 変換に失敗しました。復旧を試みます..." >&2
+  if [ -n "$WORK_TMPDIR" ] && [ -d "$WORK_TMPDIR" ] && [ "$(ls -A "$WORK_TMPDIR" 2>/dev/null)" ]; then
+    shopt -s nullglob dotglob 2>/dev/null
+    mv "$WORK_TMPDIR"/* "$DIR/" 2>/dev/null || true
+    shopt -u nullglob dotglob 2>/dev/null
+    rm -rf "$WORK_TMPDIR" 2>/dev/null || true
+    echo "退避ファイルを復元しました" >&2
+  fi
+  if [ -d "$DIR/bare.git" ] && [ ! -d "$DIR/.git" ]; then
+    git -C "$DIR/bare.git" worktree remove "../$BRANCH" 2>/dev/null || true
+    mv "$DIR/bare.git" "$DIR/.git"
+    git -C "$DIR" config core.bare false
+    echo ".git を復元しました" >&2
+  fi
+  if [ -d "$DIR/$BRANCH" ]; then
+    rm -rf "$DIR/$BRANCH"
+    echo "worktree ディレクトリを削除しました" >&2
+  fi
+' ERR
 
 # .git を bare.git に変換
 mv "$DIR/.git" "$DIR/bare.git"
@@ -143,25 +170,6 @@ git -C "$DIR/bare.git" config wt.nocopy .idea
 # 元のファイルを一時ディレクトリに退避 (bare.git 以外)
 # 同一ファイルシステム上に作成し mv が rename で完了するようにする
 WORK_TMPDIR=$(mktemp -d "$DIR/.wt-tmp-XXXXXXXX")
-trap '
-  echo "Error: 変換に失敗しました。復旧を試みます..." >&2
-  if [ -d "$WORK_TMPDIR" ] && [ "$(ls -A "$WORK_TMPDIR" 2>/dev/null)" ]; then
-    shopt -s dotglob 2>/dev/null
-    mv "$WORK_TMPDIR"/* "$DIR/" 2>/dev/null || true
-    shopt -u dotglob 2>/dev/null
-    rm -rf "$WORK_TMPDIR" 2>/dev/null || true
-    echo "退避ファイルを復元しました" >&2
-  fi
-  if [ -d "$DIR/bare.git" ] && [ ! -d "$DIR/.git" ]; then
-    mv "$DIR/bare.git" "$DIR/.git"
-    git -C "$DIR" config core.bare false
-    echo ".git を復元しました" >&2
-  fi
-  if [ -d "$DIR/$BRANCH" ]; then
-    rm -rf "$DIR/$BRANCH"
-    echo "worktree ディレクトリを削除しました" >&2
-  fi
-' ERR
 
 shopt -s nullglob dotglob
 for item in "$DIR"/*; do
@@ -256,3 +264,4 @@ detached HEAD 状態では変換できません。ブランチをチェックア
 ## 注意事項
 
 - ブランチ名に `/` を含む場合 (例: `feature/foo`)、worktree ディレクトリがネストされる (`<directory>/feature/foo/`)。`git worktree add` が中間ディレクトリを自動作成するため動作上の問題はないが、フラットな並列構成にはならない
+- submodule を含むリポジトリは非対応。`.git/modules/` 配下の submodule 状態が worktree 構成と整合しなくなるため、変換前に submodule の有無を確認すること
