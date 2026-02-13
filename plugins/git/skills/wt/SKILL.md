@@ -21,7 +21,7 @@ allowed-tools:
 
 1. **変換対象は既存の Git リポジトリのみ** - `.git` ディレクトリが存在するディレクトリのみ変換可能
 2. **現在のブランチのみ worktree として作成する** - 他のブランチは変換後に手動で追加
-3. **元のファイルは全てブランチディレクトリに移動する** - 未コミットの変更も引き継がれる
+3. **元のファイルは全てブランチディレクトリに移動する** - 未コミットの作業ツリー上の変更はコピーで引き継がれるが、ステージ済み (index) の状態は引き継がれないため、必要であれば事前にコミット/スタッシュしておく
 4. **変換は一括実行する** - 途中失敗時の中途半端な状態を防ぐ
 5. **`bare.git/config` にカスタム設定を追加する** - `[wt]` セクションを付与
 
@@ -90,7 +90,7 @@ detached HEAD (空文字列が返る) の場合はエラーを報告して終了
 git -C "$ARGUMENTS" status --porcelain
 ```
 
-未コミットの変更がある場合、ユーザーに警告する。変更は worktree ディレクトリに引き継がれる。
+未コミットの変更がある場合、ユーザーに警告する。作業ツリー上の変更は worktree ディレクトリに引き継がれるが、ステージ済み (index) の状態は失われる。ステージ済み変更がある場合は事前にコミットまたはスタッシュを推奨する。
 
 ### 4. worktree 構成への変換
 
@@ -104,6 +104,12 @@ set -euo pipefail
 DIR="<実際のディレクトリパス>"
 BRANCH=$(git -C "$DIR" branch --show-current)
 
+# BRANCH が空の場合 (detached HEAD) はエラー終了
+if [ -z "$BRANCH" ]; then
+  echo "Error: detached HEAD 状態では変換できません" >&2
+  exit 1
+fi
+
 # 事前検証
 if [ "$(git -C "$DIR" rev-parse --is-bare-repository 2>/dev/null)" = "true" ]; then
   echo "Error: 既に bare リポジトリです" >&2
@@ -111,6 +117,10 @@ if [ "$(git -C "$DIR" rev-parse --is-bare-repository 2>/dev/null)" = "true" ]; t
 fi
 if [ ! -d "$DIR/.git" ]; then
   echo "Error: .git ディレクトリが見つかりません (既に worktree 構成の可能性があります)" >&2
+  exit 1
+fi
+if [ -e "$DIR/bare.git" ]; then
+  echo "Error: bare.git が既に存在します" >&2
   exit 1
 fi
 
@@ -121,30 +131,34 @@ REMOTE_BEFORE=$(git -C "$DIR" remote -v)
 mv "$DIR/.git" "$DIR/bare.git"
 git -C "$DIR/bare.git" config core.bare true
 
-# bare.git/config にカスタム設定を追加
-cat >> "$DIR/bare.git/config" << 'EOF'
-[wt]
-	copyignored = true
-	basedir = ./
-	nocopy = .idea
-EOF
+# bare.git/config にカスタム設定を追加 (キー単位で設定/上書き)
+git -C "$DIR/bare.git" config wt.copyignored true
+git -C "$DIR/bare.git" config wt.basedir ./
+git -C "$DIR/bare.git" config wt.nocopy .idea
 
 # 元のファイルを一時ディレクトリに退避 (bare.git 以外)
-TMPDIR=$(mktemp -d)
-for item in "$DIR"/* "$DIR"/.*; do
+# 同一ファイルシステム上に作成し mv が rename で完了するようにする
+WORK_TMPDIR=$(mktemp -d "$DIR/.wt-tmp-XXXXXXXX")
+trap 'echo "一時ディレクトリ: $WORK_TMPDIR" >&2' ERR
+
+shopt -s nullglob dotglob
+for item in "$DIR"/*; do
   basename="$(basename "$item")"
-  [ "$basename" = "." ] || [ "$basename" = ".." ] || [ "$basename" = "bare.git" ] && continue
-  mv "$item" "$TMPDIR/"
+  if [ "$basename" = "bare.git" ] || [ "$basename" = "$(basename "$WORK_TMPDIR")" ]; then
+    continue
+  fi
+  mv "$item" "$WORK_TMPDIR/"
 done
+shopt -u nullglob dotglob
 
 # worktree を追加
 git -C "$DIR/bare.git" worktree add "../$BRANCH" "$BRANCH"
 
 # 退避したファイルを worktree にコピー (checkout 済みファイルを上書き)
-cp -a "$TMPDIR/." "$DIR/$BRANCH/"
+cp -a "$WORK_TMPDIR/." "$DIR/$BRANCH/"
 
 # 一時ディレクトリを削除
-rm -rf "$TMPDIR"
+rm -rf "$WORK_TMPDIR"
 
 # remote 設定が変換前と同一であることを検証
 REMOTE_AFTER=$(git -C "$DIR/bare.git" remote -v)
@@ -211,8 +225,12 @@ detached HEAD 状態では変換できません。ブランチをチェックア
 
 ### 変換途中で失敗した場合
 
-`set -e` により即座に停止する。以下の手順で復旧を試みる:
+`set -e` により即座に停止する。`trap` により一時ディレクトリのパスが標準エラーに出力される。以下の手順で復旧を試みる:
 
 1. `bare.git` が存在し `.git` がない場合 → `mv "$DIR/bare.git" "$DIR/.git"` と `git config core.bare false` で元に戻す
 2. 一時ディレクトリにファイルが残っている場合 → ファイルを元のディレクトリに戻す
 3. worktree が作成済みの場合 → `git -C "$DIR/bare.git" worktree remove "$BRANCH"` で削除
+
+## 注意事項
+
+- ブランチ名に `/` を含む場合 (例: `feature/foo`)、worktree ディレクトリがネストされる (`<directory>/feature/foo/`)。`git worktree add` が中間ディレクトリを自動作成するため動作上の問題はないが、フラットな並列構成にはならない
