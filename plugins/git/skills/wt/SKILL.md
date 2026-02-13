@@ -143,7 +143,25 @@ git -C "$DIR/bare.git" config wt.nocopy .idea
 # 元のファイルを一時ディレクトリに退避 (bare.git 以外)
 # 同一ファイルシステム上に作成し mv が rename で完了するようにする
 WORK_TMPDIR=$(mktemp -d "$DIR/.wt-tmp-XXXXXXXX")
-trap 'rm -rf "$WORK_TMPDIR" 2>/dev/null || true; echo "一時ディレクトリを削除しました: $WORK_TMPDIR" >&2' ERR EXIT
+trap '
+  echo "Error: 変換に失敗しました。復旧を試みます..." >&2
+  if [ -d "$WORK_TMPDIR" ] && [ "$(ls -A "$WORK_TMPDIR" 2>/dev/null)" ]; then
+    shopt -s dotglob 2>/dev/null
+    mv "$WORK_TMPDIR"/* "$DIR/" 2>/dev/null || true
+    shopt -u dotglob 2>/dev/null
+    rm -rf "$WORK_TMPDIR" 2>/dev/null || true
+    echo "退避ファイルを復元しました" >&2
+  fi
+  if [ -d "$DIR/bare.git" ] && [ ! -d "$DIR/.git" ]; then
+    mv "$DIR/bare.git" "$DIR/.git"
+    git -C "$DIR" config core.bare false
+    echo ".git を復元しました" >&2
+  fi
+  if [ -d "$DIR/$BRANCH" ]; then
+    rm -rf "$DIR/$BRANCH"
+    echo "worktree ディレクトリを削除しました" >&2
+  fi
+' ERR
 
 shopt -s nullglob dotglob
 for item in "$DIR"/*; do
@@ -229,10 +247,11 @@ detached HEAD 状態では変換できません。ブランチをチェックア
 
 ### 変換途中で失敗した場合
 
-`set -e` により即座に停止する。`trap` により一時ディレクトリは自動削除され、そのパスが標準エラーに出力される。以下の手順で復旧を試みる:
+`set -e` により即座に停止する。`trap` (ERR のみ) により自動復旧を試みる: 退避ファイルの復元、`.git` の復元、worktree ディレクトリの削除。自動復旧が失敗した場合は、以下の手順で手動復旧する:
 
-1. `bare.git` が存在し `.git` がない場合 → `mv "$DIR/bare.git" "$DIR/.git"` と `git config core.bare false` で元に戻す
-2. worktree が作成済みの場合 → `git -C "$DIR/bare.git" worktree remove "$BRANCH"` で削除
+1. 一時ディレクトリ (`.wt-tmp-*`) にファイルが残っている場合 → ファイルを元のディレクトリに戻す
+2. `bare.git` が存在し `.git` がない場合 → `mv "$DIR/bare.git" "$DIR/.git"` と `git config core.bare false` で元に戻す
+3. worktree ディレクトリが残っている場合 → 削除する
 
 ## 注意事項
 
