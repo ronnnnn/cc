@@ -1,0 +1,28 @@
+{
+  "cli_version": "0.4.3",
+  "checkpoint_id": "325cc2117ac0",
+  "strategy": "manual-commit",
+  "branch": "update-create-rules-default",
+  "checkpoints_count": 0,
+  "files_touched": [
+    ".claude-plugin/marketplace.json",
+    "plugins/git/.claude-plugin/plugin.json",
+    "plugins/git/skills/review/SKILL.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/32/5cc2117ac0/0/metadata.json",
+      "transcript": "/32/5cc2117ac0/0/full.jsonl",
+      "context": "/32/5cc2117ac0/0/context.md",
+      "content_hash": "/32/5cc2117ac0/0/content_hash.txt",
+      "prompt": "/32/5cc2117ac0/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 28,
+    "cache_creation_tokens": 82701,
+    "cache_read_tokens": 1821238,
+    "output_tokens": 575,
+    "api_call_count": 25
+  }
+}
