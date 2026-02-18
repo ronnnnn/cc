@@ -1,0 +1,55 @@
+{
+  "cli_version": "0.4.4",
+  "checkpoint_id": "decaa302d583",
+  "strategy": "manual-commit",
+  "branch": "feat-hookify",
+  "checkpoints_count": 1,
+  "files_touched": [
+    ".claude-plugin/marketplace.json",
+    "commitlint.config.mjs",
+    "plugins/hookify/.claude-plugin/plugin.json",
+    "plugins/hookify/.gitignore",
+    "plugins/hookify/README.md",
+    "plugins/hookify/agents/conversation-analyzer.md",
+    "plugins/hookify/commands/configure.md",
+    "plugins/hookify/commands/help.md",
+    "plugins/hookify/commands/hookify.md",
+    "plugins/hookify/commands/list.md",
+    "plugins/hookify/core/__init__.py",
+    "plugins/hookify/core/config_loader.py",
+    "plugins/hookify/core/rule_engine.py",
+    "plugins/hookify/examples/block-dangerous-rm.md",
+    "plugins/hookify/examples/block-mcp-tools.md",
+    "plugins/hookify/examples/warn-console-log.md",
+    "plugins/hookify/examples/warn-sensitive-files.md",
+    "plugins/hookify/hooks/__init__.py",
+    "plugins/hookify/hooks/_runner.py",
+    "plugins/hookify/hooks/hooks.json",
+    "plugins/hookify/hooks/posttooluse.py",
+    "plugins/hookify/hooks/pretooluse.py",
+    "plugins/hookify/hooks/stop.py",
+    "plugins/hookify/hooks/userpromptsubmit.py",
+    "plugins/hookify/skills/configure/SKILL.md",
+    "plugins/hookify/skills/help/SKILL.md",
+    "plugins/hookify/skills/hookify/SKILL.md",
+    "plugins/hookify/skills/hookify/references/rule-syntax.md",
+    "plugins/hookify/skills/list/SKILL.md",
+    "plugins/hookify/skills/writing-rules/SKILL.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/de/caa302d583/0/metadata.json",
+      "transcript": "/de/caa302d583/0/full.jsonl",
+      "context": "/de/caa302d583/0/context.md",
+      "content_hash": "/de/caa302d583/0/content_hash.txt",
+      "prompt": "/de/caa302d583/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 91,
+    "cache_creation_tokens": 97146,
+    "cache_read_tokens": 10016696,
+    "output_tokens": 6842,
+    "api_call_count": 88
+  }
+}
