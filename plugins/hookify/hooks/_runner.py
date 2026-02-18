@@ -6,7 +6,7 @@ import os
 import sys
 
 
-def run(event: str) -> None:
+def run(event: str, hook_event_name: str = "") -> None:
     """Load rules for *event*, evaluate against stdin, and print JSON result.
 
     Always exits 0 so that hook errors never block operations.
@@ -25,7 +25,11 @@ def run(event: str) -> None:
     try:
         input_data = json.load(sys.stdin)
 
-        # Determine effective event
+        # Inject hook_event_name so rule_engine can produce correct output format
+        if hook_event_name:
+            input_data["hook_event_name"] = hook_event_name
+
+        # Determine effective event for rule filtering
         effective_event = event
         if event is None:
             tool_name = input_data.get("tool_name", "")
@@ -33,6 +37,8 @@ def run(event: str) -> None:
                 effective_event = "bash"
             elif tool_name in ("Edit", "Write", "MultiEdit"):
                 effective_event = "file"
+            else:
+                effective_event = "all"
 
         rules = load_rules(event=effective_event)
         result = RuleEngine().evaluate_rules(rules, input_data)

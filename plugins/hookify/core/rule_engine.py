@@ -79,7 +79,8 @@ class RuleEngine:
                 return False
 
         if not rule.conditions:
-            return False
+            # tool_matcher-only rules match when tool_matcher passes
+            return bool(rule.tool_matcher)
 
         # All conditions must match (AND)
         return all(

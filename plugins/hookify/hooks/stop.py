@@ -7,4 +7,4 @@ sys.path.insert(0, os.environ.get("CLAUDE_PLUGIN_ROOT", os.path.dirname(os.path.
 from hooks._runner import run
 
 if __name__ == "__main__":
-    run(event="stop")
+    run(event="stop", hook_event_name="Stop")
