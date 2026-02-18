@@ -144,7 +144,16 @@ action: block
 conditions:
   - field: transcript
     operator: not_contains
-    pattern: 'npm test|pytest|cargo test|bun test'
+    pattern: 'npm test'
+  - field: transcript
+    operator: not_contains
+    pattern: 'pytest'
+  - field: transcript
+    operator: not_contains
+    pattern: 'cargo test'
+  - field: transcript
+    operator: not_contains
+    pattern: 'bun test'
 ---
 
 テスト実行が検出されませんでした。完了前にテストを実行してください。
