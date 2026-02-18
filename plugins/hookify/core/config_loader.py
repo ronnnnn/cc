@@ -110,12 +110,21 @@ def extract_frontmatter(content: str) -> Tuple[Dict[str, Any], str]:
     if not content.startswith("---"):
         return {}, content
 
-    parts = content.split("---", 2)
-    if len(parts) < 3:
-        return {}, content
-
-    frontmatter_text = parts[1]
-    message = parts[2].strip()
+    # Split on line-boundary "---" to avoid matching "---" inside values
+    rest = content[3:]  # skip leading "---"
+    if rest.startswith("\n"):
+        rest = rest[1:]
+    parts = rest.split("\n---\n", 1)
+    if len(parts) < 2:
+        # Handle file ending right after closing ---
+        parts = rest.split("\n---", 1)
+        if len(parts) < 2:
+            return {}, content
+        frontmatter_text = parts[0]
+        message = ""
+    else:
+        frontmatter_text = parts[0]
+        message = parts[1].strip()
 
     frontmatter: Dict[str, Any] = {}
     lines = frontmatter_text.split("\n")
