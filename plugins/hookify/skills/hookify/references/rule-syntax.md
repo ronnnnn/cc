@@ -128,10 +128,6 @@ enabled: true
 event: all
 action: block
 tool_matcher: 'mcp__claude_ai_Slack__.*'
-conditions:
-  - field: tool_name
-    operator: regex_match
-    pattern: 'mcp__claude_ai_Slack__.*'
 ---
 
 Slack MCP ツールはこのプロジェクトでブロックされています。
