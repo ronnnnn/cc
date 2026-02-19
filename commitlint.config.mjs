@@ -30,6 +30,7 @@ export default {
         'claude',
         'dev',
         'git',
+        'hookify',
       ],
     ],
   },
