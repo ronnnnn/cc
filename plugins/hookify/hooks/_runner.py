@@ -4,9 +4,10 @@
 import json
 import os
 import sys
+from typing import Optional
 
 
-def run(event: str, hook_event_name: str = "") -> None:
+def run(event: Optional[str], hook_event_name: str = "") -> None:
     """Load rules for *event*, evaluate against stdin, and print JSON result.
 
     Always exits 0 so that hook errors never block operations.

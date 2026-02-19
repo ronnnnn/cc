@@ -152,7 +152,7 @@ class RuleEngine:
             path = input_data.get("transcript_path")
             if path:
                 try:
-                    with open(path, "r") as f:
+                    with open(path, "r", encoding="utf-8") as f:
                         return f.read()
                 except Exception:
                     return ""
@@ -175,7 +175,7 @@ class RuleEngine:
         if tool_name == "MultiEdit":
             if field == "file_path":
                 return tool_input.get("file_path", "")
-            if field in ("new_text", "content"):
+            if field in ("new_text", "new_string", "content"):
                 edits = tool_input.get("edits", [])
                 return " ".join(e.get("new_string", "") for e in edits)
 

@@ -12,7 +12,6 @@ Project rules with `enabled: false` can disable global rules.
 import os
 import sys
 import glob
-import re
 from typing import List, Optional, Dict, Any, Tuple
 from dataclasses import dataclass, field
 
@@ -107,6 +106,9 @@ def extract_frontmatter(content: str) -> Tuple[Dict[str, Any], str]:
     Simple parser — no external YAML dependency required.
     Handles nested list-of-dict items (conditions).
     """
+    # Normalize CRLF → LF for cross-platform compatibility
+    content = content.replace("\r\n", "\n")
+
     if not content.startswith("---"):
         return {}, content
 
@@ -258,7 +260,7 @@ def _load_from_directory(
 def _load_rule_file(file_path: str, source: str) -> Optional[Rule]:
     """Load a single rule file."""
     try:
-        with open(file_path, "r") as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             content = f.read()
 
         frontmatter, message = extract_frontmatter(content)
