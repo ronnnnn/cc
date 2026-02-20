@@ -1,0 +1,2127 @@
+# Plugin Creation Workflow
+
+Guide the user through creating a complete, high-quality Claude Code plugin from initial concept to tested implementation. Follow a systematic approach: understand requirements, design components, clarify details, implement following best practices, validate, and test.
+
+## Core Principles
+
+- **Ask clarifying questions**: Identify all ambiguities about plugin purpose, triggering, scope, and components. Ask specific, concrete questions rather than making assumptions. Wait for user answers before proceeding with implementation.
+- **Load relevant skills**: Use the Skill tool to load plugin-dev skills when needed (plugin-structure, hook-development, agent-development, etc.)
+- **Use specialized agents**: Leverage agent-creator, plugin-validator, and skill-reviewer agents for AI-assisted development
+- **Follow best practices**: Apply patterns from plugin-dev's own implementation
+- **Progressive disclosure**: Create lean skills with references/examples
+- **Use TodoWrite**: Track all progress throughout all phases
+
+**Initial request:**   hookify の代替となる自作プラグインを作成してください。
+
+  ## 背景
+
+  公式の hookify プラグインには以下の問題があります:
+  - ルールファイルの検索が `.claude/hookify.*.local.md` の相対パスのみで、CWD に依存する
+  - グローバルルール (~/.claude/ 配下) に非対応
+  - tool_matcher が完全一致のみで regex 未対応
+  - upstream の PR https://github.com/anthropics/claude-plugins-official/pull/5 (グローバルルール対応) が長期間マージされていない
+
+  ## 要件
+
+  ### ルール検索パス (優先順位: 低 → 高)
+  1. グローバル: `~/.claude/hooks-rules/` 配下の `*.md` ファイル
+  2. プロジェクト: `$CWD/.claude/hooks-rules/` 配下の `*.md` ファイル
+  - 同名ルールはプロジェクト側が優先 (上書き)
+  - プロジェクト側で `enabled: false` にすればグローバルルールを無効化可能
+
+  ### ルールファイル形式
+  hookify 互換の YAML frontmatter + markdown メッセージ形式を維持:
+  ```markdown
+  ---
+  name: rule-name
+  enabled: true
+  event: bash|file|stop|prompt|all
+  pattern: regex-pattern
+  action: warn|block
+  tool_matcher: regex-pattern  # ← regex 対応に拡張
+  conditions:
+    - field: command|file_path|new_text|content|query|tool_name
+      operator: regex_match|contains|equals|not_contains|starts_with|ends_with
+      pattern: pattern
+  ---
+
+  メッセージ本文
+
+  hookify からの改善点
+
+  1. tool_matcher を regex 対応: mcp__claude_ai_(?!Slack__).* のようなパターンが使える
+  2. tool_name を condition の field として追加: field: tool_name で tool 名に対する条件が書ける
+  3. ルールファイルのディレクトリ管理: hookify.*.local.md の flat 管理ではなく hooks-rules/
+  ディレクトリに整理
+  4. グローバル + プロジェクトの 2 階層: CWD に依存しない確実なルール読み込み
+
+  フック対象イベント
+
+  hookify と同様:
+  - PreToolUse (bash, file, all)
+  - PostToolUse
+  - Stop
+  - UserPromptSubmit
+
+  技術要件
+
+  - 言語: Python3
+  - Claude Code プラグイン形式 (plugin.json, hooks/, skills/ 等)
+  - hookify の hooks.json 構造を参考にする
+  - エラー時は常に exit 0 (ツール実行をブロックしない)
+  - YAML パーサーは外部依存なしの簡易実装 (hookify の extract_frontmatter を改良)
+
+  プラグイン名
+
+  hookify
+
+  参考
+
+  - hookify ソース: https://github.com/anthropics/claude-plugins-official/tree/main/plugins/hookify
+  - Claude Code hooks 仕様: PreToolUse の input は { tool_name, tool_input, hook_event_name }
+
+---
+
+## Phase 1: Discovery
+
+**Goal**: Understand what plugin needs to be built and what problem it solves
+
+**Actions**:
+1. Create todo list with all 7 phases
+2. If plugin purpose is clear from arguments:
+   - Summarize understanding
+   - Identify plugin type (integration, workflow, analysis, toolkit, etc.)
+3. If plugin purpose is unclear, ask user:
+   - What problem does this plugin solve?
+   - Who will use it and when?
+   - What should it do?
+   - Any similar plugins to reference?
+4. Summarize understanding and confirm with user before proceeding
+
+**Output**: Clear statement of plugin purpose and target users
+
+---
+
+## Phase 2: Component Planning
+
+**Goal**: Determine what plugin components are needed
+
+**MUST load plugin-structure skill** using Skill tool before this phase.
+
+**Actions**:
+1. Load plugin-structure skill to understand component types
+2. Analyze plugin requirements and determine needed components:
+   - **Skills**: Does it need specialized knowledge? (hooks API, MCP patterns, etc.)
+   - **Commands**: User-initiated actions? (deploy, configure, analyze)
+   - **Agents**: Autonomous tasks? (validation, generation, analysis)
+   - **Hooks**: Event-driven automation? (validation, notifications)
+   - **MCP**: External service integration? (databases, APIs)
+   - **Settings**: User configuration? (.local.md files)
+3. For each component type needed, identify:
+   - How many of each type
+   - What each one does
+   - Rough triggering/usage patterns
+4. Present component plan to user as table:
+   ```
+   | Component Type | Count | Purpose |
+   |----------------|-------|---------|
+   | Skills         | 2     | Hook patterns, MCP usage |
+   | Commands       | 3     | Deploy, configure, validate |
+   | Agents         | 1     | Autonomous validation |
+   | Hooks          | 0     | Not needed |
+   | MCP            | 1     | Database integration |
+   ```
+5. Get user confirmation or adjustments
+
+**Output**: Confirmed list of components to create
+
+---
+
+## Phase 3: Detailed Design & Clarifying Questions
+
+**Goal**: Specify each component in detail and resolve all ambiguities
+
+**CRITICAL**: This is one of the most important phases. DO NOT SKIP.
+
+**Actions**:
+1. For each component in the plan, identify underspecified aspects:
+   - **Skills**: What triggers them? What knowledge do they provide? How detailed?
+   - **Commands**: What arguments? What tools? Interactive or automated?
+   - **Agents**: When to trigger (proactive/reactive)? What tools? Output format?
+   - **Hooks**: Which events? Prompt or command based? Validation criteria?
+   - **MCP**: What server type? Authentication? Which tools?
+   - **Settings**: What fields? Required vs optional? Defaults?
+
+2. **Present all questions to user in organized sections** (one section per component type)
+
+3. **Wait for answers before proceeding to implementation**
+
+4. If user says "whatever you think is best", provide specific recommendations and get explicit confirmation
+
+**Example questions for a skill**:
+- What specific user queries should trigger this skill?
+- Should it include utility scripts? What functionality?
+- How detailed should the core SKILL.md be vs references/?
+- Any real-world examples to include?
+
+**Example questions for an agent**:
+- Should this agent trigger proactively after certain actions, or only when explicitly requested?
+- What tools does it need (Read, Write, Bash, etc.)?
+- What should the output format be?
+- Any specific quality standards to enforce?
+
+**Output**: Detailed specification for each component
+
+---
+
+## Phase 4: Plugin Structure Creation
+
+**Goal**: Create plugin directory structure and manifest
+
+**Actions**:
+1. Determine plugin name (kebab-case, descriptive)
+2. Choose plugin location:
+   - Ask user: "Where should I create the plugin?"
+   - Offer options: current directory, ../new-plugin-name, custom path
+3. Create directory structure using bash:
+   ```bash
+   mkdir -p plugin-name/.claude-plugin
+   mkdir -p plugin-name/skills     # if needed
+   mkdir -p plugin-name/commands   # if needed
+   mkdir -p plugin-name/agents     # if needed
+   mkdir -p plugin-name/hooks      # if needed
+   ```
+4. Create plugin.json manifest using Write tool:
+   ```json
+   {
+     "name": "plugin-name",
+     "version": "0.1.0",
+     "description": "[brief description]",
+     "author": {
+       "name": "[author from user or default]",
+       "email": "[email or default]"
+     }
+   }
+   ```
+5. Create README.md template
+6. Create .gitignore if needed (for .claude/*.local.md, etc.)
+7. Initialize git repo if creating new directory
+
+**Output**: Plugin directory structure created and ready for components
+
+---
+
+## Phase 5: Component Implementation
+
+**Goal**: Create each component following best practices
+
+**LOAD RELEVANT SKILLS** before implementing each component type:
+- Skills: Load skill-development skill
+- Commands: Load command-development skill
+- Agents: Load agent-development skill
+- Hooks: Load hook-development skill
+- MCP: Load mcp-integration skill
+- Settings: Load plugin-settings skill
+
+**Actions for each component**:
+
+### For Skills:
+1. Load skill-development skill using Skill tool
+2. For each skill:
+   - Ask user for concrete usage examples (or use from Phase 3)
+   - Plan resources (scripts/, references/, examples/)
+   - Create skill directory structure
+   - Write SKILL.md with:
+     - Third-person description with specific trigger phrases
+     - Lean body (1,500-2,000 words) in imperative form
+     - References to supporting files
+   - Create reference files for detailed content
+   - Create example files for working code
+   - Create utility scripts if needed
+3. Use skill-reviewer agent to validate each skill
+
+### For Commands:
+1. Load command-development skill using Skill tool
+2. For each command:
+   - Write command markdown with frontmatter
+   - Include clear description and argument-hint
+   - Specify allowed-tools (minimal necessary)
+   - Write instructions FOR Claude (not TO user)
+   - Provide usage examples and tips
+   - Reference relevant skills if applicable
+
+### For Agents:
+1. Load agent-development skill using Skill tool
+2. For each agent, use agent-creator agent:
+   - Provide description of what agent should do
+   - Agent-creator generates: identifier, whenToUse with examples, systemPrompt
+   - Create agent markdown file with frontmatter and system prompt
+   - Add appropriate model, color, and tools
+   - Validate with validate-agent.sh script
+
+### For Hooks:
+1. Load hook-development skill using Skill tool
+2. For each hook:
+   - Create hooks/hooks.json with hook configuration
+   - Prefer prompt-based hooks for complex logic
+   - Use /Users/s01059/.claude/plugins/cache/claude-plugins-official/plugin-dev/261ce4fba4f2 for portability
+   - Create hook scripts if needed (in examples/ not scripts/)
+   - Test with validate-hook-schema.sh and test-hook.sh utilities
+
+### For MCP:
+1. Load mcp-integration skill using Skill tool
+2. Create .mcp.json configuration with:
+   - Server type (stdio for local, SSE for hosted)
+   - Command and args (with /Users/s01059/.claude/plugins/cache/claude-plugins-official/plugin-dev/261ce4fba4f2)
+   - extensionToLanguage mapping if LSP
+   - Environment variables as needed
+3. Document required env vars in README
+4. Provide setup instructions
+
+### For Settings:
+1. Load plugin-settings skill using Skill tool
+2. Create settings template in README
+3. Create example .claude/plugin-name.local.md file (as documentation)
+4. Implement settings reading in hooks/commands as needed
+5. Add to .gitignore: `.claude/*.local.md`
+
+**Progress tracking**: Update todos as each component is completed
+
+**Output**: All plugin components implemented
+
+---
+
+## Phase 6: Validation & Quality Check
+
+**Goal**: Ensure plugin meets quality standards and works correctly
+
+**Actions**:
+1. **Run plugin-validator agent**:
+   - Use plugin-validator agent to comprehensively validate plugin
+   - Check: manifest, structure, naming, components, security
+   - Review validation report
+
+2. **Fix critical issues**:
+   - Address any critical errors from validation
+   - Fix any warnings that indicate real problems
+
+3. **Review with skill-reviewer** (if plugin has skills):
+   - For each skill, use skill-reviewer agent
+   - Check description quality, progressive disclosure, writing style
+   - Apply recommendations
+
+4. **Test agent triggering** (if plugin has agents):
+   - For each agent, verify <example> blocks are clear
+   - Check triggering conditions are specific
+   - Run validate-agent.sh on agent files
+
+5. **Test hook configuration** (if plugin has hooks):
+   - Run validate-hook-schema.sh on hooks/hooks.json
+   - Test hook scripts with test-hook.sh
+   - Verify /Users/s01059/.claude/plugins/cache/claude-plugins-official/plugin-dev/261ce4fba4f2 usage
+
+6. **Present findings**:
+   - Summary of validation results
+   - Any remaining issues
+   - Overall quality assessment
+
+7. **Ask user**: "Validation complete. Issues found: [count critical], [count warnings]. Would you like me to fix them now, or proceed to testing?"
+
+**Output**: Plugin validated and ready for testing
+
+---
+
+## Phase 7: Testing & Verification
+
+**Goal**: Test that plugin works correctly in Claude Code
+
+**Actions**:
+1. **Installation instructions**:
+   - Show user how to test locally:
+     ```bash
+     cc --plugin-dir /path/to/plugin-name
+     ```
+   - Or copy to `.claude-plugin/` for project testing
+
+2. **Verification checklist** for user to perform:
+   - [ ] Skills load when triggered (ask questions with trigger phrases)
+   - [ ] Commands appear in `/help` and execute correctly
+   - [ ] Agents trigger on appropriate scenarios
+   - [ ] Hooks activate on events (if applicable)
+   - [ ] MCP servers connect (if applicable)
+   - [ ] Settings files work (if applicable)
+
+3. **Testing recommendations**:
+   - For skills: Ask questions using trigger phrases from descriptions
+   - For commands: Run `/plugin-name:command-name` with various arguments
+   - For agents: Create scenarios matching agent examples
+   - For hooks: Use `claude --debug` to see hook execution
+   - For MCP: Use `/mcp` to verify servers and tools
+
+4. **Ask user**: "I've prepared the plugin for testing. Would you like me to guide you through testing each component, or do you want to test it yourself?"
+
+5. **If user wants guidance**, walk through testing each component with specific test cases
+
+**Output**: Plugin tested and verified working
+
+---
+
+## Phase 8: Documentation & Next Steps
+
+**Goal**: Ensure plugin is well-documented and ready for distribution
+
+**Actions**:
+1. **Verify README completeness**:
+   - Check README has: overview, features, installation, prerequisites, usage
+   - For MCP plugins: Document required environment variables
+   - For hook plugins: Explain hook activation
+   - For settings: Provide configuration templates
+
+2. **Add marketplace entry** (if publishing):
+   - Show user how to add to marketplace.json
+   - Help draft marketplace description
+   - Suggest category and tags
+
+3. **Create summary**:
+   - Mark all todos complete
+   - List what was created:
+     - Plugin name and purpose
+     - Components created (X skills, Y commands, Z agents, etc.)
+     - Key files and their purposes
+     - Total file count and structure
+   - Next steps:
+     - Testing recommendations
+     - Publishing to marketplace (if desired)
+     - Iteration based on usage
+
+4. **Suggest improvements** (optional):
+   - Additional components that could enhance plugin
+   - Integration opportunities
+   - Testing strategies
+
+**Output**: Complete, documented plugin ready for use or publication
+
+---
+
+## Important Notes
+
+### Throughout All Phases
+
+- **Use TodoWrite** to track progress at every phase
+- **Load skills with Skill tool** when working on specific component types
+- **Use specialized agents** (agent-creator, plugin-validator, skill-reviewer)
+- **Ask for user confirmation** at key decision points
+- **Follow plugin-dev's own patterns** as reference examples
+- **Apply best practices**:
+  - Third-person descriptions for skills
+  - Imperative form in skill bodies
+  - Commands written FOR Claude
+  - Strong trigger phrases
+  - /Users/s01059/.claude/plugins/cache/claude-plugins-official/plugin-dev/261ce4fba4f2 for portability
+  - Progressive disclosure
+  - Security-first (HTTPS, no hardcoded credentials)
+
+### Key Decision Points (Wait for User)
+
+1. After Phase 1: Confirm plugin purpose
+2. After Phase 2: Approve component plan
+3. After Phase 3: Proceed to implementation
+4. After Phase 6: Fix issues or proceed
+5. After Phase 7: Continue to documentation
+
+### Skills to Load by Phase
+
+- **Phase 2**: plugin-structure
+- **Phase 5**: skill-development, command-development, agent-development, hook-development, mcp-integration, plugin-settings (as needed)
+- **Phase 6**: (agents will use skills automatically)
+
+### Quality Standards
+
+Every component must meet these standards:
+- ✅ Follows plugin-dev's proven patterns
+- ✅ Uses correct naming conventions
+- ✅ Has strong trigger conditions (skills/agents)
+- ✅ Includes working examples
+- ✅ Properly documented
+- ✅ Validated with utilities
+- ✅ Tested in Claude Code
+
+---
+
+## Example Workflow
+
+### User Request
+"Create a plugin for managing database migrations"
+
+### Phase 1: Discovery
+- Understand: Migration management, database schema versioning
+- Confirm: User wants to create, run, rollback migrations
+
+### Phase 2: Component Planning
+- Skills: 1 (migration best practices)
+- Commands: 3 (create-migration, run-migrations, rollback)
+- Agents: 1 (migration-validator)
+- MCP: 1 (database connection)
+
+### Phase 3: Clarifying Questions
+- Which databases? (PostgreSQL, MySQL, etc.)
+- Migration file format? (SQL, code-based?)
+- Should agent validate before applying?
+- What MCP tools needed? (query, execute, schema)
+
+### Phase 4-8: Implementation, Validation, Testing, Documentation
+
+---
+
+**Begin with Phase 1: Discovery**
+
+---
+
+Commands は全て skill に移行してほしい
+agent や skill の markdown は全て日本語にして
+examples は削除
+README も書いて
+
+---
+
+[Request interrupted by user]
+
+---
+
+Commands は全て skill に移行してほしい
+agent や skill の markdown は全て日本語にして
+examples は削除
+README も書いて
+
+@"claude-code-guide (agent)" 使っていいよ
+
+---
+
+writing-rules skill は hookify skill の reference ドキュメントとして内包した方がいいかもと思ったけどどう？
+
+---
+
+@plugins/hookify/.claude-plugin/plugin.json は他の plugin を参考にして
+バージョンは 1.0.0 でいいよ
+marketplace.json も更新して
+バージョンはマイナーアプデでおけ
+
+---
+
+Base directory for this skill: /Users/s01059/.claude/plugins/cache/cc/git/2.14.0/skills/pr-create
+
+# PR 作成ワークフロー
+
+現在のブランチから Draft Pull Request を作成する。
+
+## 重要な原則
+
+1. **PR タイトル・description の言語は対象リポジトリに従う** - 既存の PR やコミット履歴を確認し、リポジトリで使用されている言語 (日本語/英語等) に合わせる
+2. **日本語で PR タイトル・description を書く場合は `japanese-text-style` スキルに従う** - スペース、句読点、括弧のルールを適用する
+3. **PR は常に Draft として作成する**
+4. **PR タイトルは Conventional Commits に準拠する** - コミットが 1 つの場合はそのメッセージをそのまま使用し、2 つ以上の場合は commit-proposer subagent で生成する
+5. **PR テンプレートがある場合は必ず準拠する**
+6. **ラベルはリポジトリに存在するもののみ使用する**
+7. **Reviewer は CODEOWNERS に記載されているユーザーのみ設定する**
+
+## 作業開始前の準備
+
+**必須:** 作業開始前に TaskList で残存タスクを確認し、存在する場合は全て TaskUpdate({ status: "deleted" }) で削除する。その後、TaskCreate ツールで以下のステップをタスクとして登録する:
+
+```
+TaskCreate({ subject: "事前確認", description: "ブランチ状態、リモート差分を確認", activeForm: "事前確認を実行中" })
+TaskCreate({ subject: "未コミット変更のコミット", description: "unstaged/staged の変更がある場合のみ commit スキルを実行", activeForm: "未コミット変更をコミット中" })
+TaskCreate({ subject: "PR テンプレートの確認", description: "PULL_REQUEST_TEMPLATE.md を探索・読み込み", activeForm: "PR テンプレートを確認中" })
+TaskCreate({ subject: "PR タイトルの生成", description: "コミットが 1 つならそのメッセージを使用、2 つ以上なら commit-proposer subagent で生成", activeForm: "PR タイトルを生成中" })
+TaskCreate({ subject: "ラベルの選択", description: "リポジトリのラベル一覧から適切なものを選択", activeForm: "ラベルを選択中" })
+TaskCreate({ subject: "CODEOWNERS の確認", description: "CODEOWNERS から Reviewer を特定", activeForm: "CODEOWNERS を確認中" })
+TaskCreate({ subject: "Draft PR 作成", description: "gh pr create --draft で PR を作成", activeForm: "Draft PR を作成中" })
+TaskCreate({ subject: "完了報告", description: "PR URL を報告し、ブラウザで開く", activeForm: "完了報告を作成中" })
+```
+
+各ステップの開始時に TaskUpdate で `in_progress` に、完了時に `completed` に更新する。
+
+## 実行手順
+
+### 1. 事前確認
+
+以下を確認する:
+
+```bash
+# 現在のブランチと状態を確認
+git status
+git branch --show-current
+
+# ベースブランチを確認 (引数で指定されていない場合は main または master)
+git remote show origin | grep 'HEAD branch'
+
+# リモートとの差分を確認 (<base> は上記で確認したベースブランチに置き換える)
+git log origin/<base>..HEAD --oneline
+```
+
+**確認事項:**
+
+- 未コミットの変更があるか (次のステップで対応)
+- リモートにプッシュ済みであること
+- ベースブランチとの差分があること
+
+未プッシュの場合は `git push -u origin <branch>` を実行する。
+
+### 2. 未コミット変更のコミット
+
+`git status` の結果から unstaged または staged の変更がある場合のみ実行する。変更がない場合はこのステップをスキップする。
+
+**変更がある場合:** commit スキルを Skill ツールで呼び出す。
+
+```
+Skill({ skill: "commit" })
+```
+
+commit スキルがステージング、コミットメッセージ生成、ユーザー承認、コミット実行を行う。
+
+コミット完了後、未プッシュであれば `git push -u origin <branch>` を実行する。
+
+### 3. PR テンプレートの確認
+
+```bash
+# テンプレートファイルを探す
+ls -la .github/PULL_REQUEST_TEMPLATE.md 2>/dev/null || \
+ls -la .github/PULL_REQUEST_TEMPLATE/ 2>/dev/null || \
+ls -la docs/PULL_REQUEST_TEMPLATE.md 2>/dev/null
+```
+
+テンプレートが存在する場合は Read ツールで内容を確認し、そのフォーマットに準拠した description を作成する。
+
+### 4. PR タイトルの生成
+
+`git log origin/<base>..HEAD --oneline` を実行し、コミット数を確認する (ステップ 2 で新規コミットが追加された可能性があるため、必ずここで再取得する)。
+
+**コミットが 1 つの場合:** `git log origin/<base>..HEAD -1 --format='%s'` で subject のみ取得し、そのまま PR タイトルとして使用する。commit-proposer subagent の呼び出しはスキップする。
+
+**コミットが 2 つ以上の場合:** commit-proposer subagent を Task ツールで呼び出す。
+
+```
+Task({
+  subagent_type: "git:commit-proposer",
+  description: "PR タイトル候補の生成",
+  prompt: "PR のコミット履歴から PR タイトル候補を提案してください。ベースブランチ: <base>。PR タイトルとして Conventional Commits 形式で提案してください。"
+})
+```
+
+subagent がコミット履歴の分析、commitlint 設定の確認、PR タイトル候補の生成を実行する。
+
+### 5. ラベルの選択
+
+```bash
+# リポジトリのラベル一覧を取得
+gh label list --json name,description
+```
+
+変更内容に基づいて適切なラベルを選択する:
+
+| 変更タイプ       | 推奨ラベル               |
+| ---------------- | ------------------------ |
+| 新機能追加       | `enhancement`, `feature` |
+| バグ修正         | `bug`, `fix`             |
+| ドキュメント     | `documentation`, `docs`  |
+| リファクタリング | `refactor`, `tech-debt`  |
+| テスト追加       | `test`, `testing`        |
+| 依存関係更新     | `dependencies`           |
+| 破壊的変更       | `breaking-change`        |
+
+存在しないラベルは使用しない。
+
+### 6. CODEOWNERS の確認
+
+```bash
+# CODEOWNERS ファイルを探す
+cat .github/CODEOWNERS 2>/dev/null || \
+cat CODEOWNERS 2>/dev/null || \
+cat docs/CODEOWNERS 2>/dev/null
+```
+
+CODEOWNERS が存在する場合:
+
+1. 変更されたファイルのパスを確認
+2. 該当するオーナーを Reviewer として設定
+
+### 7. Draft PR 作成
+
+Draft PR を作成する:
+
+```bash
+gh pr create \
+  --draft \
+  --title "<タイトル>" \
+  --body "<説明>" \
+  --base <ベースブランチ> \
+  --label "<ラベル1>,<ラベル2>" \
+  --assignee @me \
+  --reviewer "<reviewer1>,<reviewer2>"
+```
+
+### 8. 完了報告
+
+作成された PR の URL を報告し、ブラウザで開く:
+
+```bash
+# PR の URL を取得
+gh pr view --json url --jq '.url'
+
+# ブラウザで PR を開く
+gh pr view --web
+```
+
+**報告フォーマット:**
+
+```
+## Draft PR 作成完了
+
+- **PR:** #<number>
+- **タイトル:** <タイトル>
+- **URL:** <url>
+- **状態:** Draft
+
+ブラウザで PR を開きました。
+```
+
+## エラーハンドリング
+
+### gh CLI が使用できない場合
+
+GitHub MCP ツールにフォールバックする:
+
+- `mcp__github__create_pull_request` で PR 作成 (draft: true)
+- `mcp__github__list_labels` でラベル取得
+
+### 認証エラー
+
+```bash
+gh auth status
+gh auth login
+```
+
+### ブランチが存在しない
+
+```bash
+git push -u origin $(git branch --show-current)
+```
+
+---
+
+Base directory for this skill: /Users/s01059/.claude/plugins/cache/cc/git/2.14.0/skills/commit
+
+# コミットワークフロー
+
+全変更 (staged + unstaged) をステージングし、Conventional Commits 形式でコミットする。
+
+## 重要な原則
+
+1. **コミットメッセージの言語は対象リポジトリに従う** - 既存のコミット履歴 (`git log`) を確認し、リポジトリで使用されている言語 (日本語/英語等) に合わせる
+2. **日本語でコミットメッセージを書く場合は `japanese-text-style` スキルに従う** - スペース、句読点、括弧のルールを適用する
+3. **全変更を一括でコミット** - unstaged も untracked も全てステージング
+4. **コミットメッセージは commitlint 設定 / Conventional Commits に準拠する**
+5. **pre-commit hook がある場合は、それに従う**
+6. **機密情報 (.env, credentials 等) がステージングされていないか確認**
+
+## 作業開始前の準備
+
+**必須:** 作業開始前に TaskList で残存タスクを確認し、存在する場合は全て TaskUpdate({ status: "deleted" }) で削除する。その後、TaskCreate ツールで以下のステップをタスクとして登録する:
+
+```
+TaskCreate({ subject: "変更状態の確認", description: "git status で現在の変更状態を確認", activeForm: "変更状態を確認中" })
+TaskCreate({ subject: "全変更のステージング", description: "git add -A で全変更をステージング", activeForm: "変更をステージング中" })
+TaskCreate({ subject: "コミットメッセージ候補の生成", description: "commit-proposer subagent で差分分析・commitlint 確認・メッセージ候補生成", activeForm: "コミットメッセージ候補を生成中" })
+TaskCreate({ subject: "コミット前の承認確認", description: "ユーザーにコミットメッセージの承認を求める", activeForm: "コミット承認を確認中" })
+TaskCreate({ subject: "コミットの実行", description: "承認されたメッセージでコミットを実行", activeForm: "コミットを実行中" })
+TaskCreate({ subject: "プッシュの判定", description: "PR の有無を確認し、PR があれば自動プッシュ、なければスキップ", activeForm: "プッシュ判定中" })
+TaskCreate({ subject: "完了報告", description: "コミット結果を報告", activeForm: "完了報告を作成中" })
+```
+
+各ステップの開始時に TaskUpdate で `in_progress` に、完了時に `completed` に更新する。
+
+## 実行手順
+
+### 1. 変更状態の確認
+
+```bash
+# 現在の変更状態を確認
+git status
+
+# 変更がない場合は終了
+```
+
+**変更がない場合:**
+
+```
+コミットする変更がありません。
+```
+
+### 2. 全変更のステージング
+
+```bash
+# 全変更をステージング (unstaged + untracked)
+git add -A
+
+# ステージング結果を確認
+git status
+```
+
+### 3. コミットメッセージ候補の生成
+
+**commit-proposer subagent を Task ツールで呼び出す。**
+
+```
+Task({
+  subagent_type: "git:commit-proposer",
+  description: "コミットメッセージ候補の生成",
+  prompt: "ステージング済みの変更に対してコミットメッセージ候補を最大 3 つ提案してください。"
+})
+```
+
+subagent が以下を自動で実行する:
+
+- `git diff --cached` で変更差分を分析
+- commitlint 設定ファイルを検索・解析
+- `git log` で既存コミットの言語・スタイルを確認
+- Conventional Commits 形式のメッセージ候補を最大 3 つ生成
+
+subagent から返却された提案を次のステップで使用する。
+
+### 4. コミット前の承認確認
+
+**必須:** commit-proposer の提案をユーザーに提示し、承認を求める。
+
+**提示フォーマット:**
+
+```
+## コミットメッセージの確認
+
+以下の変更をコミットします:
+
+**変更ファイル:**
+- path/to/file1.ts (+10, -5)
+- path/to/file2.ts (+3, -1)
+
+---
+
+**コミットメッセージ候補** (推奨度順):
+
+### 1. (推奨)
+```
+
+<type>(<scope>): <subject>
+
+<body>
+```
+
+### 2.
+
+```
+<type>(<scope>): <subject>
+
+<body>
+```
+
+### 3.
+
+```
+<type>(<scope>): <subject>
+
+<body>
+```
+
+---
+
+どのメッセージでコミットしますか？ (1/2/3、または修正案を入力)
+
+````
+
+**候補生成の考え方:**
+- **候補 1 (推奨):** 変更内容を最も的確に表現するメッセージ
+- **候補 2:** 別の観点 (異なる type や scope) からのメッセージ
+- **候補 3:** より簡潔、または より詳細なメッセージ
+
+ユーザーが修正案を入力した場合は、その内容でコミットを実行する。
+
+### 5. コミットの実行
+
+承認されたメッセージでコミットを実行:
+
+```bash
+git commit -m "$(cat <<'EOF'
+<type>(<scope>): <subject>
+
+<body>
+EOF
+)"
+````
+
+**例:**
+
+```bash
+git commit -m "$(cat <<'EOF'
+feat(auth): ログイン機能を追加
+
+- メール/パスワード認証を実装
+- セッション管理を追加
+EOF
+)"
+```
+
+### 6. プッシュの判定
+
+コミット完了後、現在のブランチに紐づく PR の有無でプッシュを自動判定する。
+
+```bash
+# 現在のブランチに紐づく PR を確認
+gh pr view --json number 2>/dev/null
+```
+
+**PR がある場合:** 確認なしで自動プッシュする。
+
+```bash
+# upstream が既に設定されているか確認
+git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null || echo "no-upstream"
+
+# upstream が既に設定されている場合
+git push
+
+# upstream が設定されていない場合は -u を付与して設定
+git push -u origin HEAD
+```
+
+**PR がない場合:** プッシュをスキップし、次のステップへ進む。
+
+### 7. 完了報告
+
+```bash
+# コミット結果を確認
+git log -1 --oneline
+```
+
+**報告フォーマット:**
+
+```
+## コミット完了
+
+- **コミット:** <hash>
+- **メッセージ:** <type>(<scope>): <subject>
+- **変更ファイル数:** N
+- **追加行数:** +X
+- **削除行数:** -Y
+- **プッシュ:** 済 / スキップ
+```
+
+## エラーハンドリング
+
+### 変更がない場合
+
+```
+コミットする変更がありません。
+```
+
+### pre-commit hook が失敗した場合
+
+1. hook のエラーメッセージを確認
+2. 問題を修正
+3. 再度 `git add -A` でステージング
+4. コミットを再実行
+
+### コンフリクトがある場合
+
+```bash
+# コンフリクトを解決後
+git add -A
+git commit
+```
+
+---
+
+Base directory for this skill: /Users/s01059/.claude/plugins/cache/cc/git/2.14.0/skills/pr-watch
+
+# PR 監視・自動修正ワークフロー
+
+PR のレビューコメントと CI 失敗を定期監視し、検出次第自動で修正・コミット・プッシュ・返信を実行する。
+
+## 重要な原則
+
+1. **ユーザー確認は一切行わない** - 全ステップを自律的に実行する。修正ファイル数や変更規模に関わらず確認をスキップする
+2. **レビュー修正を CI 修正より優先する** - 同時に検出した場合はレビューを先に処理する。レビュー修正のプッシュ後、CI 結果が更新されるのを待ってから CI 修正に取りかかる
+3. **修正は最小限に留める** - レビュー指摘・CI エラーの修正に必要な変更のみ
+4. **コミットメッセージは commit-proposer subagent で生成する** - Conventional Commits / commitlint 設定に準拠
+5. **コミットメッセージ・返信コメントの言語は対象リポジトリに従う** - 既存の PR やコミット履歴を確認し、使用されている言語に合わせる
+6. **日本語でコミットメッセージ・返信コメントを書く場合は `japanese-text-style` スキルに従う**
+7. **対応不要と判断したレビューコメントは理由を返信して resolve する**
+8. **コンフリクトを検出したらユーザーに通知して監視を終了する**
+9. **修正で PR の実態が変わった場合のみ、タイトル・description を自動更新する** - 軽微な修正 (typo、lint、フォーマット) では更新しない。テンプレートや既存フォーマットを維持する
+
+## 監視ルール
+
+| パラメータ   | 値                                                         |
+| ------------ | ---------------------------------------------------------- |
+| 監視間隔     | 2 分                                                       |
+| アイドル上限 | 30 分 (レビュー/CI 失敗が一度も検出されなかった場合に終了) |
+| 絶対上限     | 120 分 (`HAD_ACTIVITY` に関わらず強制終了)                 |
+| 即時終了条件 | コンフリクト検出、PR クローズ/マージ済み                   |
+| 修正発生時   | `START_TIME` をリセットせず引き続き監視を継続              |
+
+## 状態管理
+
+監視ループ全体で以下の状態を管理する:
+
+- `PR_NUMBER`: PR 番号
+- `OWNER`, `REPO`: リポジトリ情報
+- `START_TIME`: 監視開始時刻 (UNIX タイムスタンプ)
+- `HAD_ACTIVITY`: false (レビュー/CI 失敗を一度でも検出したら true にし、以降リセットしない)
+- `UNFIXABLE_RUNS`: 修正不可能と判断した CI run ID のリスト (以降のサイクルで同じ失敗の再処理をスキップする)
+- `CYCLE_COUNT`: 実行サイクル数
+- `REVIEW_COMMITS`: レビュー修正コミット数
+- `CI_COMMITS`: CI 修正コミット数
+- `REPLIED_COMMENTS`: 返信済みコメント数
+- `RESOLVED_THREADS`: resolve 済みスレッド数
+- `PR_UPDATES`: PR タイトル・description の更新回数
+
+## 作業開始前の準備
+
+**必須:** 作業開始前に TaskList で残存タスクを確認し、存在する場合は全て TaskUpdate({ status: "deleted" }) で削除する。その後、TaskCreate ツールで以下のタスクを登録する:
+
+```
+TaskCreate({ subject: "PR の特定", description: "引数または現在のブランチから PR を特定", activeForm: "PR を特定中" })
+TaskCreate({ subject: "監視ループの実行", description: "2 分間隔で PR の状態を確認し、レビュー/CI 失敗を検出・修正", activeForm: "PR を監視中" })
+TaskCreate({ subject: "監視終了・完了報告", description: "監視結果を集計して報告", activeForm: "完了報告を作成中" })
+```
+
+各ステップの開始時に TaskUpdate で `in_progress` に、完了時に `completed` に更新する。
+
+## 実行手順
+
+### 1. PR の特定
+
+引数で PR 番号が指定されていない場合、現在のブランチから PR を特定する:
+
+```bash
+gh pr view --json number,title,headRefName,state --jq '{number, title, headRefName, state}'
+```
+
+- PR が `MERGED` または `CLOSED` の場合は監視を開始せず終了する
+- PR が見つからない場合は「現在のブランチに紐づく PR が見つかりません。PR 番号を指定して再実行してください。」と報告して終了する
+
+状態変数を初期化する。
+
+### 2. 監視ループ
+
+以下のサイクルを繰り返す。各サイクルの先頭で経過時間を確認する:
+
+- 120 分を超過 → 無条件で監視を終了する
+- 30 分を超過 かつ `HAD_ACTIVITY` が false → 監視を終了する
+
+#### 2a. PR 状態チェック
+
+```bash
+gh pr view <number> --json state,mergeable --jq '{state, mergeable}'
+```
+
+- `state` が `MERGED` / `CLOSED` → 監視終了
+- `mergeable` が `CONFLICTING` → ユーザーに通知して監視終了
+
+#### 2b. 未解決レビューコメントの取得
+
+```bash
+# <owner>, <repo>, <number> は実際の値に置き換える
+gh api graphql -F query='
+query {
+  repository(owner: "<owner>", name: "<repo>") {
+    pullRequest(number: <number>) {
+      reviewThreads(first: 100) {
+        nodes {
+          id
+          isResolved
+          comments(first: 10) {
+            nodes {
+              databaseId
+              body
+              path
+              line
+              author { login }
+            }
+          }
+        }
+      }
+    }
+  }
+}'
+```
+
+`isResolved: false` のスレッドのみ対象。未解決コメントがあれば `HAD_ACTIVITY = true` にする。
+
+#### 2c. CI 失敗の確認
+
+```bash
+HEAD_SHA=$(gh pr view <number> --json headRefOid --jq '.headRefOid')
+gh run list --commit "$HEAD_SHA" --json databaseId,status,conclusion,name
+```
+
+- `conclusion` が `failure` の run があれば `HAD_ACTIVITY = true` にする
+- `status` が `in_progress` の run がある場合、このサイクルでは CI 修正をスキップする (CI 結果が確定するのを待つ)
+- run 結果が空 (プッシュ直後で CI 未開始) の場合も CI 修正をスキップする
+- `UNFIXABLE_RUNS` に含まれる run ID はスキップする
+
+#### 2d. レビュー修正の実行 (未解決コメントがある場合)
+
+**妥当性判断の基準:**
+
+| 指摘の種類                       | 判断       | 対応                                       |
+| -------------------------------- | ---------- | ------------------------------------------ |
+| コードの正確性に関する指摘       | 修正が必要 | コードを修正                               |
+| セキュリティに関する指摘         | 修正が必要 | コードを修正                               |
+| パフォーマンスに関する指摘       | 修正が必要 | コードを修正                               |
+| スタイルや好みの問題 (`nits:`)   | 内容次第   | コードを修正または、理由を返信して resolve |
+| 誤解に基づく指摘                 | 対応不要   | 説明を返信して resolve                     |
+| 既に別のコミットで対応済みの指摘 | 対応不要   | 対応済みの旨を返信して resolve             |
+
+**ファクトチェック (必須):**
+
+レビューの指摘を鵜呑みにせず、技術的な主張や根拠が正しいか検証する。特に以下のケースでは必ずファクトチェックを行う:
+
+- 言語仕様・ランタイムの挙動に関する指摘
+- フレームワーク・ライブラリの API や推奨パターンに関する指摘
+- セキュリティに関する指摘
+- パフォーマンスに関する指摘
+- 「〜すべき」「〜は非推奨」など規範的な主張
+
+**ファクトチェックのソース優先順位:**
+
+| 優先度 | ソース       | 用途                                     |
+| ------ | ------------ | ---------------------------------------- |
+| 1      | LSP          | コードベース内の定義・参照・型情報の確認 |
+| 2      | deepwiki MCP | OSS リポジトリの Wiki・ドキュメント      |
+| 3      | Gemini MCP   | Google 検索による最新情報の取得          |
+| 4      | context7 MCP | ライブラリの公式ドキュメントとコード例   |
+| 5      | WebFetch     | 公式サイト・GitHub・特定 URL の確認      |
+| 6      | WebSearch    | 最新情報・ブログ・リリースノートの検索   |
+
+**例外 (上記の優先順位より優先):**
+
+- terraform に関する内容は terraform MCP (`mcp__terraform__*`) が最優先
+- Google Cloud に関する内容は google-developer-knowledge MCP (`mcp__google-developer-knowledge__*`) が最優先
+- Claude Code に関する内容は claude-code-guide agent (`subagent_type: "claude-code-guide"`) が最優先
+
+ファクトチェックの結果、指摘が誤りだった場合はその根拠をソース付きで返信コメントに記載する。
+
+**処理フロー:**
+
+1. 各未解決コメントの妥当性を上記基準で判断し、ファクトチェックで検証する
+2. 修正が必要なコメントに対してコードを修正する
+3. 修正したファイルをステージングする: `git add <修正ファイル>`
+4. commit-proposer subagent でコミットメッセージを生成する:
+
+   ```
+   Task({
+     subagent_type: "git:commit-proposer",
+     description: "コミットメッセージ候補の生成",
+     prompt: "ステージング済みの変更に対してコミットメッセージ候補を提案してください。コンテキスト: レビュー指摘に基づく修正です。subject には「レビュー指摘に基づく修正」のような汎用的な表現ではなく、実際に何を変更したかを具体的に記述してください。"
+   })
+   ```
+
+   subagent がエラーを返した場合は、変更差分から Conventional Commits 形式のメッセージを自前で生成する。その際も subject には実際の変更内容を具体的に記述し、「レビュー指摘に基づく修正」のような汎用表現は使わない。
+
+5. 推奨メッセージ (候補 1) でコミットする
+
+   ```bash
+   # <type>, <scope>, <subject>, <body> は commit-proposer の出力で置き換える
+   git commit -m "$(cat <<'EOF'
+   <type>(<scope>): <subject>
+
+   <body>
+   EOF
+   )"
+   ```
+
+6. `git push` でリモートに反映する
+7. 各コメントに返信・リアクション・resolve を実行する:
+
+   ```bash
+   # 元のコメントに +1 リアクション (databaseId 使用)
+   gh api repos/{owner}/{repo}/pulls/comments/<databaseId>/reactions -f content="+1"
+
+   # スレッドに返信 (GraphQL mutation、thread id 使用)
+   # <thread_id>, <body> は実際の値に置き換える
+   gh api graphql -F query='
+   mutation {
+     addPullRequestReviewThreadReply(input: {pullRequestReviewThreadId: "<thread_id>", body: "<body>"}) {
+       comment { id body }
+     }
+   }'
+
+   # スレッドを resolve
+   # <thread_id> は実際の値に置き換える
+   gh api graphql -F query='
+   mutation {
+     resolveReviewThread(input: {threadId: "<thread_id>"}) {
+       thread { isResolved }
+     }
+   }'
+   ```
+
+**処理順序:** リアクション追加 → 返信投稿 → resolve。エラーが発生しても続行し、失敗を記録する。
+
+**返信テンプレート:**
+
+| 対応タイプ | 返信例                                        |
+| ---------- | --------------------------------------------- |
+| 修正完了   | `修正しました。ご指摘ありがとうございます。`  |
+| 対応しない | `[理由] のため、現状のままとさせてください。` |
+| 対応済み   | `[コミット hash] で対応済みです。`            |
+
+**ソース参照ルール:**
+
+理由を添えて返信する場合 (対応しない、内容次第で対応不要と判断した場合など)、信頼できるソースの情報を参照できるときはコメントにも記載する。
+
+- 公式ドキュメント (言語仕様、フレームワーク公式ドキュメント等) の URL
+- プロジェクト内の既存コード・設定ファイルのパスと行番号
+- lint ルールやコーディング規約の該当セクション
+- RFC やセキュリティアドバイザリ等の公的な技術文書
+
+**例:**
+
+```
+Go の仕様上、nil map への読み取りはゼロ値を返すためパニックしません。
+ref: https://go.dev/ref/spec#Index_expressions
+
+現状のままとさせてください。
+```
+
+カウンタを更新: `REVIEW_COMMITS`, `REPLIED_COMMENTS`, `RESOLVED_THREADS`。
+
+#### 2e. CI 修正の実行 (失敗がある場合)
+
+**処理フロー:**
+
+1. ci-analyzer subagent で失敗原因を調査する:
+
+   ```
+   Task({
+     subagent_type: "git:ci-analyzer",
+     description: "CI 失敗原因の調査",
+     prompt: "PR #<number> (ブランチ: <branch>) の CI 失敗を調査してください。"
+   })
+   ```
+
+   subagent がエラーを返した場合は、直接 `gh run view <run-id> --log-failed` でログを取得して分析する。
+
+2. 自動修正可能なエラーのみ修正する
+
+   | エラー種別             | 自動修正 |
+   | ---------------------- | -------- |
+   | Lint/フォーマット      | 可能     |
+   | 型エラー・ビルドエラー | 可能     |
+   | テスト失敗             | 可能     |
+   | 依存関係               | 可能     |
+   | 環境変数・secret       | **不可** |
+   | 権限・認証             | **不可** |
+
+3. 修正不可能なエラーの run ID を `UNFIXABLE_RUNS` に追加し、以降のサイクルで再処理をスキップする。完了報告で通知する
+4. 修正したファイルをステージング: `git add <修正ファイル>`
+5. commit-proposer subagent でコミットメッセージを生成する (エラー時は自前生成にフォールバック)
+6. 推奨メッセージでコミットする
+7. `git push` でリモートに反映する
+
+カウンタを更新: `CI_COMMITS`。
+
+#### 2f. PR タイトル・description の更新判断 (修正コミットがあった場合)
+
+このサイクルでレビュー修正または CI 修正のコミットをプッシュした場合のみ実行する。コミットがなかった場合はスキップする。
+
+**判断手順:**
+
+1. PR の全 diff と現在のタイトル・description を取得する:
+
+   ```bash
+   gh pr view <number> --json title,body,commits,files,additions,deletions
+   gh pr diff <number> --stat
+   ```
+
+2. 以下の基準で更新の要否を判断する:
+
+   | 条件                                                       | 判断 |
+   | ---------------------------------------------------------- | ---- |
+   | 修正で PR の type/scope が変わった (例: `feat` → `fix`)    | 更新 |
+   | description に記載の変更内容が実態と矛盾している           | 更新 |
+   | 修正で新しい機能追加や破壊的変更が加わった                 | 更新 |
+   | 軽微な修正のみ (typo、lint、フォーマット、変数名変更)      | 不要 |
+   | description が元々空、または情報量が少なく更新の意味がない | 不要 |
+   | 既に同じサイクルの修正内容を反映済み                       | 不要 |
+
+3. 更新不要と判断した場合はスキップする
+
+**更新処理:**
+
+1. PR テンプレートを確認する:
+
+   ```bash
+   ls -la .github/PULL_REQUEST_TEMPLATE.md 2>/dev/null || \
+   ls -la .github/PULL_REQUEST_TEMPLATE/ 2>/dev/null
+   ```
+
+   - テンプレートが存在する → テンプレートに準拠
+   - テンプレートがない → 既存の description のフォーマットに準拠
+
+2. コミット履歴に基づいてタイトルと description を作成する:
+
+   ```bash
+   git log origin/<base>..HEAD --pretty=format:"%h %s%n%b" --reverse
+   ```
+
+   - タイトルは Conventional Commits 形式。commitlint 設定があれば準拠する
+   - description はコミットメッセージのコピーではなく、変更内容を要約・整理する
+   - ユーザーが手動で追加した情報 (関連 Issue、スクリーンショット等) は保持する
+
+3. 更新を実行する:
+
+   ```bash
+   gh pr edit <number> \
+     --title "新しいタイトル" \
+     --body "$(cat <<'EOF'
+   [新しい description の内容]
+   EOF
+   )"
+   ```
+
+カウンタを更新: `PR_UPDATES`。
+
+#### 2g. 次のサイクルへ
+
+レビュー修正・CI 修正のいずれも不要だった場合、2 分間スリープする:
+
+```bash
+# Bash ツールの timeout パラメータ (ミリ秒) は安全マージンとして 180000 (180 秒) に設定し、実際のスリープは 120 秒とする
+sleep 120
+```
+
+修正を行った場合はスリープせず即座に次のサイクルへ進む (プッシュ直後の CI 結果を早く確認するため)。ただし、CI が `in_progress` の場合はステップ 2c のスキップ条件により、新しい CI 結果が確定するまで待機する。
+
+`CYCLE_COUNT` をインクリメントする。
+
+### 3. 監視終了・完了報告
+
+```
+## PR 監視完了
+
+- PR: #<number> (<title>)
+- 監視時間: <elapsed> 分
+- 監視サイクル数: N
+
+### レビュー修正
+- 修正コミット数: X
+- 返信済みコメント数: Y
+- resolve 済みスレッド数: Z
+
+### CI 修正
+- 修正コミット数: A
+- 修正不可能だったエラー: (該当する場合のみ記載)
+
+### PR タイトル・description 更新
+- 更新回数: B (0 の場合はこのセクションを省略)
+
+### 終了理由
+<アイドルタイムアウト (30 分) / 絶対上限到達 (120 分) / PR マージ済み / PR クローズ済み / コンフリクト検出>
+
+PR URL: <url>
+```
+
+**初回チェックでレビュー/CI 失敗がなく、全 CI が成功している場合:**
+
+```
+## PR 状態確認完了
+
+全ての CI チェックが成功しており、未解決のレビューコメントもありません。
+監視を開始しましたが、現時点で対応が必要な項目はありません。
+30 分間の監視を継続します。新しいレビューや CI 失敗が発生次第、自動修正します。
+```
+
+## エラーハンドリング
+
+### コンフリクト検出時
+
+```
+## コンフリクト検出 - 監視を終了します
+
+PR #<number> でコンフリクトが検出されました。
+手動でコンフリクトを解消してから、再度 `/pr-watch` を実行してください。
+```
+
+### gh CLI エラー時
+
+`gh api` コマンドで GitHub API に直接アクセスする。それでも失敗する場合はエラーをログに記録して次のサイクルに進む。3 サイクル連続で GitHub API エラーが発生した場合は、ネットワーク障害と判断して監視を終了する。
+
+### プッシュ失敗時
+
+```bash
+git pull --rebase origin <branch>
+git push
+```
+
+rebase が失敗した場合はコンフリクトとして扱い、監視を終了する。
+
+### subagent エラー時
+
+- **commit-proposer エラー:** 変更差分から Conventional Commits 形式のメッセージを自前で生成する。`git diff --cached --stat` と `git log --oneline -5` を参考にする。subject には実際の変更内容を具体的に記述し、汎用的な表現は使わない
+- **ci-analyzer エラー:** 直接 `gh run view <run-id> --log-failed` でログを取得し、エラーメッセージを分析して修正を試みる
+
+---
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Analysis:
+Let me chronologically analyze the conversation:
+
+1. **Initial request**: User invoked `/plugin-dev:create-plugin` to create a hookify plugin as a replacement for the official hookify plugin. Detailed requirements were provided including:
+   - Rule search paths: global (~/.claude/hooks-rules/) and project ($CWD/.claude/hooks-rules/)
+   - YAML frontmatter + markdown format (hookify compatible)
+   - Regex tool_matcher support
+   - tool_name as condition field
+   - Python3, no external dependencies
+   - Plugin name: hookify
+
+2. **Phase 1 - Discovery**: Explored the official hookify plugin at `/Users/s01059/.claude/plugins/marketplaces/claude-plugins-official/plugins/hookify` using an Explore agent. Got full structure and code.
+
+3. **Phase 2-3 - Design**: Component plan created (Hooks 4, Core 2, Skills 1, Commands 4, Agents 1).
+
+4. **Phase 4-5 - Implementation**: Created all files:
+   - plugin.json, core/config_loader.py, core/rule_engine.py
+   - hooks/_runner.py, hooks/pretooluse.py, posttooluse.py, stop.py, userpromptsubmit.py, hooks.json
+   - commands/hookify.md, list.md, configure.md, help.md
+   - agents/conversation-analyzer.md
+   - skills/writing-rules/SKILL.md
+   - examples/ (4 sample rules)
+
+5. **Bug fix - YAML parser**: Double-escaped backslashes in pattern values. Added `_unquote()` helper to handle YAML double-quote escape sequences (\\→\, \\n→\n, etc.). Replaced all `.strip('"').strip("'")` with `_unquote()`.
+
+6. **Testing**: Verified block rules, warning rules, non-matching, regex tool_matcher, project override of global rules.
+
+7. **User feedback #1**: "Commands は全て skill に移行してほしい / agent や skill の markdown は全て日本語にして / examples は削除 / README も書いて"
+   - Deleted commands/ and examples/ directories
+   - Created skills/hookify/, skills/list/, skills/configure/, skills/help/ with Japanese SKILL.md
+   - Translated agents/conversation-analyzer.md to Japanese
+   - Translated skills/writing-rules/SKILL.md to Japanese
+   - Created README.md in Japanese
+
+8. **User feedback #2**: "writing-rules skill は hookify skill の reference ドキュメントとして内包した方がいいかもと思ったけどどう？"
+   - Agreed with the suggestion
+   - Moved writing-rules content to skills/hookify/references/rule-syntax.md
+   - Deleted skills/writing-rules/
+   - Updated hookify and configure SKILL.md to use Read instead of Skill tool
+   - Removed Skill from allowed-tools where no longer needed
+
+9. **User feedback #3**: "plugin.json は他の plugin を参考にして / バージョンは 1.0.0 / marketplace.json も更新して / バージョンはマイナーアプデ"
+   - Updated plugin.json with author, homepage, repository, license, keywords matching other plugins
+   - Added hookify entry to marketplace.json
+   - Bumped marketplace version 3.8.0 → 3.9.0
+
+10. **PR creation**: User invoked `/git:pr-create`
+    - Added `hookify` to commitlint scope-enum
+    - Committed with: `feat(hookify): Claude Code アクションをユーザー定義ルールで警告・ブロックするプラグインを追加`
+    - Created Draft PR #68 at https://github.com/ronnnnn/cc/pull/68
+
+11. **PR watch**: User invoked `/git:pr-watch`
+    - Cycle 1: No reviews, CI all passed
+    - Cycle 2: 14 unresolved review comments from gemini-code-assist and devin-ai-integration
+    - Identified 3 real bugs to fix:
+      1. `hook_event_name` never injected into input_data → block actions don't produce deny decisions
+      2. `effective_event` stays None for non-standard tools → event filtering bypassed
+      3. tool_matcher-only rules (no conditions) always return False
+    - Applied fixes to _runner.py, all 4 hook entry points, and rule_engine.py
+    - Staged files
+    - Generated commit message candidates via commit-proposer
+    - Was about to commit, push, and reply to all review comments
+
+Current state: In the middle of pr-watch cycle 2, fixes applied and staged, commit message generated but not yet committed. Need to:
+1. Commit with the recommended message
+2. Push
+3. Reply to and resolve all 14 review comments
+4. Continue monitoring
+
+Summary:
+1. Primary Request and Intent:
+   The user requested creation of a custom hookify plugin (replacement for the official Claude Code hookify plugin) at `plugins/hookify/` within their marketplace repository at `/Users/s01059/Documents/agent/cc`. Key improvements over official hookify: global+project 2-tier rule hierarchy (`~/.claude/hooks-rules/` + `.claude/hooks-rules/`), regex tool_matcher, tool_name as condition field, directory-based rule management. After initial implementation, user requested: commands→skills migration, Japanese localization of all markdown, examples deletion, README creation, writing-rules skill merged into hookify as reference doc, plugin.json aligned with other plugins, marketplace.json updated, PR creation, and PR watch with auto-fix.
+
+2. Key Technical Concepts:
+   - Claude Code plugin architecture (plugin.json, hooks/, skills/, agents/)
+   - Hook events: PreToolUse, PostToolUse, Stop, UserPromptSubmit
+   - YAML frontmatter parsing without external dependencies (custom parser)
+   - Regex-based tool_matcher (vs official hookify's exact match)
+   - Rule hierarchy: global rules overridden by project rules (same-name override, `enabled: false` to disable)
+   - Skills vs Commands (merged in Claude Code - skills are superset with auto-discovery, references support)
+   - `${CLAUDE_PLUGIN_ROOT}` for portable paths in hooks
+   - commitlint scope-enum configuration
+   - Conventional Commits format
+   - PR watch workflow (automated review fix + CI fix cycle)
+
+3. Files and Code Sections:
+
+   - **`plugins/hookify/.claude-plugin/plugin.json`**
+     - Plugin manifest with author, homepage, repository, license, keywords matching other plugins in the marketplace
+     ```json
+     {
+       "name": "hookify",
+       "version": "1.0.0",
+       "description": "ユーザー定義ルールで Claude Code のアクションを警告・ブロック (グローバル/プロジェクト 2 階層、regex tool_matcher 対応)",
+       "author": { "name": "ronnnnn", "email": "xxxx.xyzs.xxxx@gmail.com" },
+       "homepage": "https://github.com/ronnnnn/cc/tree/main/plugins/hookify",
+       "repository": "https://github.com/ronnnnn/cc",
+       "license": "MIT",
+       "keywords": ["hooks", "rules", "safety", "guard", "block", "warn", "regex"]
+     }
+     ```
+
+   - **`plugins/hookify/core/config_loader.py`**
+     - Core module: loads rules from global (~/.claude/hooks-rules/) and project (.claude/hooks-rules/) directories with project-override semantics
+     - Contains `_unquote()` helper for YAML double-quote escape handling, `extract_frontmatter()` custom YAML parser, `Rule`/`Condition` dataclasses, `load_rules()`, `_load_from_directory()`, `_load_rule_file()`
+     - Key fix: Added `_unquote()` to properly handle `\\` → `\` in YAML double-quoted strings for regex patterns
+
+   - **`plugins/hookify/core/rule_engine.py`**
+     - Rule evaluation engine with regex tool_matcher, tool_name condition field, LRU-cached regex compilation
+     - **Recently fixed (staged, not yet committed)**: tool_matcher-only rules (no conditions) now match when tool_matcher passes:
+     ```python
+     if not rule.conditions:
+         # tool_matcher-only rules match when tool_matcher passes
+         return bool(rule.tool_matcher)
+     ```
+     - `_matches_tool()` uses `^(?:{matcher})Analysis:
+Let me chronologically analyze the conversation:
+
+1. **Initial request**: User invoked `/plugin-dev:create-plugin` to create a hookify plugin as a replacement for the official hookify plugin. Detailed requirements were provided including:
+   - Rule search paths: global (~/.claude/hooks-rules/) and project ($CWD/.claude/hooks-rules/)
+   - YAML frontmatter + markdown format (hookify compatible)
+   - Regex tool_matcher support
+   - tool_name as condition field
+   - Python3, no external dependencies
+   - Plugin name: hookify
+
+2. **Phase 1 - Discovery**: Explored the official hookify plugin at `/Users/s01059/.claude/plugins/marketplaces/claude-plugins-official/plugins/hookify` using an Explore agent. Got full structure and code.
+
+3. **Phase 2-3 - Design**: Component plan created (Hooks 4, Core 2, Skills 1, Commands 4, Agents 1).
+
+4. **Phase 4-5 - Implementation**: Created all files:
+   - plugin.json, core/config_loader.py, core/rule_engine.py
+   - hooks/_runner.py, hooks/pretooluse.py, posttooluse.py, stop.py, userpromptsubmit.py, hooks.json
+   - commands/hookify.md, list.md, configure.md, help.md
+   - agents/conversation-analyzer.md
+   - skills/writing-rules/SKILL.md
+   - examples/ (4 sample rules)
+
+5. **Bug fix - YAML parser**: Double-escaped backslashes in pattern values. Added `_unquote()` helper to handle YAML double-quote escape sequences (\\→\, \\n→\n, etc.). Replaced all `.strip('"').strip("'")` with `_unquote()`.
+
+6. **Testing**: Verified block rules, warning rules, non-matching, regex tool_matcher, project override of global rules.
+
+7. **User feedback #1**: "Commands は全て skill に移行してほしい / agent や skill の markdown は全て日本語にして / examples は削除 / README も書いて"
+   - Deleted commands/ and examples/ directories
+   - Created skills/hookify/, skills/list/, skills/configure/, skills/help/ with Japanese SKILL.md
+   - Translated agents/conversation-analyzer.md to Japanese
+   - Translated skills/writing-rules/SKILL.md to Japanese
+   - Created README.md in Japanese
+
+8. **User feedback #2**: "writing-rules skill は hookify skill の reference ドキュメントとして内包した方がいいかもと思ったけどどう？"
+   - Agreed with the suggestion
+   - Moved writing-rules content to skills/hookify/references/rule-syntax.md
+   - Deleted skills/writing-rules/
+   - Updated hookify and configure SKILL.md to use Read instead of Skill tool
+   - Removed Skill from allowed-tools where no longer needed
+
+9. **User feedback #3**: "plugin.json は他の plugin を参考にして / バージョンは 1.0.0 / marketplace.json も更新して / バージョンはマイナーアプデ"
+   - Updated plugin.json with author, homepage, repository, license, keywords matching other plugins
+   - Added hookify entry to marketplace.json
+   - Bumped marketplace version 3.8.0 → 3.9.0
+
+10. **PR creation**: User invoked `/git:pr-create`
+    - Added `hookify` to commitlint scope-enum
+    - Committed with: `feat(hookify): Claude Code アクションをユーザー定義ルールで警告・ブロックするプラグインを追加`
+    - Created Draft PR #68 at https://github.com/ronnnnn/cc/pull/68
+
+11. **PR watch**: User invoked `/git:pr-watch`
+    - Cycle 1: No reviews, CI all passed
+    - Cycle 2: 14 unresolved review comments from gemini-code-assist and devin-ai-integration
+    - Identified 3 real bugs to fix:
+      1. `hook_event_name` never injected into input_data → block actions don't produce deny decisions
+      2. `effective_event` stays None for non-standard tools → event filtering bypassed
+      3. tool_matcher-only rules (no conditions) always return False
+    - Applied fixes to _runner.py, all 4 hook entry points, and rule_engine.py
+    - Staged files
+    - Generated commit message candidates via commit-proposer
+    - Was about to commit, push, and reply to all review comments
+
+Current state: In the middle of pr-watch cycle 2, fixes applied and staged, commit message generated but not yet committed. Need to:
+1. Commit with the recommended message
+2. Push
+3. Reply to and resolve all 14 review comments
+4. Continue monitoring
+
+ full-match regex (not search)
+     - `_extract_field()` supports `tool_name` as a new condition field
+
+   - **`plugins/hookify/hooks/_runner.py`**
+     - Shared hook runner for all 4 hook events. **Recently fixed (staged, not yet committed)**:
+     ```python
+     def run(event: str, hook_event_name: str = "") -> None:
+         """Load rules for *event*, evaluate against stdin, and print JSON result.
+         Always exits 0 so that hook errors never block operations.
+         """
+         plugin_root = os.environ.get("CLAUDE_PLUGIN_ROOT")
+         if plugin_root and plugin_root not in sys.path:
+             sys.path.insert(0, plugin_root)
+         try:
+             from core.config_loader import load_rules
+             from core.rule_engine import RuleEngine
+         except ImportError as e:
+             print(json.dumps({"systemMessage": f"Hookify import error: {e}"}))
+             sys.exit(0)
+         try:
+             input_data = json.load(sys.stdin)
+             # Inject hook_event_name so rule_engine can produce correct output format
+             if hook_event_name:
+                 input_data["hook_event_name"] = hook_event_name
+             # Determine effective event for rule filtering
+             effective_event = event
+             if event is None:
+                 tool_name = input_data.get("tool_name", "")
+                 if tool_name == "Bash":
+                     effective_event = "bash"
+                 elif tool_name in ("Edit", "Write", "MultiEdit"):
+                     effective_event = "file"
+                 else:
+                     effective_event = "all"
+             rules = load_rules(event=effective_event)
+             result = RuleEngine().evaluate_rules(rules, input_data)
+             print(json.dumps(result))
+         except Exception as e:
+             print(json.dumps({"systemMessage": f"Hookify error: {e}"}))
+         finally:
+             sys.exit(0)
+     ```
+
+   - **`plugins/hookify/hooks/pretooluse.py`** (and posttooluse.py, stop.py, userpromptsubmit.py)
+     - Thin entry points calling _runner.run(). **Recently fixed** to pass hook_event_name:
+     ```python
+     # pretooluse.py
+     run(event=None, hook_event_name="PreToolUse")
+     # posttooluse.py
+     run(event=None, hook_event_name="PostToolUse")
+     # stop.py
+     run(event="stop", hook_event_name="Stop")
+     # userpromptsubmit.py
+     run(event="prompt", hook_event_name="UserPromptSubmit")
+     ```
+
+   - **`plugins/hookify/hooks/hooks.json`**
+     - Hook configuration for all 4 events, each calling `python3 ${CLAUDE_PLUGIN_ROOT}/hooks/<script>.py` with timeout 10
+
+   - **`plugins/hookify/skills/hookify/SKILL.md`**
+     - Main skill: rule creation (conversation analysis mode + explicit instruction mode). Japanese. Uses Read to reference `${CLAUDE_PLUGIN_ROOT}/skills/hookify/references/rule-syntax.md`
+     - allowed-tools: Read, Write, AskUserQuestion, Task, Grep
+
+   - **`plugins/hookify/skills/hookify/references/rule-syntax.md`**
+     - Full rule syntax reference in Japanese (formerly the standalone writing-rules skill)
+
+   - **`plugins/hookify/skills/list/SKILL.md`** - List all rules from both directories as table
+   - **`plugins/hookify/skills/configure/SKILL.md`** - Interactive enable/disable toggle
+   - **`plugins/hookify/skills/help/SKILL.md`** - Help text with overview, quick start, improvements
+
+   - **`plugins/hookify/agents/conversation-analyzer.md`**
+     - Haiku model agent for analyzing conversation history to find unwanted behavior patterns. Japanese.
+
+   - **`plugins/hookify/README.md`** - Japanese README with comparison table, quick start, rule format, skills list, technical details
+
+   - **`.claude-plugin/marketplace.json`** - Added hookify entry, bumped version 3.8.0 → 3.9.0
+
+   - **`commitlint.config.mjs`** - Added `'hookify'` to scope-enum array
+
+4. Errors and fixes:
+   - **YAML parser double-escaping backslashes**: Pattern `"rm\\s+-rf"` in YAML was being stored as `rm\\\\s+-rf` (4 backslashes). Fixed by adding `_unquote()` helper that properly processes YAML double-quote escape sequences (`\\` → `\`, `\\n` → `\n`, etc.). Replaced all `.strip('"').strip("'")` calls with `_unquote()`.
+   - **BUG: hook_event_name never injected** (found by devin-ai-integration review): `rule_engine.evaluate_rules()` reads `hook_event_name` from input_data to determine output format (deny vs systemMessage), but `_runner.py` never set it. Block actions behaved identically to warn. Fixed by adding `hook_event_name` parameter to `run()` and injecting it into `input_data`.
+   - **BUG: effective_event stays None for non-standard tools** (found by devin-ai-integration review): When tool is not Bash/Edit/Write/MultiEdit, `effective_event` remained `None`, causing `load_rules(event=None)` to bypass event filtering and return all rules including stop/prompt rules. Fixed by adding `else: effective_event = "all"`.
+   - **BUG: tool_matcher-only rules never match** (found by devin-ai-integration review): Rules with only `tool_matcher` but no `conditions` or `pattern` always returned False. Fixed by returning `bool(rule.tool_matcher)` when conditions are empty.
+
+5. Problem Solving:
+   - Successfully created a complete hookify plugin replacement with all requested improvements
+   - Iteratively refined based on user feedback (commands→skills, Japanese, reference doc restructure)
+   - Currently fixing 3 real bugs found by automated reviewers during PR watch
+
+6. All user messages:
+   - `/plugin-dev:create-plugin` with detailed hookify replacement requirements (background, rule search paths, file format, improvements, events, technical requirements)
+   - "Commands は全て skill に移行してほしい / agent や skill の markdown は全て日本語にして / examples は削除 / README も書いて"
+   - "writing-rules skill は hookify skill の reference ドキュメントとして内包した方がいいかもと思ったけどどう？"
+   - "@plugins/hookify/.claude-plugin/plugin.json は他の plugin を参考にして / バージョンは 1.0.0 でいいよ / marketplace.json も更新して / バージョンはマイナーアプデでおけ"
+   - `/git:pr-create` (invoked PR creation)
+   - Selected commit message option "1. feat(hookify): ... (推奨)" with scope-enum update
+   - `/git:pr-watch` (invoked PR monitoring)
+
+7. Pending Tasks:
+   - Complete pr-watch cycle 2: commit the staged bug fixes, push, reply to and resolve all 14 review comments
+   - Continue pr-watch monitoring loop (up to 30 min idle / 120 min absolute)
+   - Task list: #21 (監視ループの実行) is in_progress, #22 (監視終了・完了報告) is pending
+
+8. Current Work:
+   In the middle of `/git:pr-watch` cycle 2. Three bugs identified from review comments have been fixed and staged in git:
+   - `plugins/hookify/hooks/_runner.py` - added hook_event_name parameter and "all" fallback
+   - `plugins/hookify/hooks/pretooluse.py`, `posttooluse.py`, `stop.py`, `userpromptsubmit.py` - pass hook_event_name
+   - `plugins/hookify/core/rule_engine.py` - tool_matcher-only rules now match
+   
+   commit-proposer subagent returned 3 candidates. Recommended message:
+   ```
+   fix(hookify): tool_matcher のみのルールマッチと hook_event_name の伝播を修正
+   ```
+
+9. Optional Next Step:
+   Continue the pr-watch workflow:
+   1. Commit with recommended message: `fix(hookify): tool_matcher のみのルールマッチと hook_event_name の伝播を修正`
+   2. `git push`
+   3. Reply to and resolve all 14 review comments (7 gemini nits → explain and resolve, 2 devin bugs → fixed+resolve, 5 devin info → acknowledge+resolve)
+   4. Check if PR title/description needs updating (likely not - minor fix)
+   5. Continue monitoring loop
+
+   This is directly continuing the `/git:pr-watch` command the user invoked. The pr-watch skill instructions state: "推奨メッセージ (候補 1) でコミットする" then "git push でリモートに反映する" then "各コメントに返信・リアクション・resolve を実行する".
+
+If you need specific details from before compaction (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/s01059/.REDACTED.jsonl
+Please continue the conversation from where we left off without asking the user any further questions. Continue with the last task that you were asked to work on.
+
+---
+
+Continue from where you left off.
+
+---
+
+Base directory for this skill: /Users/s01059/.claude/plugins/cache/cc/git/2.14.0/skills/pr-watch
+
+# PR 監視・自動修正ワークフロー
+
+PR のレビューコメントと CI 失敗を定期監視し、検出次第自動で修正・コミット・プッシュ・返信を実行する。
+
+## 重要な原則
+
+1. **ユーザー確認は一切行わない** - 全ステップを自律的に実行する。修正ファイル数や変更規模に関わらず確認をスキップする
+2. **レビュー修正を CI 修正より優先する** - 同時に検出した場合はレビューを先に処理する。レビュー修正のプッシュ後、CI 結果が更新されるのを待ってから CI 修正に取りかかる
+3. **修正は最小限に留める** - レビュー指摘・CI エラーの修正に必要な変更のみ
+4. **コミットメッセージは commit-proposer subagent で生成する** - Conventional Commits / commitlint 設定に準拠
+5. **コミットメッセージ・返信コメントの言語は対象リポジトリに従う** - 既存の PR やコミット履歴を確認し、使用されている言語に合わせる
+6. **日本語でコミットメッセージ・返信コメントを書く場合は `japanese-text-style` スキルに従う**
+7. **対応不要と判断したレビューコメントは理由を返信して resolve する**
+8. **コンフリクトを検出したらユーザーに通知して監視を終了する**
+9. **修正で PR の実態が変わった場合のみ、タイトル・description を自動更新する** - 軽微な修正 (typo、lint、フォーマット) では更新しない。テンプレートや既存フォーマットを維持する
+
+## 監視ルール
+
+| パラメータ   | 値                                                         |
+| ------------ | ---------------------------------------------------------- |
+| 監視間隔     | 2 分                                                       |
+| アイドル上限 | 30 分 (レビュー/CI 失敗が一度も検出されなかった場合に終了) |
+| 絶対上限     | 120 分 (`HAD_ACTIVITY` に関わらず強制終了)                 |
+| 即時終了条件 | コンフリクト検出、PR クローズ/マージ済み                   |
+| 修正発生時   | `START_TIME` をリセットせず引き続き監視を継続              |
+
+## 状態管理
+
+監視ループ全体で以下の状態を管理する:
+
+- `PR_NUMBER`: PR 番号
+- `OWNER`, `REPO`: リポジトリ情報
+- `START_TIME`: 監視開始時刻 (UNIX タイムスタンプ)
+- `HAD_ACTIVITY`: false (レビュー/CI 失敗を一度でも検出したら true にし、以降リセットしない)
+- `UNFIXABLE_RUNS`: 修正不可能と判断した CI run ID のリスト (以降のサイクルで同じ失敗の再処理をスキップする)
+- `CYCLE_COUNT`: 実行サイクル数
+- `REVIEW_COMMITS`: レビュー修正コミット数
+- `CI_COMMITS`: CI 修正コミット数
+- `REPLIED_COMMENTS`: 返信済みコメント数
+- `RESOLVED_THREADS`: resolve 済みスレッド数
+- `PR_UPDATES`: PR タイトル・description の更新回数
+
+## 作業開始前の準備
+
+**必須:** 作業開始前に TaskList で残存タスクを確認し、存在する場合は全て TaskUpdate({ status: "deleted" }) で削除する。その後、TaskCreate ツールで以下のタスクを登録する:
+
+```
+TaskCreate({ subject: "PR の特定", description: "引数または現在のブランチから PR を特定", activeForm: "PR を特定中" })
+TaskCreate({ subject: "監視ループの実行", description: "2 分間隔で PR の状態を確認し、レビュー/CI 失敗を検出・修正", activeForm: "PR を監視中" })
+TaskCreate({ subject: "監視終了・完了報告", description: "監視結果を集計して報告", activeForm: "完了報告を作成中" })
+```
+
+各ステップの開始時に TaskUpdate で `in_progress` に、完了時に `completed` に更新する。
+
+## 実行手順
+
+### 1. PR の特定
+
+引数で PR 番号が指定されていない場合、現在のブランチから PR を特定する:
+
+```bash
+gh pr view --json number,title,headRefName,state --jq '{number, title, headRefName, state}'
+```
+
+- PR が `MERGED` または `CLOSED` の場合は監視を開始せず終了する
+- PR が見つからない場合は「現在のブランチに紐づく PR が見つかりません。PR 番号を指定して再実行してください。」と報告して終了する
+
+状態変数を初期化する。
+
+### 2. 監視ループ
+
+以下のサイクルを繰り返す。各サイクルの先頭で経過時間を確認する:
+
+- 120 分を超過 → 無条件で監視を終了する
+- 30 分を超過 かつ `HAD_ACTIVITY` が false → 監視を終了する
+
+#### 2a. PR 状態チェック
+
+```bash
+gh pr view <number> --json state,mergeable --jq '{state, mergeable}'
+```
+
+- `state` が `MERGED` / `CLOSED` → 監視終了
+- `mergeable` が `CONFLICTING` → ユーザーに通知して監視終了
+
+#### 2b. 未解決レビューコメントの取得
+
+```bash
+# <owner>, <repo>, <number> は実際の値に置き換える
+gh api graphql -F query='
+query {
+  repository(owner: "<owner>", name: "<repo>") {
+    pullRequest(number: <number>) {
+      reviewThreads(first: 100) {
+        nodes {
+          id
+          isResolved
+          comments(first: 10) {
+            nodes {
+              databaseId
+              body
+              path
+              line
+              author { login }
+            }
+          }
+        }
+      }
+    }
+  }
+}'
+```
+
+`isResolved: false` のスレッドのみ対象。未解決コメントがあれば `HAD_ACTIVITY = true` にする。
+
+#### 2c. CI 失敗の確認
+
+```bash
+HEAD_SHA=$(gh pr view <number> --json headRefOid --jq '.headRefOid')
+gh run list --commit "$HEAD_SHA" --json databaseId,status,conclusion,name
+```
+
+- `conclusion` が `failure` の run があれば `HAD_ACTIVITY = true` にする
+- `status` が `in_progress` の run がある場合、このサイクルでは CI 修正をスキップする (CI 結果が確定するのを待つ)
+- run 結果が空 (プッシュ直後で CI 未開始) の場合も CI 修正をスキップする
+- `UNFIXABLE_RUNS` に含まれる run ID はスキップする
+
+#### 2d. レビュー修正の実行 (未解決コメントがある場合)
+
+**妥当性判断の基準:**
+
+| 指摘の種類                       | 判断       | 対応                                       |
+| -------------------------------- | ---------- | ------------------------------------------ |
+| コードの正確性に関する指摘       | 修正が必要 | コードを修正                               |
+| セキュリティに関する指摘         | 修正が必要 | コードを修正                               |
+| パフォーマンスに関する指摘       | 修正が必要 | コードを修正                               |
+| スタイルや好みの問題 (`nits:`)   | 内容次第   | コードを修正または、理由を返信して resolve |
+| 誤解に基づく指摘                 | 対応不要   | 説明を返信して resolve                     |
+| 既に別のコミットで対応済みの指摘 | 対応不要   | 対応済みの旨を返信して resolve             |
+
+**ファクトチェック (必須):**
+
+レビューの指摘を鵜呑みにせず、技術的な主張や根拠が正しいか検証する。特に以下のケースでは必ずファクトチェックを行う:
+
+- 言語仕様・ランタイムの挙動に関する指摘
+- フレームワーク・ライブラリの API や推奨パターンに関する指摘
+- セキュリティに関する指摘
+- パフォーマンスに関する指摘
+- 「〜すべき」「〜は非推奨」など規範的な主張
+
+**ファクトチェックのソース優先順位:**
+
+| 優先度 | ソース       | 用途                                     |
+| ------ | ------------ | ---------------------------------------- |
+| 1      | LSP          | コードベース内の定義・参照・型情報の確認 |
+| 2      | deepwiki MCP | OSS リポジトリの Wiki・ドキュメント      |
+| 3      | Gemini MCP   | Google 検索による最新情報の取得          |
+| 4      | context7 MCP | ライブラリの公式ドキュメントとコード例   |
+| 5      | WebFetch     | 公式サイト・GitHub・特定 URL の確認      |
+| 6      | WebSearch    | 最新情報・ブログ・リリースノートの検索   |
+
+**例外 (上記の優先順位より優先):**
+
+- terraform に関する内容は terraform MCP (`mcp__terraform__*`) が最優先
+- Google Cloud に関する内容は google-developer-knowledge MCP (`mcp__google-developer-knowledge__*`) が最優先
+- Claude Code に関する内容は claude-code-guide agent (`subagent_type: "claude-code-guide"`) が最優先
+
+ファクトチェックの結果、指摘が誤りだった場合はその根拠をソース付きで返信コメントに記載する。
+
+**処理フロー:**
+
+1. 各未解決コメントの妥当性を上記基準で判断し、ファクトチェックで検証する
+2. 修正が必要なコメントに対してコードを修正する
+3. 修正したファイルをステージングする: `git add <修正ファイル>`
+4. commit-proposer subagent でコミットメッセージを生成する:
+
+   ```
+   Task({
+     subagent_type: "git:commit-proposer",
+     description: "コミットメッセージ候補の生成",
+     prompt: "ステージング済みの変更に対してコミットメッセージ候補を提案してください。コンテキスト: レビュー指摘に基づく修正です。subject には「レビュー指摘に基づく修正」のような汎用的な表現ではなく、実際に何を変更したかを具体的に記述してください。"
+   })
+   ```
+
+   subagent がエラーを返した場合は、変更差分から Conventional Commits 形式のメッセージを自前で生成する。その際も subject には実際の変更内容を具体的に記述し、「レビュー指摘に基づく修正」のような汎用表現は使わない。
+
+5. 推奨メッセージ (候補 1) でコミットする
+
+   ```bash
+   # <type>, <scope>, <subject>, <body> は commit-proposer の出力で置き換える
+   git commit -m "$(cat <<'EOF'
+   <type>(<scope>): <subject>
+
+   <body>
+   EOF
+   )"
+   ```
+
+6. `git push` でリモートに反映する
+7. 各コメントに返信・リアクション・resolve を実行する:
+
+   ```bash
+   # 元のコメントに +1 リアクション (databaseId 使用)
+   gh api repos/{owner}/{repo}/pulls/comments/<databaseId>/reactions -f content="+1"
+
+   # スレッドに返信 (GraphQL mutation、thread id 使用)
+   # <thread_id>, <body> は実際の値に置き換える
+   gh api graphql -F query='
+   mutation {
+     addPullRequestReviewThreadReply(input: {pullRequestReviewThreadId: "<thread_id>", body: "<body>"}) {
+       comment { id body }
+     }
+   }'
+
+   # スレッドを resolve
+   # <thread_id> は実際の値に置き換える
+   gh api graphql -F query='
+   mutation {
+     resolveReviewThread(input: {threadId: "<thread_id>"}) {
+       thread { isResolved }
+     }
+   }'
+   ```
+
+**処理順序:** リアクション追加 → 返信投稿 → resolve。エラーが発生しても続行し、失敗を記録する。
+
+**返信テンプレート:**
+
+| 対応タイプ | 返信例                                        |
+| ---------- | --------------------------------------------- |
+| 修正完了   | `修正しました。ご指摘ありがとうございます。`  |
+| 対応しない | `[理由] のため、現状のままとさせてください。` |
+| 対応済み   | `[コミット hash] で対応済みです。`            |
+
+**ソース参照ルール:**
+
+理由を添えて返信する場合 (対応しない、内容次第で対応不要と判断した場合など)、信頼できるソースの情報を参照できるときはコメントにも記載する。
+
+- 公式ドキュメント (言語仕様、フレームワーク公式ドキュメント等) の URL
+- プロジェクト内の既存コード・設定ファイルのパスと行番号
+- lint ルールやコーディング規約の該当セクション
+- RFC やセキュリティアドバイザリ等の公的な技術文書
+
+**例:**
+
+```
+Go の仕様上、nil map への読み取りはゼロ値を返すためパニックしません。
+ref: https://go.dev/ref/spec#Index_expressions
+
+現状のままとさせてください。
+```
+
+カウンタを更新: `REVIEW_COMMITS`, `REPLIED_COMMENTS`, `RESOLVED_THREADS`。
+
+#### 2e. CI 修正の実行 (失敗がある場合)
+
+**処理フロー:**
+
+1. ci-analyzer subagent で失敗原因を調査する:
+
+   ```
+   Task({
+     subagent_type: "git:ci-analyzer",
+     description: "CI 失敗原因の調査",
+     prompt: "PR #<number> (ブランチ: <branch>) の CI 失敗を調査してください。"
+   })
+   ```
+
+   subagent がエラーを返した場合は、直接 `gh run view <run-id> --log-failed` でログを取得して分析する。
+
+2. 自動修正可能なエラーのみ修正する
+
+   | エラー種別             | 自動修正 |
+   | ---------------------- | -------- |
+   | Lint/フォーマット      | 可能     |
+   | 型エラー・ビルドエラー | 可能     |
+   | テスト失敗             | 可能     |
+   | 依存関係               | 可能     |
+   | 環境変数・secret       | **不可** |
+   | 権限・認証             | **不可** |
+
+3. 修正不可能なエラーの run ID を `UNFIXABLE_RUNS` に追加し、以降のサイクルで再処理をスキップする。完了報告で通知する
+4. 修正したファイルをステージング: `git add <修正ファイル>`
+5. commit-proposer subagent でコミットメッセージを生成する (エラー時は自前生成にフォールバック)
+6. 推奨メッセージでコミットする
+7. `git push` でリモートに反映する
+
+カウンタを更新: `CI_COMMITS`。
+
+#### 2f. PR タイトル・description の更新判断 (修正コミットがあった場合)
+
+このサイクルでレビュー修正または CI 修正のコミットをプッシュした場合のみ実行する。コミットがなかった場合はスキップする。
+
+**判断手順:**
+
+1. PR の全 diff と現在のタイトル・description を取得する:
+
+   ```bash
+   gh pr view <number> --json title,body,commits,files,additions,deletions
+   gh pr diff <number> --stat
+   ```
+
+2. 以下の基準で更新の要否を判断する:
+
+   | 条件                                                       | 判断 |
+   | ---------------------------------------------------------- | ---- |
+   | 修正で PR の type/scope が変わった (例: `feat` → `fix`)    | 更新 |
+   | description に記載の変更内容が実態と矛盾している           | 更新 |
+   | 修正で新しい機能追加や破壊的変更が加わった                 | 更新 |
+   | 軽微な修正のみ (typo、lint、フォーマット、変数名変更)      | 不要 |
+   | description が元々空、または情報量が少なく更新の意味がない | 不要 |
+   | 既に同じサイクルの修正内容を反映済み                       | 不要 |
+
+3. 更新不要と判断した場合はスキップする
+
+**更新処理:**
+
+1. PR テンプレートを確認する:
+
+   ```bash
+   ls -la .github/PULL_REQUEST_TEMPLATE.md 2>/dev/null || \
+   ls -la .github/PULL_REQUEST_TEMPLATE/ 2>/dev/null
+   ```
+
+   - テンプレートが存在する → テンプレートに準拠
+   - テンプレートがない → 既存の description のフォーマットに準拠
+
+2. コミット履歴に基づいてタイトルと description を作成する:
+
+   ```bash
+   git log origin/<base>..HEAD --pretty=format:"%h %s%n%b" --reverse
+   ```
+
+   - タイトルは Conventional Commits 形式。commitlint 設定があれば準拠する
+   - description はコミットメッセージのコピーではなく、変更内容を要約・整理する
+   - ユーザーが手動で追加した情報 (関連 Issue、スクリーンショット等) は保持する
+
+3. 更新を実行する:
+
+   ```bash
+   gh pr edit <number> \
+     --title "新しいタイトル" \
+     --body "$(cat <<'EOF'
+   [新しい description の内容]
+   EOF
+   )"
+   ```
+
+カウンタを更新: `PR_UPDATES`。
+
+#### 2g. 次のサイクルへ
+
+レビュー修正・CI 修正のいずれも不要だった場合、2 分間スリープする:
+
+```bash
+# Bash ツールの timeout パラメータ (ミリ秒) は安全マージンとして 180000 (180 秒) に設定し、実際のスリープは 120 秒とする
+sleep 120
+```
+
+修正を行った場合はスリープせず即座に次のサイクルへ進む (プッシュ直後の CI 結果を早く確認するため)。ただし、CI が `in_progress` の場合はステップ 2c のスキップ条件により、新しい CI 結果が確定するまで待機する。
+
+`CYCLE_COUNT` をインクリメントする。
+
+### 3. 監視終了・完了報告
+
+```
+## PR 監視完了
+
+- PR: #<number> (<title>)
+- 監視時間: <elapsed> 分
+- 監視サイクル数: N
+
+### レビュー修正
+- 修正コミット数: X
+- 返信済みコメント数: Y
+- resolve 済みスレッド数: Z
+
+### CI 修正
+- 修正コミット数: A
+- 修正不可能だったエラー: (該当する場合のみ記載)
+
+### PR タイトル・description 更新
+- 更新回数: B (0 の場合はこのセクションを省略)
+
+### 終了理由
+<アイドルタイムアウト (30 分) / 絶対上限到達 (120 分) / PR マージ済み / PR クローズ済み / コンフリクト検出>
+
+PR URL: <url>
+```
+
+**初回チェックでレビュー/CI 失敗がなく、全 CI が成功している場合:**
+
+```
+## PR 状態確認完了
+
+全ての CI チェックが成功しており、未解決のレビューコメントもありません。
+監視を開始しましたが、現時点で対応が必要な項目はありません。
+30 分間の監視を継続します。新しいレビューや CI 失敗が発生次第、自動修正します。
+```
+
+## エラーハンドリング
+
+### コンフリクト検出時
+
+```
+## コンフリクト検出 - 監視を終了します
+
+PR #<number> でコンフリクトが検出されました。
+手動でコンフリクトを解消してから、再度 `/pr-watch` を実行してください。
+```
+
+### gh CLI エラー時
+
+`gh api` コマンドで GitHub API に直接アクセスする。それでも失敗する場合はエラーをログに記録して次のサイクルに進む。3 サイクル連続で GitHub API エラーが発生した場合は、ネットワーク障害と判断して監視を終了する。
+
+### プッシュ失敗時
+
+```bash
+git pull --rebase origin <branch>
+git push
+```
+
+rebase が失敗した場合はコンフリクトとして扱い、監視を終了する。
+
+### subagent エラー時
+
+- **commit-proposer エラー:** 変更差分から Conventional Commits 形式のメッセージを自前で生成する。`git diff --cached --stat` と `git log --oneline -5` を参考にする。subject には実際の変更内容を具体的に記述し、汎用的な表現は使わない
+- **ci-analyzer エラー:** 直接 `gh run view <run-id> --log-failed` でログを取得し、エラーメッセージを分析して修正を試みる
+
+---
+
+[Request interrupted by user for tool use]
