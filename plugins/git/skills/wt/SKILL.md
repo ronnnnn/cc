@@ -168,7 +168,7 @@ git -C "$DIR/bare.git" config core.bare true
 
 # bare.git/config にカスタム設定を追加 (キー単位で設定/上書き)
 git -C "$DIR/bare.git" config wt.copyignored true
-git -C "$DIR/bare.git" config wt.basedir ./
+git -C "$DIR/bare.git" config wt.basedir ..
 git -C "$DIR/bare.git" config wt.nocopy .idea
 
 # 元のファイルを一時ディレクトリに退避 (bare.git 以外)
