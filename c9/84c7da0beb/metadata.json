@@ -3,9 +3,14 @@
   "checkpoint_id": "c984c7da0beb",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 1,
+  "checkpoints_count": 3,
   "files_touched": [
-    ".claude-plugin/marketplace.json"
+    ".claude-plugin/marketplace.json",
+    "plugins/git/.claude-plugin/plugin.json",
+    "plugins/git/agents/ci-analyzer.md",
+    "plugins/git/agents/pr-status-collector.md",
+    "plugins/git/skills/pr-ci/SKILL.md",
+    "plugins/git/skills/pr-watch/SKILL.md"
   ],
   "sessions": [
     {
@@ -14,13 +19,20 @@
       "context": "/c9/84c7da0beb/0/context.md",
       "content_hash": "/c9/84c7da0beb/0/content_hash.txt",
       "prompt": "/c9/84c7da0beb/0/prompt.txt"
+    },
+    {
+      "metadata": "/c9/84c7da0beb/1/metadata.json",
+      "transcript": "/c9/84c7da0beb/1/full.jsonl",
+      "context": "/c9/84c7da0beb/1/context.md",
+      "content_hash": "/c9/84c7da0beb/1/content_hash.txt",
+      "prompt": "/c9/84c7da0beb/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 333,
-    "cache_creation_tokens": 322773,
-    "cache_read_tokens": 34661682,
-    "output_tokens": 31807,
-    "api_call_count": 319
+    "input_tokens": 365,
+    "cache_creation_tokens": 387275,
+    "cache_read_tokens": 35877920,
+    "output_tokens": 36852,
+    "api_call_count": 342
   }
 }

@@ -1,0 +1,35 @@
+{
+  "cli_version": "0.4.7",
+  "checkpoint_id": "c984c7da0beb",
+  "session_id": "1f84452a-dca9-405e-934c-f3b6cdace7dc",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-26T06:12:59.747215Z",
+  "branch": "main",
+  "checkpoints_count": 2,
+  "files_touched": [
+    ".claude-plugin/marketplace.json",
+    "plugins/git/.claude-plugin/plugin.json",
+    "plugins/git/agents/ci-analyzer.md",
+    "plugins/git/agents/pr-status-collector.md",
+    "plugins/git/skills/pr-ci/SKILL.md",
+    "plugins/git/skills/pr-watch/SKILL.md"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "399f6debc2d0",
+  "token_usage": {
+    "input_tokens": 32,
+    "cache_creation_tokens": 64502,
+    "cache_read_tokens": 1216238,
+    "output_tokens": 5045,
+    "api_call_count": 23
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-26T06:12:59.629655Z",
+    "agent_lines": 8,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 8,
+    "agent_percentage": 100
+  }
+}
