@@ -63,7 +63,7 @@ PR の CI 失敗を調査する専門エージェント。
 2. **CI チェック状態の取得**
    - PR に紐づく CI チェックの一覧と状態を取得する:
      ```bash
-     gh pr checks <number> --json name,state,description,detailsUrl
+     gh pr checks <number> --json name,state,description,detailsUrl --limit 100
      ```
    - 失敗 (FAILURE) したチェックを特定する
 
@@ -75,7 +75,7 @@ PR の CI 失敗を調査する専門エージェント。
      HEAD_SHA=$(gh pr view <number> --json headRefOid --jq '.headRefOid')
 
      # コミット SHA に紐づく最新の run を取得
-     gh run list --commit "$HEAD_SHA" --json databaseId,status,conclusion,name,workflowName --limit 10
+     gh run list --commit "$HEAD_SHA" --json databaseId,status,conclusion,name,workflowName --limit 50
 
      # 失敗した run のログを取得
      gh run view <run-id> --log-failed

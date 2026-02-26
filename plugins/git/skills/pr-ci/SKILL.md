@@ -230,8 +230,8 @@ CI の再実行結果を確認してください。
 `gh api` コマンドで GitHub API に直接アクセスする:
 
 ```bash
-gh api repos/{owner}/{repo}/pulls/<number>
-gh api repos/{owner}/{repo}/actions/runs?branch=<branch>&status=failure
+HEAD_SHA=$(gh api repos/{owner}/{repo}/pulls/<number> --jq '.head.sha')
+gh api repos/{owner}/{repo}/actions/runs?head_sha=$HEAD_SHA&status=failure&per_page=100
 ```
 
 ### PR が見つからない場合

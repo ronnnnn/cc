@@ -135,7 +135,7 @@ query {
 
 ```bash
 HEAD_SHA=$(gh pr view <number> --json headRefOid --jq '.headRefOid')
-gh run list --commit "$HEAD_SHA" --json databaseId,status,conclusion,name
+gh run list --commit "$HEAD_SHA" --json databaseId,status,conclusion,name --limit 50
 ```
 
 - `conclusion` が `failure` の run があれば `HAD_ACTIVITY = true` にする

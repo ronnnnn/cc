@@ -69,7 +69,7 @@ PR のステータス情報を収集する専門エージェント。
    **CI ステータス:**
 
    ```bash
-   gh pr checks <number> --json name,state,bucket,link
+   gh pr checks <number> --json name,state,bucket,link --limit 100
    ```
 
    **レビューステータス:**
