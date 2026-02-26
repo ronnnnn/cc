@@ -231,7 +231,7 @@ CI の再実行結果を確認してください。
 
 ```bash
 gh api repos/{owner}/{repo}/pulls/<number>
-gh api repos/{owner}/{repo}/actions/runs?branch=<branch>&status=failure
+gh api repos/{owner}/{repo}/actions/runs?branch=<branch>&status=failure&per_page=100
 ```
 
 ### PR が見つからない場合
