@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.4.7",
+  "checkpoint_id": "baa8fa2e613a",
+  "strategy": "manual-commit",
+  "branch": "fix-paging-commit",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "plugins/git/agents/commit-proposer.md",
+    "plugins/git/skills/pr-ci/SKILL.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/ba/a8fa2e613a/0/metadata.json",
+      "transcript": "/ba/a8fa2e613a/0/full.jsonl",
+      "context": "/ba/a8fa2e613a/0/context.md",
+      "content_hash": "/ba/a8fa2e613a/0/content_hash.txt",
+      "prompt": "/ba/a8fa2e613a/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 26,
+    "cache_creation_tokens": 18039,
+    "cache_read_tokens": 2573759,
+    "output_tokens": 5352,
+    "api_call_count": 25
+  }
+}

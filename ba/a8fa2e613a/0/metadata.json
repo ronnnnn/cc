@@ -1,0 +1,33 @@
+{
+  "cli_version": "0.4.7",
+  "checkpoint_id": "baa8fa2e613a",
+  "session_id": "1f84452a-dca9-405e-934c-f3b6cdace7dc",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-26T06:31:28.547777Z",
+  "branch": "fix-paging-commit",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "plugins/git/agents/commit-proposer.md",
+    "plugins/git/skills/pr-ci/SKILL.md"
+  ],
+  "agent": "Claude Code",
+  "turn_id": "3a5019b3a2dd",
+  "checkpoint_transcript_start": 574,
+  "transcript_lines_at_start": 574,
+  "token_usage": {
+    "input_tokens": 26,
+    "cache_creation_tokens": 18039,
+    "cache_read_tokens": 2573759,
+    "output_tokens": 5352,
+    "api_call_count": 25
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-26T06:31:28.259977Z",
+    "agent_lines": 0,
+    "human_added": 0,
+    "human_modified": 3,
+    "human_removed": 0,
+    "total_committed": 0,
+    "agent_percentage": 0
+  }
+}

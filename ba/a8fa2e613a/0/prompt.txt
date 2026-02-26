@@ -1,0 +1,1037 @@
+pr-watch や pr-ci で ci の status 確認してるけど、ページングにより全てのステータス確認できてない可能性ある？
+
+---
+
+y
+
+---
+
+Base directory for this skill: /Users/s01059/Documents/agent/cc/.claude/skills/bump-version
+
+プラグインまたはマーケットプレースのバージョンを更新してください。
+
+## 引数
+
+- `` の形式: `<target> <version>` (省略可能)
+  - `<target>`: プラグイン名 (git, claude, catch-up) または `marketplace`
+  - `<version>`: 新しいバージョン (例: 1.6.0)
+
+## 作業開始前の準備
+
+**必須:** 作業開始前に TaskList で残存タスクを確認し、存在する場合は全て TaskUpdate({ status: "deleted" }) で削除する。その後、TaskCreate ツールで以下のステップをタスクとして登録する:
+
+```
+TaskCreate({ subject: "対象と変更内容の特定", description: "引数または git diff から対象プラグインとバージョンを特定", activeForm: "対象を特定中" })
+TaskCreate({ subject: "現在のバージョンの確認", description: "plugin.json と marketplace.json の現在のバージョンを確認", activeForm: "現在のバージョンを確認中" })
+TaskCreate({ subject: "バージョンの更新", description: "plugin.json と marketplace.json のバージョンを更新", activeForm: "バージョンを更新中" })
+TaskCreate({ subject: "完了報告", description: "更新結果を報告", activeForm: "完了報告を作成中" })
+```
+
+各ステップの開始時に TaskUpdate で `in_progress` に、完了時に `completed` に更新する。
+
+## 実行手順
+
+### 引数がない場合: 変更差分から推測
+
+1. `git diff --cached --name-only` と `git diff --name-only` で変更ファイル一覧を取得
+2. 変更されたファイルのパスから target を推測:
+   - `plugins/git/` 配下のファイルが変更 → target は `git`
+   - `plugins/claude/` 配下のファイルが変更 → target は `claude`
+   - `plugins/catch-up/` 配下のファイルが変更 → target は `catch-up`
+   - 複数のプラグインが変更されている場合 → 各プラグインを順に更新
+   - `.claude-plugin/marketplace.json` のみ変更 → target は `marketplace`
+3. 現在のバージョンを取得し、変更の種類に応じて version を推測:
+   - 互換性のない破壊的変更 → メジャーバージョンをインクリメント (1.5.0 → 2.0.0)
+   - 新機能追加 → マイナーバージョンをインクリメント (1.5.0 → 1.6.0)
+   - バグ修正 → パッチバージョンをインクリメント (1.5.0 → 1.5.1)
+4. 推測した target と version をユーザーに提示し、確認を求める
+
+### 引数がある場合: 指定された値を使用
+
+引数で `<target>` と `<version>` が指定されている場合は、その値を使用する。
+
+### プラグインのバージョン更新の場合 (target がプラグイン名)
+
+1. `plugins/<target>/.claude-plugin/plugin.json` の `version` を `<version>` に更新
+2. `.claude-plugin/marketplace.json` の `plugins` 配列内で、`name` が `<target>` と一致するプラグインの `version` を `<version>` に更新
+3. `.claude-plugin/marketplace.json` の `metadata.version` を、プラグインと同じレベルでインクリメント:
+   - プラグインの旧バージョンと新バージョンを比較し、最も大きく変化した桁 (major > minor > patch) をレベルとして採用する
+   - パッチ更新 → marketplace もパッチをインクリメント (例: 2.7.0 → 2.7.1)
+   - マイナー更新 → marketplace もマイナーをインクリメント (例: 2.7.0 → 2.8.0)
+   - メジャー更新 → marketplace もメジャーをインクリメント (例: 2.7.0 → 3.0.0)
+
+### マーケットプレースのバージョン更新の場合 (target が marketplace)
+
+1. `.claude-plugin/marketplace.json` の `metadata.version` を `<version>` に更新
+
+## 注意事項
+
+- プラグインのバージョン更新時は、必ずマーケットプレースのバージョンも更新すること
+- セマンティックバージョニング (semver) 形式を使用すること
+- 更新完了後、変更内容を報告すること
+
+---
+
+y
+
+---
+
+y
+
+---
+
+commit-proposer agent がうまく scope を選択できないことがあるんだけどなんでかわかる？
+
+---
+
+このプロジェクト特有の問題ではなく、ほかのプロジェクトでも起きてる
+commitlint の設定をうまく読めていないか、subagent の引き継ぎに問題があるかも
+
+@"claude-code-guide (agent)" でも subagent のプラクティス確認してみて
+
+---
+
+A にして
+
+---
+
+A にして
+
+---
+
+<bash-input>idea</bash-input>
+
+---
+
+<bash-stdout>zsh: command not found: idea
+</bash-stdout><bash-stderr>zsh: command not found: idea
+</bash-stderr>
+
+---
+
+<bash-input>idea1 .</bash-input>
+
+---
+
+<bash-stdout></bash-stdout><bash-stderr></bash-stderr>
+
+---
+
+ls -la commitlint.config.* 2>/dev/null
+   ls -la .commitlintrc.* 2>/dev/null
+   grep -l '"commitlint"' package.json 2>/dev/null
+
+これが正しく動くかどうかも検証してみて
+
+---
+
+Base directory for this skill: /Users/s01059/Documents/agent/cc/.claude/skills/bump-version
+
+プラグインまたはマーケットプレースのバージョンを更新してください。
+
+## 引数
+
+- `` の形式: `<target> <version>` (省略可能)
+  - `<target>`: プラグイン名 (git, claude, catch-up) または `marketplace`
+  - `<version>`: 新しいバージョン (例: 1.6.0)
+
+## 作業開始前の準備
+
+**必須:** 作業開始前に TaskList で残存タスクを確認し、存在する場合は全て TaskUpdate({ status: "deleted" }) で削除する。その後、TaskCreate ツールで以下のステップをタスクとして登録する:
+
+```
+TaskCreate({ subject: "対象と変更内容の特定", description: "引数または git diff から対象プラグインとバージョンを特定", activeForm: "対象を特定中" })
+TaskCreate({ subject: "現在のバージョンの確認", description: "plugin.json と marketplace.json の現在のバージョンを確認", activeForm: "現在のバージョンを確認中" })
+TaskCreate({ subject: "バージョンの更新", description: "plugin.json と marketplace.json のバージョンを更新", activeForm: "バージョンを更新中" })
+TaskCreate({ subject: "完了報告", description: "更新結果を報告", activeForm: "完了報告を作成中" })
+```
+
+各ステップの開始時に TaskUpdate で `in_progress` に、完了時に `completed` に更新する。
+
+## 実行手順
+
+### 引数がない場合: 変更差分から推測
+
+1. `git diff --cached --name-only` と `git diff --name-only` で変更ファイル一覧を取得
+2. 変更されたファイルのパスから target を推測:
+   - `plugins/git/` 配下のファイルが変更 → target は `git`
+   - `plugins/claude/` 配下のファイルが変更 → target は `claude`
+   - `plugins/catch-up/` 配下のファイルが変更 → target は `catch-up`
+   - 複数のプラグインが変更されている場合 → 各プラグインを順に更新
+   - `.claude-plugin/marketplace.json` のみ変更 → target は `marketplace`
+3. 現在のバージョンを取得し、変更の種類に応じて version を推測:
+   - 互換性のない破壊的変更 → メジャーバージョンをインクリメント (1.5.0 → 2.0.0)
+   - 新機能追加 → マイナーバージョンをインクリメント (1.5.0 → 1.6.0)
+   - バグ修正 → パッチバージョンをインクリメント (1.5.0 → 1.5.1)
+4. 推測した target と version をユーザーに提示し、確認を求める
+
+### 引数がある場合: 指定された値を使用
+
+引数で `<target>` と `<version>` が指定されている場合は、その値を使用する。
+
+### プラグインのバージョン更新の場合 (target がプラグイン名)
+
+1. `plugins/<target>/.claude-plugin/plugin.json` の `version` を `<version>` に更新
+2. `.claude-plugin/marketplace.json` の `plugins` 配列内で、`name` が `<target>` と一致するプラグインの `version` を `<version>` に更新
+3. `.claude-plugin/marketplace.json` の `metadata.version` を、プラグインと同じレベルでインクリメント:
+   - プラグインの旧バージョンと新バージョンを比較し、最も大きく変化した桁 (major > minor > patch) をレベルとして採用する
+   - パッチ更新 → marketplace もパッチをインクリメント (例: 2.7.0 → 2.7.1)
+   - マイナー更新 → marketplace もマイナーをインクリメント (例: 2.7.0 → 2.8.0)
+   - メジャー更新 → marketplace もメジャーをインクリメント (例: 2.7.0 → 3.0.0)
+
+### マーケットプレースのバージョン更新の場合 (target が marketplace)
+
+1. `.claude-plugin/marketplace.json` の `metadata.version` を `<version>` に更新
+
+## 注意事項
+
+- プラグインのバージョン更新時は、必ずマーケットプレースのバージョンも更新すること
+- セマンティックバージョニング (semver) 形式を使用すること
+- 更新完了後、変更内容を報告すること
+
+---
+
+Base directory for this skill: /Users/s01059/.claude/plugins/cache/cc/git/2.14.1/skills/pr-create
+
+# PR 作成ワークフロー
+
+現在のブランチから Draft Pull Request を作成する。
+
+## 重要な原則
+
+1. **PR タイトル・description の言語は対象リポジトリに従う** - 既存の PR やコミット履歴を確認し、リポジトリで使用されている言語 (日本語/英語等) に合わせる
+2. **日本語で PR タイトル・description を書く場合は `japanese-text-style` スキルに従う** - スペース、句読点、括弧のルールを適用する
+3. **PR は常に Draft として作成する**
+4. **PR タイトルは Conventional Commits に準拠する** - コミットが 1 つの場合はそのメッセージをそのまま使用し、2 つ以上の場合は commit-proposer subagent で生成する
+5. **PR テンプレートがある場合は必ず準拠する**
+6. **ラベルはリポジトリに存在するもののみ使用する**
+7. **Reviewer は CODEOWNERS に記載されているユーザーのみ設定する**
+
+## 作業開始前の準備
+
+**必須:** 作業開始前に TaskList で残存タスクを確認し、存在する場合は全て TaskUpdate({ status: "deleted" }) で削除する。その後、TaskCreate ツールで以下のステップをタスクとして登録する:
+
+```
+TaskCreate({ subject: "事前確認", description: "ブランチ状態、リモート差分を確認", activeForm: "事前確認を実行中" })
+TaskCreate({ subject: "未コミット変更のコミット", description: "unstaged/staged の変更がある場合のみ commit スキルを実行", activeForm: "未コミット変更をコミット中" })
+TaskCreate({ subject: "PR テンプレートの確認", description: "PULL_REQUEST_TEMPLATE.md を探索・読み込み", activeForm: "PR テンプレートを確認中" })
+TaskCreate({ subject: "PR タイトルの生成", description: "コミットが 1 つならそのメッセージを使用、2 つ以上なら commit-proposer subagent で生成", activeForm: "PR タイトルを生成中" })
+TaskCreate({ subject: "ラベルの選択", description: "リポジトリのラベル一覧から適切なものを選択", activeForm: "ラベルを選択中" })
+TaskCreate({ subject: "CODEOWNERS の確認", description: "CODEOWNERS から Reviewer を特定", activeForm: "CODEOWNERS を確認中" })
+TaskCreate({ subject: "Draft PR 作成", description: "gh pr create --draft で PR を作成", activeForm: "Draft PR を作成中" })
+TaskCreate({ subject: "完了報告", description: "PR URL を報告し、ブラウザで開く", activeForm: "完了報告を作成中" })
+```
+
+各ステップの開始時に TaskUpdate で `in_progress` に、完了時に `completed` に更新する。
+
+## 実行手順
+
+### 1. 事前確認
+
+以下を確認する:
+
+```bash
+# 現在のブランチと状態を確認
+git status
+git branch --show-current
+
+# ベースブランチを確認 (引数で指定されていない場合は main または master)
+git remote show origin | grep 'HEAD branch'
+
+# リモートとの差分を確認 (<base> は上記で確認したベースブランチに置き換える)
+git log origin/<base>..HEAD --oneline
+```
+
+**確認事項:**
+
+- 未コミットの変更があるか (次のステップで対応)
+- リモートにプッシュ済みであること
+- ベースブランチとの差分があること
+
+未プッシュの場合は `git push -u origin <branch>` を実行する。
+
+### 2. 未コミット変更のコミット
+
+`git status` の結果から unstaged または staged の変更がある場合のみ実行する。変更がない場合はこのステップをスキップする。
+
+**変更がある場合:** commit スキルを Skill ツールで呼び出す。
+
+```
+Skill({ skill: "commit" })
+```
+
+commit スキルがステージング、コミットメッセージ生成、ユーザー承認、コミット実行を行う。
+
+コミット完了後、未プッシュであれば `git push -u origin <branch>` を実行する。
+
+### 3. PR テンプレートの確認
+
+```bash
+# テンプレートファイルを探す
+ls -la .github/PULL_REQUEST_TEMPLATE.md 2>/dev/null || \
+ls -la .github/PULL_REQUEST_TEMPLATE/ 2>/dev/null || \
+ls -la docs/PULL_REQUEST_TEMPLATE.md 2>/dev/null
+```
+
+テンプレートが存在する場合は Read ツールで内容を確認し、そのフォーマットに準拠した description を作成する。
+
+### 4. PR タイトルの生成
+
+`git log origin/<base>..HEAD --oneline` を実行し、コミット数を確認する (ステップ 2 で新規コミットが追加された可能性があるため、必ずここで再取得する)。
+
+**コミットが 1 つの場合:** `git log origin/<base>..HEAD -1 --format='%s'` で subject のみ取得し、そのまま PR タイトルとして使用する。commit-proposer subagent の呼び出しはスキップする。
+
+**コミットが 2 つ以上の場合:** commit-proposer subagent を Task ツールで呼び出す。
+
+```
+Task({
+  subagent_type: "git:commit-proposer",
+  description: "PR タイトル候補の生成",
+  prompt: "PR のコミット履歴から PR タイトル候補を提案してください。ベースブランチ: <base>。PR タイトルとして Conventional Commits 形式で提案してください。"
+})
+```
+
+subagent がコミット履歴の分析、commitlint 設定の確認、PR タイトル候補の生成を実行する。
+
+### 5. ラベルの選択
+
+```bash
+# リポジトリのラベル一覧を取得
+gh label list --json name,description
+```
+
+変更内容に基づいて適切なラベルを選択する:
+
+| 変更タイプ       | 推奨ラベル               |
+| ---------------- | ------------------------ |
+| 新機能追加       | `enhancement`, `feature` |
+| バグ修正         | `bug`, `fix`             |
+| ドキュメント     | `documentation`, `docs`  |
+| リファクタリング | `refactor`, `tech-debt`  |
+| テスト追加       | `test`, `testing`        |
+| 依存関係更新     | `dependencies`           |
+| 破壊的変更       | `breaking-change`        |
+
+存在しないラベルは使用しない。
+
+### 6. CODEOWNERS の確認
+
+```bash
+# CODEOWNERS ファイルを探す
+cat .github/CODEOWNERS 2>/dev/null || \
+cat CODEOWNERS 2>/dev/null || \
+cat docs/CODEOWNERS 2>/dev/null
+```
+
+CODEOWNERS が存在する場合:
+
+1. 変更されたファイルのパスを確認
+2. 該当するオーナーを Reviewer として設定
+
+### 7. Draft PR 作成
+
+Draft PR を作成する:
+
+```bash
+gh pr create \
+  --draft \
+  --title "<タイトル>" \
+  --body "<説明>" \
+  --base <ベースブランチ> \
+  --label "<ラベル1>,<ラベル2>" \
+  --assignee @me \
+  --reviewer "<reviewer1>,<reviewer2>"
+```
+
+### 8. 完了報告
+
+作成された PR の URL を報告し、ブラウザで開く:
+
+```bash
+# PR の URL を取得
+gh pr view --json url --jq '.url'
+
+# ブラウザで PR を開く
+gh pr view --web
+```
+
+**報告フォーマット:**
+
+```
+## Draft PR 作成完了
+
+- **PR:** #<number>
+- **タイトル:** <タイトル>
+- **URL:** <url>
+- **状態:** Draft
+
+ブラウザで PR を開きました。
+```
+
+## エラーハンドリング
+
+### gh CLI が使用できない場合
+
+GitHub MCP ツールにフォールバックする:
+
+- `mcp__github__create_pull_request` で PR 作成 (draft: true)
+- `mcp__github__list_labels` でラベル取得
+
+### 認証エラー
+
+```bash
+gh auth status
+gh auth login
+```
+
+### ブランチが存在しない
+
+```bash
+git push -u origin $(git branch --show-current)
+```
+
+---
+
+[Request interrupted by user]
+
+---
+
+<bash-input>git checkout -b fix-paging-commit</bash-input>
+
+---
+
+<bash-stdout>Switched to a new branch 'fix-paging-commit'</bash-stdout><bash-stderr></bash-stderr>
+
+---
+
+Base directory for this skill: /Users/s01059/.claude/plugins/cache/cc/git/2.14.1/skills/pr-create
+
+# PR 作成ワークフロー
+
+現在のブランチから Draft Pull Request を作成する。
+
+## 重要な原則
+
+1. **PR タイトル・description の言語は対象リポジトリに従う** - 既存の PR やコミット履歴を確認し、リポジトリで使用されている言語 (日本語/英語等) に合わせる
+2. **日本語で PR タイトル・description を書く場合は `japanese-text-style` スキルに従う** - スペース、句読点、括弧のルールを適用する
+3. **PR は常に Draft として作成する**
+4. **PR タイトルは Conventional Commits に準拠する** - コミットが 1 つの場合はそのメッセージをそのまま使用し、2 つ以上の場合は commit-proposer subagent で生成する
+5. **PR テンプレートがある場合は必ず準拠する**
+6. **ラベルはリポジトリに存在するもののみ使用する**
+7. **Reviewer は CODEOWNERS に記載されているユーザーのみ設定する**
+
+## 作業開始前の準備
+
+**必須:** 作業開始前に TaskList で残存タスクを確認し、存在する場合は全て TaskUpdate({ status: "deleted" }) で削除する。その後、TaskCreate ツールで以下のステップをタスクとして登録する:
+
+```
+TaskCreate({ subject: "事前確認", description: "ブランチ状態、リモート差分を確認", activeForm: "事前確認を実行中" })
+TaskCreate({ subject: "未コミット変更のコミット", description: "unstaged/staged の変更がある場合のみ commit スキルを実行", activeForm: "未コミット変更をコミット中" })
+TaskCreate({ subject: "PR テンプレートの確認", description: "PULL_REQUEST_TEMPLATE.md を探索・読み込み", activeForm: "PR テンプレートを確認中" })
+TaskCreate({ subject: "PR タイトルの生成", description: "コミットが 1 つならそのメッセージを使用、2 つ以上なら commit-proposer subagent で生成", activeForm: "PR タイトルを生成中" })
+TaskCreate({ subject: "ラベルの選択", description: "リポジトリのラベル一覧から適切なものを選択", activeForm: "ラベルを選択中" })
+TaskCreate({ subject: "CODEOWNERS の確認", description: "CODEOWNERS から Reviewer を特定", activeForm: "CODEOWNERS を確認中" })
+TaskCreate({ subject: "Draft PR 作成", description: "gh pr create --draft で PR を作成", activeForm: "Draft PR を作成中" })
+TaskCreate({ subject: "完了報告", description: "PR URL を報告し、ブラウザで開く", activeForm: "完了報告を作成中" })
+```
+
+各ステップの開始時に TaskUpdate で `in_progress` に、完了時に `completed` に更新する。
+
+## 実行手順
+
+### 1. 事前確認
+
+以下を確認する:
+
+```bash
+# 現在のブランチと状態を確認
+git status
+git branch --show-current
+
+# ベースブランチを確認 (引数で指定されていない場合は main または master)
+git remote show origin | grep 'HEAD branch'
+
+# リモートとの差分を確認 (<base> は上記で確認したベースブランチに置き換える)
+git log origin/<base>..HEAD --oneline
+```
+
+**確認事項:**
+
+- 未コミットの変更があるか (次のステップで対応)
+- リモートにプッシュ済みであること
+- ベースブランチとの差分があること
+
+未プッシュの場合は `git push -u origin <branch>` を実行する。
+
+### 2. 未コミット変更のコミット
+
+`git status` の結果から unstaged または staged の変更がある場合のみ実行する。変更がない場合はこのステップをスキップする。
+
+**変更がある場合:** commit スキルを Skill ツールで呼び出す。
+
+```
+Skill({ skill: "commit" })
+```
+
+commit スキルがステージング、コミットメッセージ生成、ユーザー承認、コミット実行を行う。
+
+コミット完了後、未プッシュであれば `git push -u origin <branch>` を実行する。
+
+### 3. PR テンプレートの確認
+
+```bash
+# テンプレートファイルを探す
+ls -la .github/PULL_REQUEST_TEMPLATE.md 2>/dev/null || \
+ls -la .github/PULL_REQUEST_TEMPLATE/ 2>/dev/null || \
+ls -la docs/PULL_REQUEST_TEMPLATE.md 2>/dev/null
+```
+
+テンプレートが存在する場合は Read ツールで内容を確認し、そのフォーマットに準拠した description を作成する。
+
+### 4. PR タイトルの生成
+
+`git log origin/<base>..HEAD --oneline` を実行し、コミット数を確認する (ステップ 2 で新規コミットが追加された可能性があるため、必ずここで再取得する)。
+
+**コミットが 1 つの場合:** `git log origin/<base>..HEAD -1 --format='%s'` で subject のみ取得し、そのまま PR タイトルとして使用する。commit-proposer subagent の呼び出しはスキップする。
+
+**コミットが 2 つ以上の場合:** commit-proposer subagent を Task ツールで呼び出す。
+
+```
+Task({
+  subagent_type: "git:commit-proposer",
+  description: "PR タイトル候補の生成",
+  prompt: "PR のコミット履歴から PR タイトル候補を提案してください。ベースブランチ: <base>。PR タイトルとして Conventional Commits 形式で提案してください。"
+})
+```
+
+subagent がコミット履歴の分析、commitlint 設定の確認、PR タイトル候補の生成を実行する。
+
+### 5. ラベルの選択
+
+```bash
+# リポジトリのラベル一覧を取得
+gh label list --json name,description
+```
+
+変更内容に基づいて適切なラベルを選択する:
+
+| 変更タイプ       | 推奨ラベル               |
+| ---------------- | ------------------------ |
+| 新機能追加       | `enhancement`, `feature` |
+| バグ修正         | `bug`, `fix`             |
+| ドキュメント     | `documentation`, `docs`  |
+| リファクタリング | `refactor`, `tech-debt`  |
+| テスト追加       | `test`, `testing`        |
+| 依存関係更新     | `dependencies`           |
+| 破壊的変更       | `breaking-change`        |
+
+存在しないラベルは使用しない。
+
+### 6. CODEOWNERS の確認
+
+```bash
+# CODEOWNERS ファイルを探す
+cat .github/CODEOWNERS 2>/dev/null || \
+cat CODEOWNERS 2>/dev/null || \
+cat docs/CODEOWNERS 2>/dev/null
+```
+
+CODEOWNERS が存在する場合:
+
+1. 変更されたファイルのパスを確認
+2. 該当するオーナーを Reviewer として設定
+
+### 7. Draft PR 作成
+
+Draft PR を作成する:
+
+```bash
+gh pr create \
+  --draft \
+  --title "<タイトル>" \
+  --body "<説明>" \
+  --base <ベースブランチ> \
+  --label "<ラベル1>,<ラベル2>" \
+  --assignee @me \
+  --reviewer "<reviewer1>,<reviewer2>"
+```
+
+### 8. 完了報告
+
+作成された PR の URL を報告し、ブラウザで開く:
+
+```bash
+# PR の URL を取得
+gh pr view --json url --jq '.url'
+
+# ブラウザで PR を開く
+gh pr view --web
+```
+
+**報告フォーマット:**
+
+```
+## Draft PR 作成完了
+
+- **PR:** #<number>
+- **タイトル:** <タイトル>
+- **URL:** <url>
+- **状態:** Draft
+
+ブラウザで PR を開きました。
+```
+
+## エラーハンドリング
+
+### gh CLI が使用できない場合
+
+GitHub MCP ツールにフォールバックする:
+
+- `mcp__github__create_pull_request` で PR 作成 (draft: true)
+- `mcp__github__list_labels` でラベル取得
+
+### 認証エラー
+
+```bash
+gh auth status
+gh auth login
+```
+
+### ブランチが存在しない
+
+```bash
+git push -u origin $(git branch --show-current)
+```
+
+---
+
+Base directory for this skill: /Users/s01059/.claude/plugins/cache/cc/git/2.14.1/skills/pr-watch
+
+# PR 監視・自動修正ワークフロー
+
+PR のレビューコメントと CI 失敗を定期監視し、検出次第自動で修正・コミット・プッシュ・返信を実行する。
+
+## 重要な原則
+
+1. **ユーザー確認は一切行わない** - 全ステップを自律的に実行する。修正ファイル数や変更規模に関わらず確認をスキップする
+2. **レビュー修正を CI 修正より優先する** - 同時に検出した場合はレビューを先に処理する。レビュー修正のプッシュ後、CI 結果が更新されるのを待ってから CI 修正に取りかかる
+3. **修正は最小限に留める** - レビュー指摘・CI エラーの修正に必要な変更のみ
+4. **コミットメッセージは commit-proposer subagent で生成する** - Conventional Commits / commitlint 設定に準拠
+5. **コミットメッセージ・返信コメントの言語は対象リポジトリに従う** - 既存の PR やコミット履歴を確認し、使用されている言語に合わせる
+6. **日本語でコミットメッセージ・返信コメントを書く場合は `japanese-text-style` スキルに従う**
+7. **対応不要と判断したレビューコメントは理由を返信して resolve する**
+8. **コンフリクトを検出したらユーザーに通知して監視を終了する**
+9. **修正で PR の実態が変わった場合のみ、タイトル・description を自動更新する** - 軽微な修正 (typo、lint、フォーマット) では更新しない。テンプレートや既存フォーマットを維持する
+
+## 監視ルール
+
+| パラメータ   | 値                                                         |
+| ------------ | ---------------------------------------------------------- |
+| 監視間隔     | 2 分                                                       |
+| アイドル上限 | 30 分 (レビュー/CI 失敗が一度も検出されなかった場合に終了) |
+| 絶対上限     | 120 分 (`HAD_ACTIVITY` に関わらず強制終了)                 |
+| 即時終了条件 | コンフリクト検出、PR クローズ/マージ済み                   |
+| 修正発生時   | `START_TIME` をリセットせず引き続き監視を継続              |
+
+## 状態管理
+
+監視ループ全体で以下の状態を管理する:
+
+- `PR_NUMBER`: PR 番号
+- `OWNER`, `REPO`: リポジトリ情報
+- `START_TIME`: 監視開始時刻 (UNIX タイムスタンプ)
+- `HAD_ACTIVITY`: false (レビュー/CI 失敗を一度でも検出したら true にし、以降リセットしない)
+- `UNFIXABLE_RUNS`: 修正不可能と判断した CI run ID のリスト (以降のサイクルで同じ失敗の再処理をスキップする)
+- `CYCLE_COUNT`: 実行サイクル数
+- `REVIEW_COMMITS`: レビュー修正コミット数
+- `CI_COMMITS`: CI 修正コミット数
+- `REPLIED_COMMENTS`: 返信済みコメント数
+- `RESOLVED_THREADS`: resolve 済みスレッド数
+- `PR_UPDATES`: PR タイトル・description の更新回数
+
+## 作業開始前の準備
+
+**必須:** 作業開始前に TaskList で残存タスクを確認し、存在する場合は全て TaskUpdate({ status: "deleted" }) で削除する。その後、TaskCreate ツールで以下のタスクを登録する:
+
+```
+TaskCreate({ subject: "PR の特定", description: "引数または現在のブランチから PR を特定", activeForm: "PR を特定中" })
+TaskCreate({ subject: "監視ループの実行", description: "2 分間隔で PR の状態を確認し、レビュー/CI 失敗を検出・修正", activeForm: "PR を監視中" })
+TaskCreate({ subject: "監視終了・完了報告", description: "監視結果を集計して報告", activeForm: "完了報告を作成中" })
+```
+
+各ステップの開始時に TaskUpdate で `in_progress` に、完了時に `completed` に更新する。
+
+## 実行手順
+
+### 1. PR の特定
+
+引数で PR 番号が指定されていない場合、現在のブランチから PR を特定する:
+
+```bash
+gh pr view --json number,title,headRefName,state --jq '{number, title, headRefName, state}'
+```
+
+- PR が `MERGED` または `CLOSED` の場合は監視を開始せず終了する
+- PR が見つからない場合は「現在のブランチに紐づく PR が見つかりません。PR 番号を指定して再実行してください。」と報告して終了する
+
+状態変数を初期化する。
+
+### 2. 監視ループ
+
+以下のサイクルを繰り返す。各サイクルの先頭で経過時間を確認する:
+
+- 120 分を超過 → 無条件で監視を終了する
+- 30 分を超過 かつ `HAD_ACTIVITY` が false → 監視を終了する
+
+#### 2a. PR 状態チェック
+
+```bash
+gh pr view <number> --json state,mergeable --jq '{state, mergeable}'
+```
+
+- `state` が `MERGED` / `CLOSED` → 監視終了
+- `mergeable` が `CONFLICTING` → ユーザーに通知して監視終了
+
+#### 2b. 未解決レビューコメントの取得
+
+```bash
+# <owner>, <repo>, <number> は実際の値に置き換える
+gh api graphql -F query='
+query {
+  repository(owner: "<owner>", name: "<repo>") {
+    pullRequest(number: <number>) {
+      reviewThreads(first: 100) {
+        nodes {
+          id
+          isResolved
+          comments(first: 10) {
+            nodes {
+              databaseId
+              body
+              path
+              line
+              author { login }
+            }
+          }
+        }
+      }
+    }
+  }
+}'
+```
+
+`isResolved: false` のスレッドのみ対象。未解決コメントがあれば `HAD_ACTIVITY = true` にする。
+
+#### 2c. CI 失敗の確認
+
+```bash
+HEAD_SHA=$(gh pr view <number> --json headRefOid --jq '.headRefOid')
+gh run list --commit "$HEAD_SHA" --json databaseId,status,conclusion,name
+```
+
+- `conclusion` が `failure` の run があれば `HAD_ACTIVITY = true` にする
+- `status` が `in_progress` の run がある場合、このサイクルでは CI 修正をスキップする (CI 結果が確定するのを待つ)
+- run 結果が空 (プッシュ直後で CI 未開始) の場合も CI 修正をスキップする
+- `UNFIXABLE_RUNS` に含まれる run ID はスキップする
+
+#### 2d. レビュー修正の実行 (未解決コメントがある場合)
+
+**妥当性判断の基準:**
+
+| 指摘の種類                       | 判断       | 対応                                       |
+| -------------------------------- | ---------- | ------------------------------------------ |
+| コードの正確性に関する指摘       | 修正が必要 | コードを修正                               |
+| セキュリティに関する指摘         | 修正が必要 | コードを修正                               |
+| パフォーマンスに関する指摘       | 修正が必要 | コードを修正                               |
+| スタイルや好みの問題 (`nits:`)   | 内容次第   | コードを修正または、理由を返信して resolve |
+| 誤解に基づく指摘                 | 対応不要   | 説明を返信して resolve                     |
+| 既に別のコミットで対応済みの指摘 | 対応不要   | 対応済みの旨を返信して resolve             |
+
+**ファクトチェック (必須):**
+
+レビューの指摘を鵜呑みにせず、技術的な主張や根拠が正しいか検証する。特に以下のケースでは必ずファクトチェックを行う:
+
+- 言語仕様・ランタイムの挙動に関する指摘
+- フレームワーク・ライブラリの API や推奨パターンに関する指摘
+- セキュリティに関する指摘
+- パフォーマンスに関する指摘
+- 「〜すべき」「〜は非推奨」など規範的な主張
+
+**ファクトチェックのソース優先順位:**
+
+| 優先度 | ソース       | 用途                                     |
+| ------ | ------------ | ---------------------------------------- |
+| 1      | LSP          | コードベース内の定義・参照・型情報の確認 |
+| 2      | deepwiki MCP | OSS リポジトリの Wiki・ドキュメント      |
+| 3      | Gemini MCP   | Google 検索による最新情報の取得          |
+| 4      | context7 MCP | ライブラリの公式ドキュメントとコード例   |
+| 5      | WebFetch     | 公式サイト・GitHub・特定 URL の確認      |
+| 6      | WebSearch    | 最新情報・ブログ・リリースノートの検索   |
+
+**例外 (上記の優先順位より優先):**
+
+- terraform に関する内容は terraform MCP (`mcp__terraform__*`) が最優先
+- Google Cloud に関する内容は google-developer-knowledge MCP (`mcp__google-developer-knowledge__*`) が最優先
+- Claude Code に関する内容は claude-code-guide agent (`subagent_type: "claude-code-guide"`) が最優先
+
+ファクトチェックの結果、指摘が誤りだった場合はその根拠をソース付きで返信コメントに記載する。
+
+**処理フロー:**
+
+1. 各未解決コメントの妥当性を上記基準で判断し、ファクトチェックで検証する
+2. 修正が必要なコメントに対してコードを修正する
+3. 修正したファイルをステージングする: `git add <修正ファイル>`
+4. commit-proposer subagent でコミットメッセージを生成する:
+
+   ```
+   Task({
+     subagent_type: "git:commit-proposer",
+     description: "コミットメッセージ候補の生成",
+     prompt: "ステージング済みの変更に対してコミットメッセージ候補を提案してください。コンテキスト: レビュー指摘に基づく修正です。subject には「レビュー指摘に基づく修正」のような汎用的な表現ではなく、実際に何を変更したかを具体的に記述してください。"
+   })
+   ```
+
+   subagent がエラーを返した場合は、変更差分から Conventional Commits 形式のメッセージを自前で生成する。その際も subject には実際の変更内容を具体的に記述し、「レビュー指摘に基づく修正」のような汎用表現は使わない。
+
+5. 推奨メッセージ (候補 1) でコミットする
+
+   ```bash
+   # <type>, <scope>, <subject>, <body> は commit-proposer の出力で置き換える
+   git commit -m "$(cat <<'EOF'
+   <type>(<scope>): <subject>
+
+   <body>
+   EOF
+   )"
+   ```
+
+6. `git push` でリモートに反映する
+7. 各コメントに返信・リアクション・resolve を実行する:
+
+   ```bash
+   # 元のコメントに +1 リアクション (databaseId 使用)
+   gh api repos/{owner}/{repo}/pulls/comments/<databaseId>/reactions -f content="+1"
+
+   # スレッドに返信 (GraphQL mutation、thread id 使用)
+   # <thread_id>, <body> は実際の値に置き換える
+   gh api graphql -F query='
+   mutation {
+     addPullRequestReviewThreadReply(input: {pullRequestReviewThreadId: "<thread_id>", body: "<body>"}) {
+       comment { id body }
+     }
+   }'
+
+   # スレッドを resolve
+   # <thread_id> は実際の値に置き換える
+   gh api graphql -F query='
+   mutation {
+     resolveReviewThread(input: {threadId: "<thread_id>"}) {
+       thread { isResolved }
+     }
+   }'
+   ```
+
+**処理順序:** リアクション追加 → 返信投稿 → resolve。エラーが発生しても続行し、失敗を記録する。
+
+**返信テンプレート:**
+
+| 対応タイプ | 返信例                                        |
+| ---------- | --------------------------------------------- |
+| 修正完了   | `修正しました。ご指摘ありがとうございます。`  |
+| 対応しない | `[理由] のため、現状のままとさせてください。` |
+| 対応済み   | `[コミット hash] で対応済みです。`            |
+
+**ソース参照ルール:**
+
+理由を添えて返信する場合 (対応しない、内容次第で対応不要と判断した場合など)、信頼できるソースの情報を参照できるときはコメントにも記載する。
+
+- 公式ドキュメント (言語仕様、フレームワーク公式ドキュメント等) の URL
+- プロジェクト内の既存コード・設定ファイルのパスと行番号
+- lint ルールやコーディング規約の該当セクション
+- RFC やセキュリティアドバイザリ等の公的な技術文書
+
+**例:**
+
+```
+Go の仕様上、nil map への読み取りはゼロ値を返すためパニックしません。
+ref: https://go.dev/ref/spec#Index_expressions
+
+現状のままとさせてください。
+```
+
+カウンタを更新: `REVIEW_COMMITS`, `REPLIED_COMMENTS`, `RESOLVED_THREADS`。
+
+#### 2e. CI 修正の実行 (失敗がある場合)
+
+**処理フロー:**
+
+1. ci-analyzer subagent で失敗原因を調査する:
+
+   ```
+   Task({
+     subagent_type: "git:ci-analyzer",
+     description: "CI 失敗原因の調査",
+     prompt: "PR #<number> (ブランチ: <branch>) の CI 失敗を調査してください。"
+   })
+   ```
+
+   subagent がエラーを返した場合は、直接 `gh run view <run-id> --log-failed` でログを取得して分析する。
+
+2. 自動修正可能なエラーのみ修正する
+
+   | エラー種別             | 自動修正 |
+   | ---------------------- | -------- |
+   | Lint/フォーマット      | 可能     |
+   | 型エラー・ビルドエラー | 可能     |
+   | テスト失敗             | 可能     |
+   | 依存関係               | 可能     |
+   | 環境変数・secret       | **不可** |
+   | 権限・認証             | **不可** |
+
+3. 修正不可能なエラーの run ID を `UNFIXABLE_RUNS` に追加し、以降のサイクルで再処理をスキップする。完了報告で通知する
+4. 修正したファイルをステージング: `git add <修正ファイル>`
+5. commit-proposer subagent でコミットメッセージを生成する (エラー時は自前生成にフォールバック)
+6. 推奨メッセージでコミットする
+7. `git push` でリモートに反映する
+
+カウンタを更新: `CI_COMMITS`。
+
+#### 2f. PR タイトル・description の更新判断 (修正コミットがあった場合)
+
+このサイクルでレビュー修正または CI 修正のコミットをプッシュした場合のみ実行する。コミットがなかった場合はスキップする。
+
+**判断手順:**
+
+1. PR の全 diff と現在のタイトル・description を取得する:
+
+   ```bash
+   gh pr view <number> --json title,body,commits,files,additions,deletions
+   gh pr diff <number> --stat
+   ```
+
+2. 以下の基準で更新の要否を判断する:
+
+   | 条件                                                       | 判断 |
+   | ---------------------------------------------------------- | ---- |
+   | 修正で PR の type/scope が変わった (例: `feat` → `fix`)    | 更新 |
+   | description に記載の変更内容が実態と矛盾している           | 更新 |
+   | 修正で新しい機能追加や破壊的変更が加わった                 | 更新 |
+   | 軽微な修正のみ (typo、lint、フォーマット、変数名変更)      | 不要 |
+   | description が元々空、または情報量が少なく更新の意味がない | 不要 |
+   | 既に同じサイクルの修正内容を反映済み                       | 不要 |
+
+3. 更新不要と判断した場合はスキップする
+
+**更新処理:**
+
+1. PR テンプレートを確認する:
+
+   ```bash
+   ls -la .github/PULL_REQUEST_TEMPLATE.md 2>/dev/null || \
+   ls -la .github/PULL_REQUEST_TEMPLATE/ 2>/dev/null
+   ```
+
+   - テンプレートが存在する → テンプレートに準拠
+   - テンプレートがない → 既存の description のフォーマットに準拠
+
+2. コミット履歴に基づいてタイトルと description を作成する:
+
+   ```bash
+   git log origin/<base>..HEAD --pretty=format:"%h %s%n%b" --reverse
+   ```
+
+   - タイトルは Conventional Commits 形式。commitlint 設定があれば準拠する
+   - description はコミットメッセージのコピーではなく、変更内容を要約・整理する
+   - ユーザーが手動で追加した情報 (関連 Issue、スクリーンショット等) は保持する
+
+3. 更新を実行する:
+
+   ```bash
+   gh pr edit <number> \
+     --title "新しいタイトル" \
+     --body "$(cat <<'EOF'
+   [新しい description の内容]
+   EOF
+   )"
+   ```
+
+カウンタを更新: `PR_UPDATES`。
+
+#### 2g. 次のサイクルへ
+
+レビュー修正・CI 修正のいずれも不要だった場合、2 分間スリープする:
+
+```bash
+# Bash ツールの timeout パラメータ (ミリ秒) は安全マージンとして 180000 (180 秒) に設定し、実際のスリープは 120 秒とする
+sleep 120
+```
+
+修正を行った場合はスリープせず即座に次のサイクルへ進む (プッシュ直後の CI 結果を早く確認するため)。ただし、CI が `in_progress` の場合はステップ 2c のスキップ条件により、新しい CI 結果が確定するまで待機する。
+
+`CYCLE_COUNT` をインクリメントする。
+
+### 3. 監視終了・完了報告
+
+```
+## PR 監視完了
+
+- PR: #<number> (<title>)
+- 監視時間: <elapsed> 分
+- 監視サイクル数: N
+
+### レビュー修正
+- 修正コミット数: X
+- 返信済みコメント数: Y
+- resolve 済みスレッド数: Z
+
+### CI 修正
+- 修正コミット数: A
+- 修正不可能だったエラー: (該当する場合のみ記載)
+
+### PR タイトル・description 更新
+- 更新回数: B (0 の場合はこのセクションを省略)
+
+### 終了理由
+<アイドルタイムアウト (30 分) / 絶対上限到達 (120 分) / PR マージ済み / PR クローズ済み / コンフリクト検出>
+
+PR URL: <url>
+```
+
+**初回チェックでレビュー/CI 失敗がなく、全 CI が成功している場合:**
+
+```
+## PR 状態確認完了
+
+全ての CI チェックが成功しており、未解決のレビューコメントもありません。
+監視を開始しましたが、現時点で対応が必要な項目はありません。
+30 分間の監視を継続します。新しいレビューや CI 失敗が発生次第、自動修正します。
+```
+
+## エラーハンドリング
+
+### コンフリクト検出時
+
+```
+## コンフリクト検出 - 監視を終了します
+
+PR #<number> でコンフリクトが検出されました。
+手動でコンフリクトを解消してから、再度 `/pr-watch` を実行してください。
+```
+
+### gh CLI エラー時
+
+`gh api` コマンドで GitHub API に直接アクセスする。それでも失敗する場合はエラーをログに記録して次のサイクルに進む。3 サイクル連続で GitHub API エラーが発生した場合は、ネットワーク障害と判断して監視を終了する。
+
+### プッシュ失敗時
+
+```bash
+git pull --rebase origin <branch>
+git push
+```
+
+rebase が失敗した場合はコンフリクトとして扱い、監視を終了する。
+
+### subagent エラー時
+
+- **commit-proposer エラー:** 変更差分から Conventional Commits 形式のメッセージを自前で生成する。`git diff --cached --stat` と `git log --oneline -5` を参考にする。subject には実際の変更内容を具体的に記述し、汎用的な表現は使わない
+- **ci-analyzer エラー:** 直接 `gh run view <run-id> --log-failed` でログを取得し、エラーメッセージを分析して修正を試みる
