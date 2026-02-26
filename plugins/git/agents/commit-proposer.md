@@ -78,13 +78,13 @@ memory: user
 
 2. **commitlint 設定の検索と解析**
 
-   **設定ファイルの検索:**
+   **設定ファイルの検索 (Glob ツールを使用):**
 
-   ```bash
-   ls -la commitlint.config.* 2>/dev/null
-   ls -la .commitlintrc.* 2>/dev/null
-   grep -l '"commitlint"' package.json 2>/dev/null
-   ```
+   以下のパターンで Glob ツールを並列実行する:
+   - `commitlint.config.*`
+   - `.commitlintrc*`
+
+   Glob で見つからない場合は、`package.json` を Read ツールで読み込み `"commitlint"` キーの有無を確認する。
 
    **設定ファイルの解決:**
    設定ファイルが見つかったら、その `extends` フィールドから継承チェーンをたどる。
@@ -146,10 +146,11 @@ memory: user
    | `revert`   | 以前のコミットを取り消す                            |
 
    **scope の推測:**
-   - 単一ディレクトリの変更 → そのディレクトリ名
-   - 複数ディレクトリの変更 → 共通の親または省略
-   - 設定ファイルの変更 → `config` または省略
-   - `scope-enum` が設定されている場合は、その中から選択する
+   - `scope-enum` が設定されている場合は、その中から最も適切なものを選択する (最優先)。変更ファイルのパスやモジュール名と照合して判断する。該当なしの場合のみ省略する
+   - `scope-enum` がない場合:
+     - 単一ディレクトリの変更 → そのディレクトリ名
+     - 複数ディレクトリの変更 → 共通の親または省略
+     - 設定ファイルの変更 → `config` または省略
 
    **scope の形式:**
    - `scope-empty: [2, 'never']` → scope 必須: `<type>(<scope>): <subject>`
