@@ -3,9 +3,11 @@
   "checkpoint_id": "70766f230107",
   "strategy": "manual-commit",
   "branch": "fix-paging-commit",
-  "checkpoints_count": 1,
+  "checkpoints_count": 4,
   "files_touched": [
-    ".claude-plugin/marketplace.json"
+    ".claude-plugin/marketplace.json",
+    "plugins/git/.claude-plugin/plugin.json",
+    "plugins/git/agents/commit-proposer.md"
   ],
   "sessions": [
     {
@@ -14,13 +16,20 @@
       "context": "/70/766f230107/0/context.md",
       "content_hash": "/70/766f230107/0/content_hash.txt",
       "prompt": "/70/766f230107/0/prompt.txt"
+    },
+    {
+      "metadata": "/70/766f230107/1/metadata.json",
+      "transcript": "/70/766f230107/1/full.jsonl",
+      "context": "/70/766f230107/1/context.md",
+      "content_hash": "/70/766f230107/1/content_hash.txt",
+      "prompt": "/70/766f230107/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 333,
-    "cache_creation_tokens": 322773,
-    "cache_read_tokens": 34661682,
-    "output_tokens": 31807,
-    "api_call_count": 319
+    "input_tokens": 375,
+    "cache_creation_tokens": 414470,
+    "cache_read_tokens": 37165082,
+    "output_tokens": 40949,
+    "api_call_count": 351
   }
 }
