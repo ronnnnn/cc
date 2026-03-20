@@ -1,0 +1,18 @@
+wt skill で shopt 使ってるけど、macos だとデフォルトで shopt 使えないので修正して
+スクリプト修正後、期待通りに動作するかどうか実際に確認して
+
+---
+
+/pr-create
+
+---
+
+1
+
+---
+
+/bump-version
+
+---
+
+/pr-create
