@@ -153,10 +153,12 @@ trap '
     echo ".git を復元しました" >&2
   fi
   # 3. 退避ファイルを復元
-  if [ -n "$WORK_TMPDIR" ] && [ -d "$WORK_TMPDIR" ] && [ "$(ls -A "$WORK_TMPDIR" 2>/dev/null)" ]; then
-    find "$WORK_TMPDIR" -maxdepth 1 -mindepth 1 -exec mv {} "$DIR/" \; 2>/dev/null || true
+  if [ -n "$WORK_TMPDIR" ] && [ -d "$WORK_TMPDIR" ]; then
+    if [ "$(ls -A "$WORK_TMPDIR" 2>/dev/null)" ]; then
+      find "$WORK_TMPDIR" -maxdepth 1 -mindepth 1 -exec mv {} "$DIR/" \; 2>/dev/null || true
+      echo "退避ファイルを復元しました" >&2
+    fi
     rm -rf "$WORK_TMPDIR" 2>/dev/null || true
-    echo "退避ファイルを復元しました" >&2
   fi
 ' ERR
 
