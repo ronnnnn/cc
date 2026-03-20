@@ -83,7 +83,7 @@ gh pr view --json number,title,headRefName,state --jq '{number, title, headRefNa
 - PR が `MERGED` または `CLOSED` の場合は監視を開始せず終了する
 - PR が見つからない場合は「現在のブランチに紐づく PR が見つかりません。PR 番号を指定して再実行してください。」と報告して終了する
 
-状態変数を初期化する。
+状態変数を初期化する。初期化時に `MY_LOGIN=$(gh api user --jq '.login')` で自分の GitHub ユーザー名を取得し、監視ループ全体で保持する。
 
 ### 2. 監視ループ
 
@@ -102,11 +102,6 @@ gh pr view <number> --json state,mergeable --jq '{state, mergeable}'
 - `mergeable` が `CONFLICTING` → ユーザーに通知して監視終了
 
 #### 2b. 未解決レビューコメントの取得
-
-```bash
-# 自分の GitHub ユーザー名を取得 (初回サイクルのみ、自分のコメントを除外するため)
-MY_LOGIN=$(gh api user --jq '.login')
-```
 
 ```bash
 # <owner>, <repo>, <number> は実際の値に置き換える
@@ -134,7 +129,14 @@ query {
 }'
 ```
 
-`isResolved: false` のスレッドのみ対象。さらに、スレッドの最初のコメントの `author.login` が `MY_LOGIN` と一致するスレッドは除外する (自分によるコメントには返信・resolve しない)。除外後に未解決コメントがあれば `HAD_ACTIVITY = true` にする。
+**フィルタ条件:**
+
+取得した `reviewThreads.nodes` に対して以下の条件でフィルタする:
+
+1. `isResolved == false` のスレッドのみを対象とする
+2. スレッドの最初のコメント (`comments.nodes[0].author.login`) が `MY_LOGIN` (ステップ 1 で取得済み) と一致するスレッドは除外する (自分によるコメントには返信・resolve しない)
+
+除外後に未解決コメントがあれば `HAD_ACTIVITY = true` にする。
 
 #### 2c. CI 失敗の確認
 
