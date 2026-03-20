@@ -1,6 +1,6 @@
 ---
 name: pr-fix
-description: PR のレビューコメントに基づいて修正を行う。未解決のコメントのみを対象とし、妥当性を判断して修正。コミット・返信前に必ずユーザー承認を取る。
+description: PR のレビューコメントに基づいて修正を行う。未解決のコメントのみを対象とし (自分のコメントは除外)、妥当性を判断して修正。コミット・返信前に必ずユーザー承認を取る。
 argument-hint: '[<pr-number>]'
 allowed-tools:
   - Bash
@@ -22,7 +22,7 @@ PR のレビューコメントを確認し、必要な修正を行う。
 
 ## 重要な原則
 
-1. **未解決 (unresolved) のコメントのみを対象とする**
+1. **未解決 (unresolved) のコメントのみを対象とする (自分のコメントは除外)**
 2. **レビューの妥当性を判断し、修正が必要なもののみ修正する**
 3. **コミット前に必ずユーザーの承認を取る** - 自動でコミットしない
 4. **返信コメント前に必ずユーザーの承認を取る** - 自動で返信を投稿しない
@@ -72,9 +72,8 @@ gh pr view --json number --jq '.number'
 ### 2. 未解決のレビューコメントを取得
 
 ```bash
-# PR のレビューコメント一覧を取得
-gh api repos/{owner}/{repo}/pulls/<number>/comments \
-  --jq '.[] | select(.in_reply_to_id == null) | {id, path, line, body, user: .user.login, created_at}'
+# 自分の GitHub ユーザー名を取得 (自分のコメントを除外するため)
+MY_LOGIN=$(gh api user --jq '.login')
 
 # レビュースレッドの状態を確認 (GraphQL)
 # 注意: id (スレッド resolve 用) と databaseId (リアクション API 用) の両方を取得する
@@ -103,7 +102,12 @@ query {
 }'
 ```
 
-**注意:** `isResolved: false` のスレッドのみを対象とする。
+**フィルタ条件:**
+
+取得した `reviewThreads.nodes` に対して以下の条件でフィルタする:
+
+1. `isResolved == false` のスレッドのみを対象とする
+2. スレッドの最初のコメント (`comments.nodes[0].author.login`) が `MY_LOGIN` と一致するスレッドは除外する (自分によるコメントには返信・resolve しない)
 
 ### 3. レビューコメントの分析とファクトチェック
 
