@@ -1,0 +1,5 @@
+claude plugin validate . の CI がこけてるので修正して
+
+---
+
+/pr-create
