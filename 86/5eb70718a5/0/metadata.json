@@ -1,0 +1,36 @@
+{
+  "cli_version": "0.5.0",
+  "checkpoint_id": "865eb70718a5",
+  "session_id": "53968c84-e2d3-4831-99e0-2f50123cc59a",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-20T08:56:31.895317Z",
+  "branch": "update-review-reply",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "plugins/git/skills/pr-watch/SKILL.md"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-opus-4-6[1m]",
+  "turn_id": "a332a3be848a",
+  "checkpoint_transcript_start": 408,
+  "transcript_lines_at_start": 408,
+  "token_usage": {
+    "input_tokens": 12,
+    "cache_creation_tokens": 9678,
+    "cache_read_tokens": 1221824,
+    "output_tokens": 4552,
+    "api_call_count": 12
+  },
+  "session_metrics": {
+    "turn_count": 3
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-20T08:56:19.132144Z",
+    "agent_lines": 1,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 1,
+    "agent_percentage": 100
+  }
+}
