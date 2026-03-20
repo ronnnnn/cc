@@ -154,9 +154,7 @@ trap '
   fi
   # 3. 退避ファイルを復元
   if [ -n "$WORK_TMPDIR" ] && [ -d "$WORK_TMPDIR" ] && [ "$(ls -A "$WORK_TMPDIR" 2>/dev/null)" ]; then
-    shopt -s nullglob dotglob 2>/dev/null
-    mv "$WORK_TMPDIR"/* "$DIR/" 2>/dev/null || true
-    shopt -u nullglob dotglob 2>/dev/null
+    find "$WORK_TMPDIR" -maxdepth 1 -mindepth 1 -exec mv {} "$DIR/" \; 2>/dev/null || true
     rm -rf "$WORK_TMPDIR" 2>/dev/null || true
     echo "退避ファイルを復元しました" >&2
   fi
@@ -175,15 +173,9 @@ git -C "$DIR/bare.git" config wt.nocopy .idea
 # 同一ファイルシステム上に作成し mv が rename で完了するようにする
 WORK_TMPDIR=$(mktemp -d "$DIR/.wt-tmp-XXXXXXXX")
 
-shopt -s nullglob dotglob
-for item in "$DIR"/*; do
-  basename="$(basename "$item")"
-  if [ "$basename" = "bare.git" ] || [ "$basename" = "$(basename "$WORK_TMPDIR")" ]; then
-    continue
-  fi
-  mv "$item" "$WORK_TMPDIR/"
-done
-shopt -u nullglob dotglob
+find "$DIR" -maxdepth 1 -mindepth 1 \
+  ! -name "bare.git" ! -name "$(basename "$WORK_TMPDIR")" \
+  -exec mv {} "$WORK_TMPDIR/" \;
 
 # worktree を追加
 git -C "$DIR/bare.git" worktree add "../$BRANCH" "$BRANCH"
