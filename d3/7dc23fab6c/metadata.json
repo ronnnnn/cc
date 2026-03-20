@@ -1,0 +1,26 @@
+{
+  "cli_version": "0.5.0",
+  "checkpoint_id": "d37dc23fab6c",
+  "strategy": "manual-commit",
+  "branch": "update-review-reply",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "plugins/git/skills/pr-fix/SKILL.md",
+    "plugins/git/skills/pr-watch/SKILL.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/d3/7dc23fab6c/0/metadata.json",
+      "transcript": "/d3/7dc23fab6c/0/full.jsonl",
+      "content_hash": "/d3/7dc23fab6c/0/content_hash.txt",
+      "prompt": "/d3/7dc23fab6c/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 64,
+    "cache_creation_tokens": 59044,
+    "cache_read_tokens": 1214631,
+    "output_tokens": 4237,
+    "api_call_count": 20
+  }
+}
