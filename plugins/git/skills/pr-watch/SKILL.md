@@ -104,6 +104,11 @@ gh pr view <number> --json state,mergeable --jq '{state, mergeable}'
 #### 2b. 未解決レビューコメントの取得
 
 ```bash
+# 自分の GitHub ユーザー名を取得 (初回サイクルのみ、自分のコメントを除外するため)
+MY_LOGIN=$(gh api user --jq '.login')
+```
+
+```bash
 # <owner>, <repo>, <number> は実際の値に置き換える
 gh api graphql -F query='
 query {
@@ -129,7 +134,7 @@ query {
 }'
 ```
 
-`isResolved: false` のスレッドのみ対象。未解決コメントがあれば `HAD_ACTIVITY = true` にする。
+`isResolved: false` のスレッドのみ対象。さらに、スレッドの最初のコメントの `author.login` が `MY_LOGIN` と一致するスレッドは除外する (自分によるコメントには返信・resolve しない)。除外後に未解決コメントがあれば `HAD_ACTIVITY = true` にする。
 
 #### 2c. CI 失敗の確認
 
