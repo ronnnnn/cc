@@ -3,10 +3,11 @@
   "checkpoint_id": "fb1e151460ea",
   "strategy": "manual-commit",
   "branch": "update-pr-create-reviewer",
-  "checkpoints_count": 1,
+  "checkpoints_count": 4,
   "files_touched": [
     ".claude-plugin/marketplace.json",
-    "plugins/git/.claude-plugin/plugin.json"
+    "plugins/git/.claude-plugin/plugin.json",
+    "plugins/git/skills/pr-create/SKILL.md"
   ],
   "sessions": [
     {
@@ -14,13 +15,19 @@
       "transcript": "/fb/1e151460ea/0/full.jsonl",
       "content_hash": "/fb/1e151460ea/0/content_hash.txt",
       "prompt": "/fb/1e151460ea/0/prompt.txt"
+    },
+    {
+      "metadata": "/fb/1e151460ea/1/metadata.json",
+      "transcript": "/fb/1e151460ea/1/full.jsonl",
+      "content_hash": "/fb/1e151460ea/1/content_hash.txt",
+      "prompt": "/fb/1e151460ea/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 97,
-    "cache_creation_tokens": 81977,
-    "cache_read_tokens": 5471105,
-    "output_tokens": 20886,
-    "api_call_count": 84
+    "input_tokens": 151,
+    "cache_creation_tokens": 147355,
+    "cache_read_tokens": 7470598,
+    "output_tokens": 27442,
+    "api_call_count": 125
   }
 }

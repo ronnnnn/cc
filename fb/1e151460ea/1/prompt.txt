@@ -1,0 +1,13 @@
+pr-create skill で reviewer を指定するのをなくして
+
+---
+
+/pr-create
+
+---
+
+/bump-version
+
+---
+
+update(git) にして
