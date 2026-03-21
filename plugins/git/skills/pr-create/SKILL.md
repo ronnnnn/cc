@@ -1,6 +1,6 @@
 ---
 name: pr-create
-description: 現在のブランチから Draft Pull Request を作成する。テンプレート準拠、ラベル自動選択、CODEOWNERS からの Reviewer 設定を行う。
+description: 現在のブランチから Draft Pull Request を作成する。テンプレート準拠、ラベル自動選択を行う。
 argument-hint: '[--base <branch>]'
 allowed-tools:
   - Bash
@@ -26,7 +26,6 @@ allowed-tools:
 4. **PR タイトルは Conventional Commits に準拠する** - コミットが 1 つの場合はそのメッセージをそのまま使用し、2 つ以上の場合は commit-proposer subagent で生成する
 5. **PR テンプレートがある場合は必ず準拠する**
 6. **ラベルはリポジトリに存在するもののみ使用する**
-7. **Reviewer は CODEOWNERS に記載されているユーザーのみ設定する**
 
 ## 作業開始前の準備
 
@@ -38,7 +37,6 @@ TaskCreate({ subject: "未コミット変更のコミット", description: "unst
 TaskCreate({ subject: "PR テンプレートの確認", description: "PULL_REQUEST_TEMPLATE.md を探索・読み込み", activeForm: "PR テンプレートを確認中" })
 TaskCreate({ subject: "PR タイトルの生成", description: "コミットが 1 つならそのメッセージを使用、2 つ以上なら commit-proposer subagent で生成", activeForm: "PR タイトルを生成中" })
 TaskCreate({ subject: "ラベルの選択", description: "リポジトリのラベル一覧から適切なものを選択", activeForm: "ラベルを選択中" })
-TaskCreate({ subject: "CODEOWNERS の確認", description: "CODEOWNERS から Reviewer を特定", activeForm: "CODEOWNERS を確認中" })
 TaskCreate({ subject: "Draft PR 作成", description: "gh pr create --draft で PR を作成", activeForm: "Draft PR を作成中" })
 TaskCreate({ subject: "完了報告", description: "PR URL を報告し、ブラウザで開く", activeForm: "完了報告を作成中" })
 ```
@@ -135,21 +133,7 @@ gh label list --json name,description
 
 存在しないラベルは使用しない。
 
-### 6. CODEOWNERS の確認
-
-```bash
-# CODEOWNERS ファイルを探す
-cat .github/CODEOWNERS 2>/dev/null || \
-cat CODEOWNERS 2>/dev/null || \
-cat docs/CODEOWNERS 2>/dev/null
-```
-
-CODEOWNERS が存在する場合:
-
-1. 変更されたファイルのパスを確認
-2. 該当するオーナーを Reviewer として設定
-
-### 7. Draft PR 作成
+### 6. Draft PR 作成
 
 Draft PR を作成する:
 
@@ -160,11 +144,10 @@ gh pr create \
   --body "<説明>" \
   --base <ベースブランチ> \
   --label "<ラベル1>,<ラベル2>" \
-  --assignee @me \
-  --reviewer "<reviewer1>,<reviewer2>"
+  --assignee @me
 ```
 
-### 8. 完了報告
+### 7. 完了報告
 
 作成された PR の URL を報告し、ブラウザで開く:
 

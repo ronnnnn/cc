@@ -9,7 +9,7 @@ Git/GitHub 操作を効率化する Claude Code plugin です。
 | スキル                     | 説明                                                            |
 | -------------------------- | --------------------------------------------------------------- |
 | `/git:commit`              | 全変更をステージングし、Conventional Commits 形式でコミット     |
-| `/git:pr-create`           | PR を作成 (テンプレート準拠、ラベル自動選択、CODEOWNERS 対応)   |
+| `/git:pr-create`           | PR を作成 (テンプレート準拠、ラベル自動選択)                    |
 | `/git:pr-review`           | PR を複数 AI でレビューし、指摘箇所にコメントを投稿             |
 | `/git:pr-fix`              | レビュー指摘を修正 (妥当性判断、コミット/返信前に承認)          |
 | `/git:pr-update`           | PR のタイトルと description を最新化                            |
@@ -93,7 +93,6 @@ claude plugin install git@cc --scope project
 - PR タイトルは **Conventional Commits** 形式 (commitlint 設定があれば準拠)
 - `.github/PULL_REQUEST_TEMPLATE.md` に準拠した description
 - リポジトリのラベルから適切なものを自動選択
-- `.github/CODEOWNERS` から Reviewer を自動設定
 - Assignee は PR 作成者自身
 - **完了後、ブラウザで PR を自動的に開く**
 
