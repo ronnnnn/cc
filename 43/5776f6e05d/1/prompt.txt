@@ -1,0 +1,6 @@
+/plugin-dev:create-plugin レビュー修正系の skill で、レビューへの返信、resolve 後に、レビュワーが bot 出ない場合レビューの再リクエストをするようにして
+すでにそのユーザから approve をもらっている場合はリクエストをスキップしていい
+
+---
+
+/bump-version
