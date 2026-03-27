@@ -1,0 +1,57 @@
+{
+  "cli_version": "0.5.1",
+  "checkpoint_id": "eb18c5c93a52",
+  "session_id": "b9382fe5-90aa-4058-83b0-8081713ba22b",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-27T00:19:23.411926Z",
+  "branch": "update-skills",
+  "checkpoints_count": 4,
+  "files_touched": [
+    "plugins/catch-up/skills/tech-research/SKILL.md",
+    "plugins/claude/skills/claude-md-style/SKILL.md",
+    "plugins/claude/skills/create-rules/SKILL.md",
+    "plugins/claude/skills/init/SKILL.md",
+    "plugins/claude/skills/update/SKILL.md",
+    "plugins/dev/skills/comment/SKILL.md",
+    "plugins/dev/skills/do/SKILL.md",
+    "plugins/dev/skills/plan/SKILL.md",
+    "plugins/git/skills/commit/SKILL.md",
+    "plugins/git/skills/japanese-text-style/SKILL.md",
+    "plugins/git/skills/pr-ci/SKILL.md",
+    "plugins/git/skills/pr-create/SKILL.md",
+    "plugins/git/skills/pr-explain/SKILL.md",
+    "plugins/git/skills/pr-fix/SKILL.md",
+    "plugins/git/skills/pr-review/SKILL.md",
+    "plugins/git/skills/pr-status/SKILL.md",
+    "plugins/git/skills/pr-update/SKILL.md",
+    "plugins/git/skills/pr-watch/SKILL.md",
+    "plugins/git/skills/review/SKILL.md",
+    "plugins/git/skills/wt/SKILL.md",
+    "plugins/hookify/skills/configure/SKILL.md",
+    "plugins/hookify/skills/help/SKILL.md",
+    "plugins/hookify/skills/hookify/SKILL.md",
+    "plugins/hookify/skills/list/SKILL.md"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-opus-4-6",
+  "turn_id": "a05711a5d3ee",
+  "token_usage": {
+    "input_tokens": 523,
+    "cache_creation_tokens": 118722,
+    "cache_read_tokens": 1635816,
+    "output_tokens": 17618,
+    "api_call_count": 27
+  },
+  "session_metrics": {
+    "turn_count": 4
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-27T00:18:44.840836Z",
+    "agent_lines": 33,
+    "human_added": 0,
+    "human_modified": 13,
+    "human_removed": 0,
+    "total_committed": 46,
+    "agent_percentage": 71.73913043478261
+  }
+}

@@ -1,0 +1,14 @@
+@"claude-code-guide (agent)" や https://code.claude.com/docs/en/skills を参考にしながら既存の全ての skill の frontmatter を改善して
+japanese-text-style skill や claude-md-style skill は user-invocable: false にしてほしい
+
+---
+
+context: fork や agent を指定した方がいいものってある？
+
+---
+
+y
+
+---
+
+/commit
