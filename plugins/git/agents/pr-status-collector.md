@@ -22,8 +22,8 @@ description: |
   </example>
 
 model: haiku
-color: cyan
-tools: ['Bash']
+tools:
+  - Bash
 ---
 
 PR のステータス情報を収集する専門エージェント。
