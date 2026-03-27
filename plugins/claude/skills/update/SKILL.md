@@ -1,6 +1,7 @@
 ---
 name: update
-description: CLAUDE.md を精査・最適化。冗長コンテンツ検出、必須セクション確認、ユーザー承認後に適用。
+description: 既存の CLAUDE.md を精査・最適化する。冗長コンテンツの検出、必須セクションの確認を行い、ユーザー承認後に適用する。Use when CLAUDE.md の改善、最適化、またはメンテナンスを求められた際に使用する。
+argument-hint: '[path]'
 allowed-tools:
   - Read
   - Write
@@ -10,7 +11,6 @@ allowed-tools:
   - TaskUpdate
   - TaskList
   - AskUserQuestion
-argument-hint: [path]
 ---
 
 # CLAUDE.md 更新ワークフロー

@@ -1,6 +1,7 @@
 ---
 name: init
-description: CLAUDE.md を新規作成。プロジェクト分析、テンプレート生成、ユーザー承認後に書き込み。
+description: CLAUDE.md を新規作成する。プロジェクト構造を分析してテンプレートを生成し、ユーザー承認後に書き込む。Use when プロジェクトに CLAUDE.md がない、または新規作成を求められた際に使用する。
+argument-hint: '[path]'
 allowed-tools:
   - Read
   - Write
@@ -11,7 +12,6 @@ allowed-tools:
   - TaskUpdate
   - TaskList
   - AskUserQuestion
-argument-hint: [path]
 ---
 
 # CLAUDE.md 作成ワークフロー

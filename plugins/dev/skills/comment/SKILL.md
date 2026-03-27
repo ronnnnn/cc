@@ -1,7 +1,6 @@
 ---
 name: comment
-description: |
-  このスキルは、「コメントを追加して」「コメントを書いて」「変更にコメントを付けて」「why コメントを追加」「実装意図をコメントして」「diff にコメント追加」「add why comments」「explain intent in comments」などのリクエストで使用する。ローカルの staged/unstaged 変更差分を分析し、「なぜそうしているのか (Why)」を説明するコメントのみを追加する。冗長なコメントは残さない。
+description: ローカルの変更差分を分析し、実装意図 (Why) を説明するコメントをコードに追加する。Use when 変更にコメントを付けたい、Why コメントを追加したい、実装意図をコメントしたい際に使用する。
 allowed-tools:
   - Bash
   - Read

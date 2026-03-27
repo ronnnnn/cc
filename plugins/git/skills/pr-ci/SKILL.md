@@ -1,7 +1,6 @@
 ---
 name: pr-ci
-description: |
-  このスキルは、「CI がこけている」「CI 失敗を修正」「CI を直して」「fix ci」「CI が赤い」「CI の原因を調べて」「CI を通して」「PR のチェックが失敗」などのリクエスト、または PR の CI/CD パイプライン失敗を調査・修正する際に使用する。ci-analyzer subagent を使って失敗原因を分析し、コード修正とコミットまで行う。
+description: PR の CI/CD パイプライン失敗を調査・修正する。ci-analyzer subagent で失敗原因を分析し、コード修正とコミットまで行う。Use when CI が失敗している、CI を修正したい、PR のチェックが通らない際に使用する。
 argument-hint: '[<pr-number>]'
 allowed-tools:
   - Bash

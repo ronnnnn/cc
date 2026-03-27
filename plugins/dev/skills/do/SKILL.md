@@ -1,6 +1,6 @@
 ---
 name: do
-description: このスキルは、「並列でやって」「同時に作業して」「parallel tasks」「run in parallel」「do these tasks」「execute simultaneously」「タスクを並列実行」「swarm で実行」「これとこれとこれをやって」「以下のタスクを同時に」「do all of these at once」などのリクエスト、または複数の独立したタスクを並列で実行する際に使用する。タスク内容に応じて単一セッション内の並列 subagent または Agent Teams による別セッション並列を自動選択する。
+description: 複数の独立したタスクを並列で実行する。タスク内容に応じて subagent または Agent Teams を自動選択する。Use when 複数タスクの並列実行、同時作業、swarm 実行を求められた際に使用する。
 argument-hint: '<タスクの列挙>'
 allowed-tools:
   - Bash

@@ -1,6 +1,6 @@
 ---
 name: pr-update
-description: PR のタイトルと description を最新の状態に更新する。コミット履歴を確認し、古くなっていれば更新。テンプレートまたは既存フォーマットに準拠。
+description: PR のタイトルと description をコミット履歴に基づいて最新の状態に更新する。テンプレートまたは既存フォーマットに準拠する。Use when PR の説明が古くなった、PR description を更新したい際に使用する。
 argument-hint: '[<pr-number>]'
 allowed-tools:
   - Bash
