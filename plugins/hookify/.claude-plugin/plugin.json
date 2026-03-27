@@ -1,6 +1,6 @@
 {
   "name": "hookify",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "ユーザー定義ルールで Claude Code のアクションを警告・ブロック (グローバル/プロジェクト 2 階層、regex tool_matcher 対応)",
   "author": {
     "name": "ronnnnn",
