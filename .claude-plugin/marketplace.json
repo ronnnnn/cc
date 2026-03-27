@@ -6,13 +6,13 @@
   },
   "metadata": {
     "description": "A collection of Claude Code plugins.",
-    "version": "3.9.4"
+    "version": "3.9.5"
   },
   "plugins": [
     {
       "name": "git",
       "description": "Git/GitHub ワークフロー向けスキル (コミット、PR 作成、PR レビュー、レビュー修正、PR 更新、PR 解説、PR ステータス、ローカルレビュー、CI 分析・修正、PR 監視・自動修正、worktree 構成変換)",
-      "version": "2.14.4",
+      "version": "2.14.5",
       "author": {
         "name": "ronnnnn",
         "email": "xxxx.xyzs.xxxx@gmail.com"
@@ -39,7 +39,7 @@
     {
       "name": "claude",
       "description": "CLAUDE.md の作成・更新・品質管理、.claude/rules の作成を支援",
-      "version": "3.1.0",
+      "version": "3.1.1",
       "author": {
         "name": "ronnnnn",
         "email": "xxxx.xyzs.xxxx@gmail.com"
@@ -60,7 +60,7 @@
     {
       "name": "catch-up",
       "description": "技術・ツール・フレームワークの最新バージョン取得と技術調査を支援するエージェントとスキル",
-      "version": "2.2.2",
+      "version": "2.2.3",
       "author": {
         "name": "ronnnnn",
         "email": "xxxx.xyzs.xxxx@gmail.com"
@@ -90,7 +90,7 @@
     {
       "name": "dev",
       "description": "開発支援スキル (コードコメント追加、行動計画作成、並列タスク実行)",
-      "version": "1.2.0",
+      "version": "1.2.1",
       "author": {
         "name": "ronnnnn",
         "email": "xxxx.xyzs.xxxx@gmail.com"
@@ -112,7 +112,7 @@
     {
       "name": "hookify",
       "description": "ユーザー定義ルールで Claude Code のアクションを警告・ブロック (グローバル/プロジェクト 2 階層、regex tool_matcher 対応)",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": {
         "name": "ronnnnn",
         "email": "xxxx.xyzs.xxxx@gmail.com"

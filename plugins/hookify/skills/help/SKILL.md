@@ -1,9 +1,9 @@
 ---
+name: help
+description: hookify の使い方、ルール配置場所、設定方法のヘルプを表示する。Use when hookify のヘルプ、使い方、概要説明を求められた際に使用する。
 allowed-tools:
   - Read
 ---
-
-このスキルは、「hookify ヘルプ」「hookify の使い方」「hookify help」「フックの設定方法」「hookify とは」などのリクエストで使用する。
 
 # Hookify ヘルプ
 

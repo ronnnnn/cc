@@ -31,8 +31,11 @@ description: |
   </example>
 
 model: sonnet
-color: green
-tools: ['Bash', 'Read', 'Grep', 'Glob']
+tools:
+  - Bash
+  - Read
+  - Grep
+  - Glob
 memory: user
 ---
 

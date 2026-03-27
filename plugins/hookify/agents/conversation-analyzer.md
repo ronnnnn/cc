@@ -1,28 +1,26 @@
 ---
+name: conversation-analyzer
+description: |
+  会話の履歴を分析し、hookify ルールで防止すべき Claude の問題行動パターンを特定する subagent。hookify スキルから引数なし実行時に呼び出される。
+
+  <example>
+  Context: ユーザーが /hookify コマンドを引数なしで実行した
+  user: "/hookify"
+  assistant: "会話を分析して、防止すべき行動パターンを特定します。"
+  <commentary>/hookify を引数なしで実行すると、会話分析モードがトリガーされる。</commentary>
+  </example>
+
+  <example>
+  Context: ユーザーが過去のミスからフックを作成したい
+  user: "この会話を振り返って、あなたのミスに対するフックを作って"
+  assistant: "conversation-analyzer エージェントで問題を特定し、ルールを提案します。"
+  <commentary>ユーザーが会話内のミスを分析してフック化することを明示的に依頼している。</commentary>
+  </example>
 model: haiku
 tools:
   - Read
   - Grep
-color: '#FF6B6B'
 ---
-
-会話の履歴を分析し、フックで防止すべき行動パターンを特定するエージェント。
-
-<example>
-Context: ユーザーが /hookify コマンドを引数なしで実行した
-user: "/hookify"
-assistant: "会話を分析して、防止すべき行動パターンを特定します。"
-<commentary>/hookify を引数なしで実行すると、会話分析モードがトリガーされる。</commentary>
-</example>
-
-<example>
-Context: ユーザーが過去のミスからフックを作成したい
-user: "この会話を振り返って、あなたのミスに対するフックを作って"
-assistant: "conversation-analyzer エージェントで問題を特定し、ルールを提案します。"
-<commentary>ユーザーが会話内のミスを分析してフック化することを明示的に依頼している。</commentary>
-</example>
-
-# 会話分析エージェント
 
 会話の履歴を分析し、hookify ルールで防止すべき Claude の問題行動を特定する。
 

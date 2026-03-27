@@ -31,8 +31,11 @@ description: |
   </example>
 
 model: opus
-color: yellow
-tools: ['Bash', 'Read', 'Grep', 'Glob']
+tools:
+  - Bash
+  - Read
+  - Grep
+  - Glob
 memory: user
 ---
 

@@ -31,8 +31,9 @@ description: |
   </example>
 
 model: inherit
-color: cyan
-tools: ['Read', 'Glob']
+tools:
+  - Read
+  - Glob
 memory: user
 ---
 

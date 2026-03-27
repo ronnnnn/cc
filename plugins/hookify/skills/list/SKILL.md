@@ -1,10 +1,10 @@
 ---
+name: list
+description: グローバルとプロジェクトの両ディレクトリから設定済みの hookify ルールを一覧表示する。Use when hookify ルールの一覧、設定済みルールの確認を求められた際に使用する。
 allowed-tools:
   - Glob
   - Read
 ---
-
-このスキルは、「hookify ルール一覧」「ルールを表示」「hookify list」「設定されたルールを見せて」「有効なルールは?」などのリクエストで使用する。
 
 # ルール一覧表示
 

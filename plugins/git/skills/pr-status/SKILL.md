@@ -1,8 +1,8 @@
 ---
 name: pr-status
-description: |
-  このスキルは、「PR のステータスを教えて」「PR の状況は?」「PR status」「PR どうなってる?」「PR マージできる?」「CI 通ってる?」「レビュー状況を確認」「PR の進捗は?」「PR の様子を見て」「check PR」「PR のステータスサマリ」「PR status check」「is the PR ready to merge」などのリクエスト、または PR の現在の状態 (CI、レビュー、マージ可否) を簡潔に確認したい際に使用する。PR の diff や実装内容の解説ではなく、ステータス情報に特化した報告を行う。
+description: PR の現在の状態 (CI、レビュー、マージ可否) を簡潔に報告する。ステータス情報に特化し、diff や実装内容の解説は行わない。Use when PR のステータス確認、CI の通過状況、レビュー状況、マージ可否を知りたい際に使用する。
 argument-hint: '[<pr-number> | <pr-url>]'
+context: fork
 allowed-tools:
   - Bash
   - Read

@@ -1,6 +1,6 @@
 ---
 name: commit
-description: 全変更をステージングし、Conventional Commits 形式でコミットする。commitlint 設定があれば準拠。コミット前にユーザー承認を取る。
+description: 全変更をステージングし、Conventional Commits 形式でコミットする。commitlint 設定があれば準拠し、コミット前にユーザー承認を取る。Use when コミット、変更の保存、git commit を求められた際に使用する。
 allowed-tools:
   - Bash
   - Read

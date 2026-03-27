@@ -1,4 +1,6 @@
 ---
+name: configure
+description: hookify ルールの有効/無効をインタラクティブに切り替える。Use when hookify ルールの設定変更、ルールの有効化・無効化を求められた際に使用する。
 allowed-tools:
   - Glob
   - Read
@@ -6,8 +8,6 @@ allowed-tools:
   - Write
   - AskUserQuestion
 ---
-
-このスキルは、「hookify ルールを設定」「ルールの有効/無効を切り替え」「hookify configure」「ルールを無効化」「ルールを有効にして」などのリクエストで使用する。
 
 # ルール設定
 

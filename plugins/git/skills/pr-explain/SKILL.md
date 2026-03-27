@@ -1,7 +1,8 @@
 ---
 name: pr-explain
-description: このスキルは、「PR を解説して」「PR を説明して」「PR の内容を教えて」「explain PR」「PR の変更内容を解説」「PR の背景を教えて」「PR をわかりやすく説明して」「PR の実装を解説して」「PR の概要を教えて」「PR をまとめて」「summarize PR」「変更を解説して」「この変更を説明して」「直近のコミットを解説して」などのリクエスト、または PR の URL や番号を渡されて解説を求められた際に使用する。引数なしの場合はローカル変更 → PR → 直近コミットの優先度で解説対象を決定する。
-argument-hint: '<pr-url> | <pr-number>'
+description: PR やローカル変更の内容を包括的に収集・分析し、対応概要・背景・実装の順で丁寧に解説する。引数なしの場合はローカル変更 → PR → 直近コミットの優先度で解説対象を決定する。Use when PR の解説、変更内容の説明、コミットの概要把握を求められた際に使用する。
+argument-hint: '[<pr-url> | <pr-number>]'
+context: fork
 allowed-tools:
   - Bash
   - Read

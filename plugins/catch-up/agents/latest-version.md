@@ -31,8 +31,10 @@ description: |
   </example>
 
 model: sonnet
-color: cyan
-tools: ['Bash', 'WebFetch', 'WebSearch']
+tools:
+  - Bash
+  - WebFetch
+  - WebSearch
 memory: user
 ---
 

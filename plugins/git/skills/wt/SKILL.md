@@ -1,7 +1,7 @@
 ---
 name: wt
-description: このスキルは、「worktree を構築」「worktree 化して」「wt で変換」「ディレクトリを worktree 構成にして」「bare リポジトリ + worktree にして」「worktree セットアップ」「worktree 構成に変換」などのリクエスト、または既存の Git リポジトリを bare + worktree の並列構成に変換する際に使用する。引数に指定されたディレクトリを bare.git + ブランチディレクトリの並列構成に変換する。
-argument-hint: <directory>
+description: 既存の Git リポジトリを bare + worktree の並列構成に変換する。引数のディレクトリを bare.git + ブランチディレクトリ構成にする。Use when worktree 構成への変換、bare リポジトリ化を求められた際に使用する。
+argument-hint: '<directory>'
 disable-model-invocation: true
 allowed-tools:
   - Bash
