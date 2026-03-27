@@ -1,0 +1,17 @@
+@"claude-code-guide (agent)" と https://code.claude.com/docs/en/sub-agents をもとに subagent のフロントマター改善を行なって
+
+---
+
+/commit
+
+---
+
+/bump-version
+
+---
+
+/pr-create
+
+---
+
+/pr-watch
