@@ -1,6 +1,7 @@
 ---
 name: pr-create
 description: 現在のブランチから Draft Pull Request を作成する。テンプレート準拠、ラベル自動選択を行う。Use when PR の作成、プルリクエストの作成を求められた際に使用する。
+disable-model-invocation: true
 argument-hint: '[--base <branch>]'
 allowed-tools:
   - Bash

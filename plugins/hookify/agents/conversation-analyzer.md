@@ -17,9 +17,11 @@ description: |
   <commentary>ユーザーが会話内のミスを分析してフック化することを明示的に依頼している。</commentary>
   </example>
 model: haiku
+maxTurns: 10
 tools:
   - Read
   - Grep
+memory: user
 ---
 
 会話の履歴を分析し、hookify ルールで防止すべき Claude の問題行動を特定する。

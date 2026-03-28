@@ -1,6 +1,19 @@
 ---
 name: create-rules
 description: プロジェクト固有のベストプラクティスや規約を分析し、.claude/rules/ ファイルとして抽出・保存する。Use when ルール作成、PR やコードからの規約抽出、.claude/rules への保存を求められた際に使用する。
+disable-model-invocation: true
+argument-hint: '[<PR URL> | <ブランチ名>]'
+allowed-tools:
+  - Read
+  - Write
+  - Edit
+  - Glob
+  - Grep
+  - Bash
+  - AskUserQuestion
+  - TaskCreate
+  - TaskUpdate
+  - TaskList
 ---
 
 # Create Rules

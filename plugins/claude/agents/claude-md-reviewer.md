@@ -31,6 +31,7 @@ description: |
   </example>
 
 model: inherit
+maxTurns: 10
 tools:
   - Read
   - Glob

@@ -2,6 +2,18 @@
 name: plan
 description: 資料やユーザー要件を分析し、フェーズごとに分割されたアトミックな粒度の行動計画をマークダウンファイル群として出力する。Use when 行動計画の作成、タスク分解、実装計画の策定、資料からの計画立案を求められた際に使用する。
 argument-hint: '<資料のパスや URL>'
+allowed-tools:
+  - Read
+  - Write
+  - Glob
+  - Grep
+  - Bash
+  - WebFetch
+  - WebSearch
+  - AskUserQuestion
+  - TaskCreate
+  - TaskUpdate
+  - TaskList
 ---
 
 # Plan

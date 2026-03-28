@@ -1,6 +1,7 @@
 ---
 name: review
 description: ローカルの変更 (staged/unstaged) をレビューし、指摘箇所を自動修正する。指摘がなくなるまで最大 3 回繰り返す。Use when コミット前のコードレビュー、ローカル変更のセルフレビューを求められた際に使用する。
+disable-model-invocation: true
 allowed-tools:
   - Bash
   - Read

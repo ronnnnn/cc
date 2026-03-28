@@ -1,6 +1,7 @@
 ---
 name: pr-watch
 description: PR のレビューコメントと CI 失敗を 2 分間隔で定期監視し、ユーザー確認なしで自動で修正・コミット・プッシュ・返信を行う。pr-fix と pr-ci を統合し自律実行する。最大 30 分 (活動検出時は最大 120 分)。Use when PR の監視、自動修正、ウォッチを求められた際に使用する。
+disable-model-invocation: true
 argument-hint: '[<pr-number>]'
 allowed-tools:
   - Bash

@@ -1,6 +1,7 @@
 ---
 name: pr-ci
 description: PR の CI/CD パイプライン失敗を調査・修正する。ci-analyzer subagent で失敗原因を分析し、コード修正とコミットまで行う。Use when CI が失敗している、CI を修正したい、PR のチェックが通らない際に使用する。
+disable-model-invocation: true
 argument-hint: '[<pr-number>]'
 allowed-tools:
   - Bash
