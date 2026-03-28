@@ -31,7 +31,6 @@ description: |
   </example>
 
 model: sonnet
-maxTurns: 10
 tools:
   - Bash
   - Read

@@ -1,7 +1,6 @@
 ---
 name: pr-review
 description: PR をレビューし、指摘箇所に GitHub コメントを投稿する。複数 AI (Claude/Codex/Gemini) で並列レビューし結果を統合する。Use when PR のレビュー、コードレビュー、PR にフィードバックを投稿したい際に使用する。
-disable-model-invocation: true
 argument-hint: '[<pr-url> | <pr-number>]'
 allowed-tools:
   - Bash

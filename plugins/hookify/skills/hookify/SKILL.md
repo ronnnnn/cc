@@ -1,7 +1,6 @@
 ---
 name: hookify
 description: hookify ルールを新規作成する。会話内の問題行動を分析してルール化、または明示的指示に基づいてルールを作成する。Use when hookify ルールの作成、フックルールの追加、行動防止ルールの設定を求められた際に使用する。
-disable-model-invocation: true
 argument-hint: '[<ルールの説明>]'
 allowed-tools:
   - Read

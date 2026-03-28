@@ -1,7 +1,6 @@
 ---
 name: configure
 description: hookify ルールの有効/無効をインタラクティブに切り替える。Use when hookify ルールの設定変更、ルールの有効化・無効化を求められた際に使用する。
-disable-model-invocation: true
 allowed-tools:
   - Glob
   - Read

@@ -1,7 +1,6 @@
 ---
 name: pr-fix
 description: PR のレビューコメントに基づいて修正を行う。未解決コメントのみを対象とし (自分のコメントは除外)、妥当性を判断して修正する。コミット・返信前にユーザー承認を取る。Use when PR のレビュー指摘を修正したい、レビューコメントに対応したい際に使用する。
-disable-model-invocation: true
 argument-hint: '[<pr-number>]'
 allowed-tools:
   - Bash
