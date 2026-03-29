@@ -31,9 +31,11 @@ description: |
   </example>
 
 model: inherit
+maxTurns: 15
 tools:
   - Read
   - Glob
+  - Grep
 memory: user
 ---
 

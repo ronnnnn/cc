@@ -31,6 +31,7 @@ description: |
   </example>
 
 model: sonnet
+maxTurns: 15
 tools:
   - Bash
   - WebFetch

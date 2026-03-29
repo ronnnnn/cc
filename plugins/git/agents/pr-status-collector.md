@@ -22,6 +22,7 @@ description: |
   </example>
 
 model: haiku
+maxTurns: 10
 tools:
   - Bash
 ---

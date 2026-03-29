@@ -2,6 +2,17 @@
 name: tech-research
 description: 技術・ツール・フレームワーク・ライブラリの使い方や最新情報を、優先順位に基づく複数ソースから構造的に調査する。Use when 技術調査、ドキュメント確認、API 仕様の調査、ライブラリの使い方を知りたい際に使用する。
 context: fork
+allowed-tools:
+  - Bash
+  - Read
+  - Glob
+  - Grep
+  - WebFetch
+  - WebSearch
+  - Task
+  - TaskCreate
+  - TaskUpdate
+  - TaskList
 ---
 
 # Tech Research Skill

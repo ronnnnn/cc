@@ -6,7 +6,8 @@
   },
   "metadata": {
     "description": "A collection of Claude Code plugins.",
-    "version": "3.10.0"
+    "version": "3.10.0",
+    "pluginRoot": "./plugins"
   },
   "plugins": [
     {
