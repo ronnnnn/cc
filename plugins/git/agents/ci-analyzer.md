@@ -30,7 +30,8 @@ description: |
   </commentary>
   </example>
 
-model: opus
+model: sonnet
+maxTurns: 15
 tools:
   - Bash
   - Read

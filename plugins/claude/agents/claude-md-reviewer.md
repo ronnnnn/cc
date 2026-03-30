@@ -31,6 +31,8 @@ description: |
   </example>
 
 model: inherit
+maxTurns: 8
+effort: low
 tools:
   - Read
   - Glob

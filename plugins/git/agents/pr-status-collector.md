@@ -22,6 +22,8 @@ description: |
   </example>
 
 model: haiku
+maxTurns: 8
+effort: low
 tools:
   - Bash
 ---
