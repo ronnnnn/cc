@@ -2,6 +2,7 @@
 name: pr-explain
 description: PR やローカル変更の内容を包括的に収集・分析し、対応概要・背景・実装の順で丁寧に解説する。引数なしの場合はローカル変更 → PR → 直近コミットの優先度で解説対象を決定する。Use when PR の解説、変更内容の説明、コミットの概要把握を求められた際に使用する。
 argument-hint: '[<pr-url> | <pr-number>]'
+effort: high
 context: fork
 allowed-tools:
   - Bash

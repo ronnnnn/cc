@@ -2,6 +2,7 @@
 name: pr-status
 description: PR の現在の状態 (CI、レビュー、マージ可否) を簡潔に報告する。ステータス情報に特化し、diff や実装内容の解説は行わない。Use when PR のステータス確認、CI の通過状況、レビュー状況、マージ可否を知りたい際に使用する。
 argument-hint: '[<pr-number> | <pr-url>]'
+effort: low
 context: fork
 allowed-tools:
   - Bash

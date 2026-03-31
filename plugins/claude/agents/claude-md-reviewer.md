@@ -31,6 +31,10 @@ description: |
   </example>
 
 model: inherit
+maxTurns: 5
+permissionMode: plan
+skills:
+  - claude-md-style
 tools:
   - Read
   - Glob

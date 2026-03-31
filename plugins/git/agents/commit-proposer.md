@@ -31,6 +31,9 @@ description: |
   </example>
 
 model: sonnet
+maxTurns: 10
+skills:
+  - japanese-text-style
 tools:
   - Bash
   - Read

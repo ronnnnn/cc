@@ -22,6 +22,8 @@ description: |
   </example>
 
 model: haiku
+maxTurns: 5
+permissionMode: plan
 tools:
   - Bash
 ---
