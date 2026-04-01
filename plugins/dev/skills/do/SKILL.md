@@ -2,6 +2,7 @@
 name: do
 description: 複数の独立したタスクを並列で実行する。タスク内容に応じて subagent または Agent Teams を自動選択する。Use when 複数タスクの並列実行、同時作業、swarm 実行を求められた際に使用する。
 argument-hint: '<タスクの列挙>'
+effort: high
 allowed-tools:
   - Bash
   - Read

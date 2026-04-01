@@ -31,6 +31,8 @@ description: |
   </example>
 
 model: opus
+maxTurns: 15
+effort: high
 tools:
   - Bash
   - Read

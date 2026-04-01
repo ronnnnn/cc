@@ -31,6 +31,9 @@ description: |
   </example>
 
 model: inherit
+maxTurns: 8
+effort: medium
+permissionMode: plan
 tools:
   - Read
   - Glob

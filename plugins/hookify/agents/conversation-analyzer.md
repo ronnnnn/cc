@@ -17,6 +17,7 @@ description: |
   <commentary>ユーザーが会話内のミスを分析してフック化することを明示的に依頼している。</commentary>
   </example>
 model: haiku
+maxTurns: 8
 tools:
   - Read
   - Grep
