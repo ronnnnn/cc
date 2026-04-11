@@ -1,0 +1,41 @@
+pr-watch skill をポーリング処理ではなく monitor tool を使った形にしたい
+対象の PR のイベントをポーリングではなく webhook とかでうけとって monitor ツールで監視し、CI の修正やレビューへの対応できるようにできそう？
+https://code.claude.com/docs/en/tools-reference#monitor-tool
+
+---
+
+ポーリングと webhook 以外で PR のイベントを受け取る方法ってある？
+codex にも相談してみて
+
+---
+
+これで進めて
+
+---
+
+ポーリング感覚は 60s でいい
+timeout が発生するのはどんな時？
+
+---
+
+ABS_LIMIT=7200 は 60m でいいよ
+
+---
+
+コンフリクトが発生した時は監視を中断せずコンフリクトを修正して監視を続けて
+
+---
+
+gh pr checks --watch は結局使わない？
+
+---
+
+入れて
+
+---
+
+やっぱなしでおけ
+
+---
+
+/git:pr-create
