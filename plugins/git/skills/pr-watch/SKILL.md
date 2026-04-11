@@ -204,9 +204,10 @@ while true; do
 
     # CI ステータスチェック
     if [ -n "$SHA" ]; then
-      RJ=$(gh run list --commit "$SHA" -R "$OWNER/$REPO" --json databaseId,status,conclusion,name -L 50 2>/dev/null) || API_FAIL=true
+      CI_API_OK=true
+      RJ=$(gh run list --commit "$SHA" -R "$OWNER/$REPO" --json databaseId,status,conclusion,name -L 50 2>/dev/null) || CI_API_OK=false
 
-      if [ "$API_FAIL" = false ]; then
+      if [ "$CI_API_OK" = true ]; then
         # in_progress / queued があれば CI 確定待ち → スキップ
         IP=$(echo "$RJ" | jq '[.[] | select(.status == "in_progress" or .status == "queued")] | length')
 
@@ -229,6 +230,8 @@ while true; do
           fi
           PREV_FAILS="$CF"
         fi
+      else
+        API_FAIL=true
       fi
     fi
   fi
