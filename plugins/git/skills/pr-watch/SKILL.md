@@ -239,7 +239,7 @@ while true; do
   # サイクル単位の API エラー判定
   if [ "$API_FAIL" = true ]; then
     API_ERRORS=$((API_ERRORS + 1))
-    [ $API_ERRORS -ge 3 ] && echo "TIMEOUT_ABS|${ELAPSED}min" && exit 1
+    [ $API_ERRORS -ge 3 ] && echo "TIMEOUT_ABS|${ELAPSED}min" && exit 0
   else
     API_ERRORS=0
   fi
@@ -571,11 +571,12 @@ ref: https://go.dev/ref/spec#Index_expressions
 
 **処理フロー:**
 
-1. ベースブランチの最新を取得してリベースする:
+1. ベースブランチ名を取得し、最新を取得してリベースする:
 
    ```bash
-   git fetch origin <base-branch>
-   git rebase origin/<base-branch>
+   BASE=$(gh pr view "$PR_NUMBER" -R "$OWNER/$REPO" --json baseRefName --jq '.baseRefName')
+   git fetch origin "$BASE"
+   git rebase "origin/$BASE"
    ```
 
 2. コンフリクトが発生した場合、各ファイルのコンフリクトを解消する:
