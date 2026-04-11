@@ -134,119 +134,111 @@ while true; do
   [ $((NOW - START)) -ge $ABS_LIMIT ] && echo "TIMEOUT_ABS|${ELAPSED}min" && exit 0
   [ "$HAD_ACT" = false ] && [ $((NOW - START)) -ge $IDLE_LIMIT ] && echo "TIMEOUT_IDLE|${ELAPSED}min" && exit 0
 
+  API_FAIL=false
+
   # PR 状態チェック
-  PRI=$(gh pr view "$PR_NUMBER" -R "$OWNER/$REPO" --json state,mergeable,headRefOid 2>/dev/null)
-  if [ $? -ne 0 ]; then
-    API_ERRORS=$((API_ERRORS + 1))
-    [ $API_ERRORS -ge 3 ] && echo "TIMEOUT_ABS|${ELAPSED}min" && exit 1
-    sleep 60; continue
-  fi
-  API_ERRORS=0
+  PRI=$(gh pr view "$PR_NUMBER" -R "$OWNER/$REPO" --json state,mergeable,headRefOid 2>/dev/null) || API_FAIL=true
 
-  ST=$(echo "$PRI" | jq -r '.state')
-  MG=$(echo "$PRI" | jq -r '.mergeable')
-  SHA=$(echo "$PRI" | jq -r '.headRefOid')
+  if [ "$API_FAIL" = false ]; then
+    ST=$(echo "$PRI" | jq -r '.state')
+    MG=$(echo "$PRI" | jq -r '.mergeable')
+    SHA=$(echo "$PRI" | jq -r '.headRefOid')
 
-  [ "$ST" = "MERGED" ] && echo "PR_MERGED" && exit 0
-  [ "$ST" = "CLOSED" ] && echo "PR_CLOSED" && exit 0
-  if [ "$MG" = "CONFLICTING" ]; then
-    [ "$PREV_CONFLICT" = false ] && echo "PR_CONFLICT"
-    PREV_CONFLICT=true
-  else
-    PREV_CONFLICT=false
-  fi
+    [ "$ST" = "MERGED" ] && echo "PR_MERGED" && exit 0
+    [ "$ST" = "CLOSED" ] && echo "PR_CLOSED" && exit 0
+    if [ "$MG" = "CONFLICTING" ]; then
+      [ "$PREV_CONFLICT" = false ] && echo "PR_CONFLICT" && HAD_ACT=true
+      PREV_CONFLICT=true
+    else
+      PREV_CONFLICT=false
+    fi
 
-  # 新コミット検出時: CI 失敗トラッキングをリセット
-  if [ "$SHA" != "$PREV_SHA" ]; then
-    PREV_SHA="$SHA"
-    PREV_FAILS=""
-  fi
+    # 新コミット検出時: CI 失敗トラッキングをリセット
+    if [ "$SHA" != "$PREV_SHA" ]; then
+      PREV_SHA="$SHA"
+      PREV_FAILS=""
+    fi
 
-  # 未解決レビュースレッド取得
-  TJ=$(gh api graphql -f query='
-    query {
-      repository(owner: "'"$OWNER"'", name: "'"$REPO"'") {
-        pullRequest(number: '"$PR_NUMBER"') {
-          reviewThreads(first: 100) {
-            nodes {
-              id
-              isResolved
-              comments(first: 1) {
-                nodes { author { login } }
+    # 未解決レビュースレッド取得
+    TJ=$(gh api graphql -f query='
+      query {
+        repository(owner: "'"$OWNER"'", name: "'"$REPO"'") {
+          pullRequest(number: '"$PR_NUMBER"') {
+            reviewThreads(first: 100) {
+              nodes {
+                id
+                isResolved
+                comments(first: 1) {
+                  nodes { author { login } }
+                }
               }
             }
           }
         }
-      }
-    }' 2>/dev/null) || {
-    API_ERRORS=$((API_ERRORS + 1))
-    if [ "$API_ERRORS" -ge 3 ]; then
-      echo "TIMEOUT_ABS|${ELAPSED}min"
-      exit 1
-    fi
-    sleep 60
-    continue
-  }
-  API_ERRORS=0
+      }' 2>/dev/null) || API_FAIL=true
 
-  # フィルタ: 未解決 かつ 自分以外のコメント
-  CT=$(echo "$TJ" | jq -r --arg m "$MY_LOGIN" \
-    '[.data.repository.pullRequest.reviewThreads.nodes[]
-      | select(.isResolved == false)
-      | select(.comments.nodes[0].author.login != $m)
-      | .id] | sort | join(",")')
+    if [ "$API_FAIL" = false ]; then
+      # フィルタ: 未解決 かつ 自分以外のコメント
+      CT=$(echo "$TJ" | jq -r --arg m "$MY_LOGIN" \
+        '[.data.repository.pullRequest.reviewThreads.nodes[]
+          | select(.isResolved == false)
+          | select(.comments.nodes[0].author.login != $m)
+          | .id] | sort | join(",")')
 
-  # 新しいスレッドのみ抽出 (PREV_THREADS に含まれないもの)
-  if [ -n "$CT" ]; then
-    NEW_T=""
-    IFS=',' read -ra CUR_ARR <<< "$CT"
-    IFS=',' read -ra PRV_ARR <<< "$PREV_THREADS"
-    for tid in "${CUR_ARR[@]}"; do
-      IS_KNOWN=false
-      for ptid in "${PRV_ARR[@]}"; do
-        [ "$tid" = "$ptid" ] && IS_KNOWN=true && break
-      done
-      [ "$IS_KNOWN" = false ] && NEW_T="${NEW_T:+$NEW_T,}$tid"
-    done
-    [ -n "$NEW_T" ] && echo "NEW_REVIEWS|$NEW_T" && HAD_ACT=true
-  fi
-  PREV_THREADS="$CT"
-
-  # CI ステータスチェック
-  if [ -n "$SHA" ]; then
-    RJ=$(gh run list --commit "$SHA" -R "$OWNER/$REPO" --json databaseId,status,conclusion,name -L 50 2>/dev/null) || {
-      API_ERRORS=$((API_ERRORS + 1))
-      if [ "$API_ERRORS" -ge 3 ]; then
-        echo "TIMEOUT_ABS|${ELAPSED}min"
-        exit 1
-      fi
-      sleep 60
-      continue
-    }
-    API_ERRORS=0
-
-    # in_progress / queued があれば CI 確定待ち → スキップ
-    IP=$(echo "$RJ" | jq '[.[] | select(.status == "in_progress" or .status == "queued")] | length')
-
-    if [ "$IP" -eq 0 ] && [ "$(echo "$RJ" | jq 'length')" -gt 0 ]; then
-      CF=$(echo "$RJ" | jq -r '[.[] | select(.conclusion == "failure") | "\(.databaseId):\(.name)"] | sort | join(",")')
-
-      # 新しい失敗のみ検出 (PREV_FAILS に含まれない run のみ抽出)
-      if [ -n "$CF" ]; then
-        NEW_F=""
-        IFS=',' read -ra CUR_FAIL_ARR <<< "$CF"
-        IFS=',' read -ra PRV_FAIL_ARR <<< "$PREV_FAILS"
-        for fid in "${CUR_FAIL_ARR[@]}"; do
+      # 新しいスレッドのみ抽出 (PREV_THREADS に含まれないもの)
+      if [ -n "$CT" ]; then
+        NEW_T=""
+        IFS=',' read -ra CUR_ARR <<< "$CT"
+        IFS=',' read -ra PRV_ARR <<< "$PREV_THREADS"
+        for tid in "${CUR_ARR[@]}"; do
           IS_KNOWN=false
-          for pfid in "${PRV_FAIL_ARR[@]}"; do
-            [ "$fid" = "$pfid" ] && IS_KNOWN=true && break
+          for ptid in "${PRV_ARR[@]}"; do
+            [ "$tid" = "$ptid" ] && IS_KNOWN=true && break
           done
-          [ "$IS_KNOWN" = false ] && NEW_F="${NEW_F:+$NEW_F,}$fid"
+          [ "$IS_KNOWN" = false ] && NEW_T="${NEW_T:+$NEW_T,}$tid"
         done
-        [ -n "$NEW_F" ] && echo "CI_FAIL|$NEW_F" && HAD_ACT=true
+        [ -n "$NEW_T" ] && echo "NEW_REVIEWS|$NEW_T" && HAD_ACT=true
       fi
-      PREV_FAILS="$CF"
+      PREV_THREADS="$CT"
     fi
+
+    # CI ステータスチェック
+    if [ -n "$SHA" ]; then
+      RJ=$(gh run list --commit "$SHA" -R "$OWNER/$REPO" --json databaseId,status,conclusion,name -L 50 2>/dev/null) || API_FAIL=true
+
+      if [ "$API_FAIL" = false ]; then
+        # in_progress / queued があれば CI 確定待ち → スキップ
+        IP=$(echo "$RJ" | jq '[.[] | select(.status == "in_progress" or .status == "queued")] | length')
+
+        if [ "$IP" -eq 0 ] && [ "$(echo "$RJ" | jq 'length')" -gt 0 ]; then
+          CF=$(echo "$RJ" | jq -r '[.[] | select(.conclusion == "failure") | "\(.databaseId):\(.name)"] | sort | join(",")')
+
+          # 新しい失敗のみ検出 (PREV_FAILS に含まれない run のみ抽出)
+          if [ -n "$CF" ]; then
+            NEW_F=""
+            IFS=',' read -ra CUR_FAIL_ARR <<< "$CF"
+            IFS=',' read -ra PRV_FAIL_ARR <<< "$PREV_FAILS"
+            for fid in "${CUR_FAIL_ARR[@]}"; do
+              IS_KNOWN=false
+              for pfid in "${PRV_FAIL_ARR[@]}"; do
+                [ "$fid" = "$pfid" ] && IS_KNOWN=true && break
+              done
+              [ "$IS_KNOWN" = false ] && NEW_F="${NEW_F:+$NEW_F,}$fid"
+            done
+            [ -n "$NEW_F" ] && echo "CI_FAIL|$NEW_F" && HAD_ACT=true
+          fi
+          PREV_FAILS="$CF"
+        fi
+      fi
+    fi
+  fi
+
+  # サイクル単位の API エラー判定
+  if [ "$API_FAIL" = true ]; then
+    API_ERRORS=$((API_ERRORS + 1))
+    [ $API_ERRORS -ge 3 ] && echo "TIMEOUT_ABS|${ELAPSED}min" && exit 1
+  else
+    API_ERRORS=0
   fi
 
   sleep 60
@@ -474,7 +466,7 @@ ref: https://go.dev/ref/spec#Index_expressions
 
 #### 3b. CI_FAIL イベント
 
-通知に含まれる run ID のうち、`UNFIXABLE_RUNS` に含まれないものを処理対象とする。
+通知に含まれる `run_id:name` ペアから run ID (`:` の前) を抽出し、`UNFIXABLE_RUNS` に含まれないものを処理対象とする。
 
 **処理フロー:**
 
@@ -628,6 +620,9 @@ ref: https://go.dev/ref/spec#Index_expressions
 
 ### PR タイトル・description 更新
 - 更新回数: B (0 の場合はこのセクションを省略)
+
+### コンフリクト解消
+- 解消回数: C (0 の場合はこのセクションを省略)
 
 ### 終了理由
 <アイドルタイムアウト (30 分) / 絶対上限到達 (60 分) / PR マージ済み / PR クローズ済み>
