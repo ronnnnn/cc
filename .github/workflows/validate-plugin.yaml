@@ -21,20 +21,12 @@ jobs:
 
       - uses: ./.github/actions/setup-bun
 
-      - name: Install Claude Code
-        run: |
-          bun install -g @anthropic-ai/claude-code
-          echo "$HOME/.bun/bin" >> "$GITHUB_PATH"
-
       - name: Validate marketplace
-        run: |
-          export PATH="$HOME/.bun/bin:$PATH"
-          claude plugin validate .
+        run: bunx @anthropic-ai/claude-code plugin validate .
 
       - name: Validate plugins
         run: |
-          export PATH="$HOME/.bun/bin:$PATH"
           for dir in plugins/*/; do
             echo "Validating ${dir}..."
-            claude plugin validate "./${dir}"
+            bunx @anthropic-ai/claude-code plugin validate "./${dir}"
           done
