@@ -1,0 +1,5 @@
+<task-notification>
+<task-id>blfw106if</task-id>
+<summary>Monitor event: "PR #90 監視"</summary>
+<event>NEW_REVIEWS|PRRT_kwDOQFge-M56dNJZ</event>
+</task-notification>
