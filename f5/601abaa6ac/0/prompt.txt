@@ -1,0 +1,10 @@
+PR #89 の監視サイクル 2 を実行する。状態変数: PR_NUMBER=89, OWNER=ronnnnn, REPO=cc, MY_LOGIN=ronnnnn, START_TIME は監視開始時点、HAD_ACTIVITY=true, UNFIXABLE_RUNS=[24329065436, 24329065437] (課金問題), CYCLE_COUNT=2, REVIEW_COMMITS=1, CI_COMMITS=0, REPLIED_COMMENTS=19, RESOLVED_THREADS=25, PR_UPDATES=0, RE_REQUESTED_REVIEWERS=[]。
+
+手順:
+1. PR 状態チェック (state, mergeable)
+2. 未解決レビューコメント取得 (MY_LOGIN=ronnnnn のスレッドは除外)
+3. CI 失敗確認 (UNFIXABLE_RUNS のスキップ)
+4. 新たなレビューコメントがあれば修正・返信・resolve
+5. 新たな CI 失敗があれば修正
+6. 変化がなければ次のサイクルを ScheduleWakeup で 120 秒後にスケジュール
+7. 監視開始からの経過時間が 30 分超過かつ HAD_ACTIVITY=false なら終了、60 分超過なら無条件終了
