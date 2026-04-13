@@ -168,7 +168,8 @@ while true; do
               nodes {
                 id
                 isResolved
-                comments(first: 1) {
+                comments(first: 100) {
+                  totalCount
                   nodes { author { login } }
                 }
               }
@@ -178,24 +179,23 @@ while true; do
       }' 2>/dev/null) || API_FAIL=true
 
     if [ "$API_FAIL" = false ]; then
-      # フィルタ: 未解決 かつ 自分以外のコメント
+      # フィルタ: 未解決 かつ 自分以外のコメント (スレッド ID + コメント数で変化を検出)
       CT=$(echo "$TJ" | jq -r --arg m "$MY_LOGIN" \
         '[.data.repository.pullRequest.reviewThreads.nodes[]
           | select(.isResolved == false)
           | select(.comments.nodes[0].author.login != $m)
-          | .id] | sort | join(",")')
+          | .id + ":" + (.comments.totalCount | tostring)] | sort | join(",")')
 
-      # 新しいスレッドのみ抽出 (PREV_THREADS に含まれないもの)
+      # 新規または変化のあるスレッドを抽出 (PREV_THREADS に含まれないエントリ)
+      # エントリは "thread_id:comment_count" 形式。コメント追加時も変化を検出する
       if [ -n "$CT" ]; then
         NEW_T=""
         IFS=',' read -ra CUR_ARR <<< "$CT"
-        IFS=',' read -ra PRV_ARR <<< "$PREV_THREADS"
-        for tid in "${CUR_ARR[@]}"; do
-          IS_KNOWN=false
-          for ptid in "${PRV_ARR[@]}"; do
-            [ "$tid" = "$ptid" ] && IS_KNOWN=true && break
-          done
-          [ "$IS_KNOWN" = false ] && NEW_T="${NEW_T:+$NEW_T,}$tid"
+        for entry in "${CUR_ARR[@]}"; do
+          case ",$PREV_THREADS," in
+            *",$entry,"*) ;; # 既知 (ID もコメント数も同一)
+            *) tid="${entry%%:*}"; NEW_T="${NEW_T:+$NEW_T,}$tid" ;;
+          esac
         done
         [ -n "$NEW_T" ] && echo "NEW_REVIEWS|$NEW_T" && HAD_ACT=true
       fi
