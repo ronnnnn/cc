@@ -21,17 +21,14 @@ jobs:
 
       - uses: ./.github/actions/setup-bun
 
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Validate marketplace
+        run: claude plugin validate .
+
       - name: Validate plugins
         run: |
-          bun install -g @anthropic-ai/claude-code
-          GLOBAL_BIN="$(bun pm bin -g)"
-          echo "Global bin dir: $GLOBAL_BIN"
-          ls -la "$GLOBAL_BIN/" || true
-          ls -la "$HOME/.bun/bin/" || true
-          export PATH="$GLOBAL_BIN:$HOME/.bun/bin:$PATH"
-          which claude || echo "claude not found in PATH"
-          echo "PATH=$PATH"
-          claude plugin validate .
           for dir in plugins/*/; do
             echo "Validating ${dir}..."
             claude plugin validate "./${dir}"
