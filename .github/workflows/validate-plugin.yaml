@@ -22,7 +22,7 @@ jobs:
       - uses: ./.github/actions/setup-bun
 
       - name: Install Claude Code
-        run: npm install -g @anthropic-ai/claude-code
+        run: curl -fsSL https://claude.ai/install.sh | bash
 
       - name: Validate marketplace
         run: claude plugin validate .
