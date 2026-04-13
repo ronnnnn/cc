@@ -1,0 +1,19 @@
+<task-notification>
+<task-id>blfw106if</task-id>
+<summary>Monitor event: "PR #90 監視"</summary>
+<event>NEW_REVIEWS|PRRT_kwDOQFge-M56dccU,PRRT_kwDOQFge-M56dcd3</event>
+</task-notification>
+
+---
+
+~/.bun/bin/ には bun と bunx しかない。claude バイナリが作成されていない!
+
+  bun 1.3.12 のバグ: bun install -g が「installed with binaries:
+  claude」と表示するにもかかわらず、実際にはバイナリシンボリックリンクを作成していません。
+
+これについて bun の issue に上がってないか調査して
+
+---
+
+claude の install を npm 経由ではなく curl -fsSL https://claude.ai/install.sh | bash にして
+https://code.claude.com/docs/en/quickstart
