@@ -1,0 +1,25 @@
+{
+  "cli_version": "0.5.3",
+  "checkpoint_id": "d99e752d225c",
+  "strategy": "manual-commit",
+  "branch": "deps-renovate-bun-1.x",
+  "checkpoints_count": 0,
+  "files_touched": [
+    ".github/workflows/validate-plugin.yaml"
+  ],
+  "sessions": [
+    {
+      "metadata": "/d9/9e752d225c/0/metadata.json",
+      "transcript": "/d9/9e752d225c/0/full.jsonl",
+      "content_hash": "/d9/9e752d225c/0/content_hash.txt",
+      "prompt": "/d9/9e752d225c/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 10,
+    "cache_creation_tokens": 10059,
+    "cache_read_tokens": 573579,
+    "output_tokens": 3044,
+    "api_call_count": 8
+  }
+}
