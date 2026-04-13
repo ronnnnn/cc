@@ -1,0 +1,13 @@
+/bump-version しておいて
+
+---
+
+/git:commit
+
+---
+
+1
+
+---
+
+/git:pr-watch
