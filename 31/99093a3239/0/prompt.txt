@@ -1,0 +1,5 @@
+<task-notification>
+<task-id>blfw106if</task-id>
+<summary>Monitor event: "PR #90 監視"</summary>
+<event>CI_FAIL|24331843301</event>
+</task-notification>
