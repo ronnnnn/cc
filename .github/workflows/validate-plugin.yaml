@@ -22,7 +22,9 @@ jobs:
       - uses: ./.github/actions/setup-bun
 
       - name: Install Claude Code
-        run: bun install -g @anthropic-ai/claude-code
+        run: |
+          bun install -g @anthropic-ai/claude-code
+          echo "$HOME/.bun/bin" >> $GITHUB_PATH
 
       - name: Validate marketplace
         run: claude plugin validate .
