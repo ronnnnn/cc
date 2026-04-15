@@ -1,0 +1,18 @@
+README を書いて
+下記も参考に
+https://code.claude.com/docs/en/discover-plugins
+https://code.claude.com/docs/en/plugins
+https://code.claude.com/docs/en/plugin-marketplaces
+
+---
+
+各プラグインのバージョンは記載しなくていいよ
+
+---
+
+開発の前提条件に asdf または mise 記載して
+asdf i または mise i でインストール
+
+---
+
+/git:pr-create
