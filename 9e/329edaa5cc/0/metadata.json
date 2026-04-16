@@ -1,0 +1,85 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "9e329edaa5cc",
+  "session_id": "704aee94-0c2e-4b5c-856a-ee818bb01622",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-16T13:11:56.677172Z",
+  "branch": "build-entire",
+  "checkpoints_count": 2,
+  "files_touched": [
+    ".tool-versions"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-opus-4-6",
+  "turn_id": "92e7e5ab2f0b",
+  "token_usage": {
+    "input_tokens": 103,
+    "cache_creation_tokens": 47302,
+    "cache_read_tokens": 555240,
+    "output_tokens": 2963,
+    "api_call_count": 15
+  },
+  "session_metrics": {
+    "turn_count": 2
+  },
+  "summary": {
+    "intent": "Add the `entire` tool to the project's `.tool-versions` file so it is managed by mise, using the latest available version.",
+    "outcome": "Latest version 0.5.5 was fetched from mise-versions.jdx.dev, added to `.tool-versions`, installed successfully via `mise i`, and committed with the message 'build: entire 0.5.5 を .tool-versions に追加'.",
+    "learnings": {
+      "repo": [
+        "Project uses mise for tool version management via `.tool-versions` in /Users/seiyakokushi/git/ronnnnn/cc/build-entire/",
+        "The repository's default base branch is `main`",
+        "Commit messages in this repo follow Japanese-language conventional commits (e.g., 'build: ...' prefix)"
+      ],
+      "code": [
+        {
+          "path": ".tool-versions",
+          "finding": "Column widths are kept aligned across tool entries when adding new tools"
+        }
+      ],
+      "workflow": [
+        "mise version discovery uses https://mise-versions.jdx.dev/tools/\u003ctoolname\u003e to find the latest release",
+        "The commit skill presents numbered message candidates ranked by recommendation and waits for user selection before committing"
+      ]
+    },
+    "friction": [],
+    "open_items": [
+      "A PR was planned (tasks were created for draft PR creation) but the transcript ends at the commit step — the PR was not created in this session"
+    ]
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-16T13:11:45.022504Z",
+    "agent_lines": 3,
+    "agent_removed": 2,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 3,
+    "total_lines_changed": 5,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 3,
+      "agent_lines_removed": 2
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 3,
+      "agent_lines_removed": 2
+    }
+  ]
+}

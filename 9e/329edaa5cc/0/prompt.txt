@@ -1,0 +1,5 @@
+@.tool-versions で entire を管理して https://mise-versions.jdx.dev/tools/entire
+
+---
+
+/git:pr-create
