@@ -1,0 +1,9 @@
+/git:pr-watch
+
+---
+
+<task-notification>
+<task-id>bd8dxviki</task-id>
+<summary>Monitor event: "PR #93 監視 (レビュー・CI・コンフリクト)"</summary>
+<event>NEW_REVIEWS|PRRT_kwDOQFge-M57bfoI</event>
+</task-notification>
