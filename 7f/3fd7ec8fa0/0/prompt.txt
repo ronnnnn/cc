@@ -1,0 +1,12 @@
+https://github.com/ronnnnn/dotfiles/pull/37 を参考に zizmor を導入して
+lefthook と workflow でチェックするようにして
+このプロジェクトにはタスクランナーがないので lefthook では zizmor を直接使っていい
+
+必要だったらこれ使って
+https://docs.zizmor.sh/integrations/
+
+各 worklow の merge_group トリガーは消していい
+
+---
+
+/git:pr-create
