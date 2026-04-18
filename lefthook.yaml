@@ -7,7 +7,7 @@ pre-commit:
       run: bun prettier --write {staged_files}
     zizmor:
       glob: '{.github/workflows/*.{yml,yaml},action.{yml,yaml},**/action.{yml,yaml}}'
-      run: mise exec -- zizmor {staged_files}
+      run: zizmor {staged_files}
 
 commit-msg:
   commands:
