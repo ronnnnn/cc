@@ -20,4 +20,4 @@ Conventional Commits 形式 (`commitlint.config.mjs` 参照)
 ## ツールチェーン
 
 - **パッケージマネージャー**: bun (npm/yarn 不可)
-- **Git hooks**: lefthook (pre-commit: prettier, commit-msg: commitlint)
+- **Git hooks**: lefthook (pre-commit: prettier + zizmor, commit-msg: commitlint)
