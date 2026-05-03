@@ -350,11 +350,14 @@ PR #<number> (<title>) のポーリング監視を開始しました。
 gh pr view <number> --json state,mergeable,headRefOid --jq '{state, mergeable, headRefOid}'
 ```
 
+取得した値を以下の通り扱う:
+
 - `state` が `MERGED` / `CLOSED` → 監視終了 → ステップ 4 へ
 - `mergeable` が `CONFLICTING` かつ `PREV_CONFLICT == false` → `HAD_ACTIVITY = true`、`PREV_CONFLICT = true` とし、ステップ 3d (コンフリクト解消) を実行。解消成功時は次サイクルへ継続、解消失敗時のみユーザー通知して監視終了
 - `mergeable` が `CONFLICTING` かつ `PREV_CONFLICT == true` → 直前サイクルで既に処理済みのためステップ 3d をスキップ (重複処理回避)
 - `mergeable` が `CONFLICTING` 以外 → `PREV_CONFLICT = false` にリセット (次回 `CONFLICTING` を観測したら再度 3d を実行可能にする)
-- `headRefOid` (現在 SHA) が `PREV_SHA` と異なる → 新コミット検出。`PREV_CI_FAILS = ""` にリセットしてから 2B-3 へ進む。サイクル末尾で `PREV_SHA = headRefOid` を保存
+- `headRefOid` を当該サイクル中の `CURRENT_SHA` 変数として保持する (2B-3 の CI クエリで使用)
+- `CURRENT_SHA` が `PREV_SHA` と異なる (初回サイクルで `PREV_SHA` が空文字の場合も含む) → 新コミット検出として `PREV_CI_FAILS = ""` にリセットしてから 2B-3 へ進む。`PREV_SHA` の更新はサイクル末尾 (2B-4) で `PREV_SHA = CURRENT_SHA` を実行
 
 #### 2B-3. レビュー/CI チェック
 
@@ -369,7 +372,7 @@ gh pr view <number> --json state,mergeable,headRefOid --jq '{state, mergeable, h
 
 **CI 失敗チェック (Monitor 側 `PREV_FAILS` ロジックの再現):**
 
-1. `gh run list --commit "$PREV_SHA" -R "$OWNER/$REPO" --json databaseId,status,conclusion,name -L 50` で現在 SHA に紐づく CI run を取得する (Monitor スクリプトの `gh run list --commit "$SHA"` と同等)
+1. `gh run list --commit "$CURRENT_SHA" -R "$OWNER/$REPO" --json databaseId,status,conclusion,name -L 50` で当該サイクルの head commit に紐づく CI run を取得する (Monitor スクリプトの `gh run list --commit "$SHA"` と同等。常に 2B-2 で取得した `CURRENT_SHA` を渡し、`PREV_SHA` は新コミット検出のための比較専用とする)
 2. `in_progress` / `queued` の run が 1 件でもあれば確定待ちとして CI チェックをスキップ (次サイクルへ)
 3. 全 run が完了している場合、`conclusion == "failure"` の run ID をソート済みカンマ区切りで抽出し、現在スナップショット `CURRENT_CI_FAILS` を作る
 4. 現在スナップショットの各 run ID が `PREV_CI_FAILS` に含まれず、かつ `UNFIXABLE_RUNS` にも含まれないものを「新規 CI 失敗」とし、その run ID のみをステップ 3b の処理対象として渡す (Monitor の `CI_FAIL` と同等のセマンティクス)
@@ -377,11 +380,17 @@ gh pr view <number> --json state,mergeable,headRefOid --jq '{state, mergeable, h
 6. サイクル末尾で `PREV_CI_FAILS = CURRENT_CI_FAILS` に更新する (3b の実行可否や成功可否に関わらず、観測した最新スナップショットを保存)
 7. 修正コミットが発生した場合は ステップ 3c (PR タイトル・description 更新判断) を実行
 
-**SHA 変化時の `PREV_CI_FAILS` リセット:** ステップ 2B-2 で新コミット検出時に `PREV_CI_FAILS = ""` を実行済みのため、新コミット後の最初のサイクルでは全失敗 run が新規として処理対象となる。これは Monitor スクリプトの SHA 変化時 `PREV_FAILS=""` リセット (テンプレート参照) と同等の挙動。
+**SHA 変化時の `PREV_CI_FAILS` リセット:** ステップ 2B-2 で新コミット検出時 (`CURRENT_SHA != PREV_SHA`) に `PREV_CI_FAILS = ""` を実行済みのため、新コミット後の最初のサイクルでは全失敗 run が新規として処理対象となる。これは Monitor スクリプトの SHA 変化時 `PREV_FAILS=""` リセット (テンプレート参照) と同等の挙動。
 
 **優先順位:** 同一サイクル内でレビューと CI の両方を検出した場合、レビュー修正を先に実行する。
 
 #### 2B-4. 次のサイクルへ
+
+サイクル末尾でスナップショット類を最新値に更新する (次サイクルの差分計算基準):
+
+- `PREV_THREADS = CURRENT_THREADS`
+- `PREV_CI_FAILS = CURRENT_CI_FAILS` (CI チェックがスキップされた場合は更新しない)
+- `PREV_SHA = CURRENT_SHA`
 
 レビュー修正・CI 修正のいずれも不要だった場合、120 秒スリープする:
 
