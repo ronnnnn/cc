@@ -324,6 +324,8 @@ Monitor ツールが利用できない場合、フォアグラウンドで 2 分
 - `HAD_ACTIVITY=false`
 - `CYCLE_COUNT=0`
 - `PREV_THREADS=""` (前回観測した未解決スレッドのスナップショット。`"<thread_id>:<comment_count>"` 形式のエントリをカンマ区切りで保持)
+- `PREV_SHA=""` (前回観測した PR の `headRefOid`。新コミット検出時に `PREV_CI_FAILS` をリセットする判定に使用)
+- `PREV_CI_FAILS=""` (前回観測した CI 失敗 run ID のカンマ区切りスナップショット。サイクル間での重複処理を防ぐ)
 - `API_ERROR_STREAK=0` (gh CLI / GitHub API の連続エラー回数)
 - `PREV_CONFLICT=false` (前回サイクルでコンフリクト検出済みフラグ)
 
@@ -345,13 +347,14 @@ PR #<number> (<title>) のポーリング監視を開始しました。
 #### 2B-2. PR 状態チェック
 
 ```bash
-gh pr view <number> --json state,mergeable --jq '{state, mergeable}'
+gh pr view <number> --json state,mergeable,headRefOid --jq '{state, mergeable, headRefOid}'
 ```
 
 - `state` が `MERGED` / `CLOSED` → 監視終了 → ステップ 4 へ
 - `mergeable` が `CONFLICTING` かつ `PREV_CONFLICT == false` → `HAD_ACTIVITY = true`、`PREV_CONFLICT = true` とし、ステップ 3d (コンフリクト解消) を実行。解消成功時は次サイクルへ継続、解消失敗時のみユーザー通知して監視終了
 - `mergeable` が `CONFLICTING` かつ `PREV_CONFLICT == true` → 直前サイクルで既に処理済みのためステップ 3d をスキップ (重複処理回避)
 - `mergeable` が `CONFLICTING` 以外 → `PREV_CONFLICT = false` にリセット (次回 `CONFLICTING` を観測したら再度 3d を実行可能にする)
+- `headRefOid` (現在 SHA) が `PREV_SHA` と異なる → 新コミット検出。`PREV_CI_FAILS = ""` にリセットしてから 2B-3 へ進む。サイクル末尾で `PREV_SHA = headRefOid` を保存
 
 #### 2B-3. レビュー/CI チェック
 
@@ -364,11 +367,17 @@ gh pr view <number> --json state,mergeable --jq '{state, mergeable}'
 3. 処理対象が 1 件以上あれば `HAD_ACTIVITY = true` とし、ステップ 3a を実行する
 4. サイクル末尾で `PREV_THREADS = CURRENT_THREADS` に更新する (3a の実行可否や成功可否に関わらず、観測した最新スナップショットを保存。次サイクル以降の重複処理を防ぐ)
 
-**CI 失敗チェック:**
+**CI 失敗チェック (Monitor 側 `PREV_FAILS` ロジックの再現):**
 
-- CI 失敗 run があり `UNFIXABLE_RUNS` に含まれない場合 → `HAD_ACTIVITY = true` とし、ステップ 3b (CI_FAIL と同等の処理) を実行
-- CI に `in_progress` / `queued` がある場合は CI 修正をスキップ (確定待ち)
-- 修正コミットが発生した場合は ステップ 3c (PR タイトル・description 更新判断) を実行
+1. `gh run list --commit "$PREV_SHA" -R "$OWNER/$REPO" --json databaseId,status,conclusion,name -L 50` で現在 SHA に紐づく CI run を取得する (Monitor スクリプトの `gh run list --commit "$SHA"` と同等)
+2. `in_progress` / `queued` の run が 1 件でもあれば確定待ちとして CI チェックをスキップ (次サイクルへ)
+3. 全 run が完了している場合、`conclusion == "failure"` の run ID をソート済みカンマ区切りで抽出し、現在スナップショット `CURRENT_CI_FAILS` を作る
+4. 現在スナップショットの各 run ID が `PREV_CI_FAILS` に含まれず、かつ `UNFIXABLE_RUNS` にも含まれないものを「新規 CI 失敗」とし、その run ID のみをステップ 3b の処理対象として渡す (Monitor の `CI_FAIL` と同等のセマンティクス)
+5. 処理対象が 1 件以上あれば `HAD_ACTIVITY = true` とし、ステップ 3b を実行する
+6. サイクル末尾で `PREV_CI_FAILS = CURRENT_CI_FAILS` に更新する (3b の実行可否や成功可否に関わらず、観測した最新スナップショットを保存)
+7. 修正コミットが発生した場合は ステップ 3c (PR タイトル・description 更新判断) を実行
+
+**SHA 変化時の `PREV_CI_FAILS` リセット:** ステップ 2B-2 で新コミット検出時に `PREV_CI_FAILS = ""` を実行済みのため、新コミット後の最初のサイクルでは全失敗 run が新規として処理対象となる。これは Monitor スクリプトの SHA 変化時 `PREV_FAILS=""` リセット (テンプレート参照) と同等の挙動。
 
 **優先順位:** 同一サイクル内でレビューと CI の両方を検出した場合、レビュー修正を先に実行する。
 
@@ -785,7 +794,11 @@ Monitor が予期せず停止した場合 (スクリプトエラー等)、状態
 **Monitor → ポーリングへ移行する場合の状態遷移:**
 
 - 引き継ぐ状態: `PR_NUMBER`, `OWNER`, `REPO`, `MY_LOGIN`, `UNFIXABLE_RUNS`, `REVIEW_COMMITS`, `CI_COMMITS`, `REPLIED_COMMENTS`, `RESOLVED_THREADS`, `PR_UPDATES`, `CONFLICT_RESOLVES`, `RE_REQUESTED_REVIEWERS` (累積カウンタ・処理済みリストはセッション通算で維持)
-- 再初期化する状態: `WATCH_MODE = "polling"`、`MONITOR_ID = null`、`START_TIME = $(date +%s)` (ポーリング側のタイムアウト基準を移行時点にリセット)、`HAD_ACTIVITY = false`、`CYCLE_COUNT = 0`、`PREV_THREADS = ""`、`API_ERROR_STREAK = 0`、`PREV_CONFLICT = false` (ポーリング固有の状態を新規開始)
+- 再初期化する状態: `WATCH_MODE = "polling"`、`MONITOR_ID = null`、`START_TIME = $(date +%s)` (ポーリング側のタイムアウト基準を移行時点にリセット)、`HAD_ACTIVITY = false`、`CYCLE_COUNT = 0`、`API_ERROR_STREAK = 0`、`PREV_CONFLICT = false` (ポーリング固有の状態を新規開始)
+- 移行直前にスナップショットを取得して初期化する状態 (Monitor モードで処理済みのスレッド/CI/コミットを再処理しないため):
+  - `PREV_THREADS`: 移行直前に `gh api graphql` で現在の未解決スレッドを取得し、`<thread_id>:<comment_count>` 形式でカンマ区切り文字列として設定する。これにより Monitor モードで対応済みだが resolve 失敗で残っているスレッドは初回ポーリングサイクルで「既知」として重複処理を回避できる (resolve はステップ 3a 内で再試行)。新規スレッドやコメント追加されたスレッドのみが差分として検出される
+  - `PREV_SHA`: 移行直前に `gh pr view --json headRefOid` で取得して設定 (新コミット検出基準を移行時点に揃える)
+  - `PREV_CI_FAILS`: 移行直前に `gh run list --commit "$PREV_SHA" --json databaseId,status,conclusion -L 50` で取得し、全 run 完了済みなら `conclusion == "failure"` の run ID をソート済みカンマ区切りで設定。`in_progress` / `queued` が含まれる場合は空文字のままとする
 - 移行をユーザーに一行で報告した後、ステップ 2B のサイクルに合流する
 
 ### gh CLI エラー時
