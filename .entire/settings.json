@@ -1,9 +1,0 @@
-{
-  "strategy": "manual-commit",
-  "enabled": true,
-  "strategy_options": {
-    "summarize": {
-      "enabled": true
-    }
-  }
-}
