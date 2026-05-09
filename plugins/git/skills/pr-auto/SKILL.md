@@ -5,6 +5,8 @@ argument-hint: '[--base <branch>]'
 allowed-tools:
   - Bash
   - Read
+  - Edit
+  - Write
   - Glob
   - Grep
   - Skill
@@ -141,7 +143,7 @@ git push -u origin "$(git branch --show-current)"
 git push
 ```
 
-プッシュ失敗時は `git pull --rebase` を試行し、コンフリクトが発生した場合はユーザーに通知して中止する (この時点で自動解消は行わない。pr-watch 引き継ぎ後の 3d で対応する)。
+プッシュ失敗時は `git pull --rebase` を試行し、コンフリクトが発生した場合は `git rebase --abort` でリベース状態を元に戻してから、ユーザーに通知して中止する。
 
 ### 4. PR テンプレートの確認
 
