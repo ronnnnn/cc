@@ -179,14 +179,17 @@ ToolSearch でその他 MCP の利用可能性を確認:
 **Codex レビュー (利用可能時):**
 
 優先順位 1: \`/codex:review\` コマンド (companion script 経由)
-- 上記の \`CODEX_SCRIPT\` が空でなければ、Bash で以下を実行:
+- 上記の \`CODEX_SCRIPT\` が空でなければ、Bash で以下を実行 (\`cwd\` を MCP 側と揃えて固定する):
   \`\`\`bash
-  node "$CODEX_SCRIPT" review --wait
+  (cd "<対象ディレクトリの絶対パス>" && node "$CODEX_SCRIPT" review --wait)
   \`\`\`
 - stdout がレビュー結果 (Codex 出力をそのまま利用)
+- コマンドが non-zero で終了した場合 (ランタイム/認証/プラグインエラー等) は優先順位 2 (MCP フォールバック) に進む
 
 優先順位 2: Codex MCP (フォールバック)
-- \`CODEX_SCRIPT\` が空かつ \`mcp__codex__codex\` が利用可能な場合、\`mcp__codex__codex\` を \`prompt: "/review"\`, \`profile: "review"\`, \`cwd: "<対象ディレクトリの絶対パス>"\` で呼び出す
+- 以下のいずれかに該当 かつ \`mcp__codex__codex\` が利用可能な場合、\`mcp__codex__codex\` を \`prompt: "/review"\`, \`profile: "review"\`, \`cwd: "<対象ディレクトリの絶対パス>"\` で呼び出す:
+  - \`CODEX_SCRIPT\` が空 (コマンド未インストール)
+  - 優先順位 1 のコマンドが non-zero で終了した
 
 **Gemini MCP レビュー (利用可能時):**
 - \`mcp__gemini__ask-gemini\` を \`prompt: "/code-review <対象ディレクトリの絶対パス>"\` で呼び出す
@@ -431,14 +434,17 @@ fi
 \`\`\`
 
 ### 2. レビュー実行 (優先順位 1: コマンド)
-\`CODEX_SCRIPT\` が取得できていれば、Bash で以下を実行する:
+\`CODEX_SCRIPT\` が取得できていれば、Bash で以下を実行する (\`cwd\` を MCP 側と揃えて固定する):
 \`\`\`bash
-node "$CODEX_SCRIPT" review --wait
+(cd "<対象ディレクトリの絶対パス>" && node "$CODEX_SCRIPT" review --wait)
 \`\`\`
-stdout をレビュー結果として使う。
+stdout をレビュー結果として使う。コマンドが non-zero で終了した場合 (ランタイム/認証/プラグインエラー等) は優先順位 2 (MCP フォールバック) に進む。
 
 ### 3. レビュー実行 (優先順位 2: MCP フォールバック)
-コマンドが利用不可の場合のみ:
+以下のいずれかに該当する場合に実行する:
+- \`CODEX_SCRIPT\` 未取得 (コマンド未インストール)
+- 優先順位 1 のコマンドが non-zero で終了した
+
 1. ToolSearch で確認: \`select:mcp__codex__codex\`
 2. 利用可能なら \`mcp__codex__codex\` を \`prompt: "/review"\`, \`profile: "review"\`, \`cwd: "<対象ディレクトリの絶対パス>"\` で呼び出す
 3. それも利用不可の場合は、その旨を lead に SendMessage で報告し、タスクを完了する

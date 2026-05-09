@@ -163,7 +163,7 @@ fi
 
 **コマンド利用時の前提条件:**
 
-- PR の base リポジトリと現在のリポジトリが一致していること (fork PR は base が同じなので一致する)。
+- PR の base リポジトリと現在のリポジトリが一致していること (ローカルが base リポジトリを clone している場合に一致する。fork を clone している環境では fork PR で不一致になる)。
 - リモート名が \`origin\` であること (\`origin\` 以外を使う構成では fetch / base 比較に失敗する。必要なら手動で読み替えること)。
 
 \`\`\`bash
@@ -175,8 +175,9 @@ LOCAL_REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner' 2>/dev/null
 \`\`\`
 
 - \`CODEX_SCRIPT\` あり かつ \`REPO_MATCH=1\` → コマンド利用可。worktree → checkout の優先順で実行。
-- \`CODEX_SCRIPT\` あり かつ \`REPO_MATCH=0\` → 「PR が現リポジトリと異なるため codex コマンドレビューを中断」と報告して codex はスキップ (MCP フォールバックも行わない)。
+- \`CODEX_SCRIPT\` あり かつ \`REPO_MATCH=0\` → 「リポジトリ不一致のため codex コマンド経路をスキップし MCP にフォールバック」と記録し、MCP フォールバック (\`mcp__codex__codex\`) で実行する。
 - \`CODEX_SCRIPT\` なし → MCP フォールバック (\`mcp__codex__codex\`)
+- 上記いずれの経路でも、コマンド (優先順位 1) が non-zero で終了した場合は MCP フォールバックに切り替える。
 
 ToolSearch でその他 MCP の利用可能性を確認:
 - \`select:mcp__codex__codex\` - Codex MCP (コマンド利用不可時のフォールバック用)
@@ -229,7 +230,7 @@ ToolSearch でその他 MCP の利用可能性を確認:
 1. ToolSearch で \`select:mcp__codex__codex\` の利用可能性を確認
 2. 利用可能な場合、\`mcp__codex__codex\` を \`prompt: "/review <PR の URL>"\` で呼び出す
 
-スキップ条件: \`CODEX_SCRIPT\` あり かつ \`REPO_MATCH=0\` の場合は「リポジトリ不一致のため codex レビューをスキップ」と記録し、codex 由来の指摘は集約結果に含めない。
+フォールバック条件: \`CODEX_SCRIPT\` あり かつ \`REPO_MATCH=0\` の場合 (fork を clone している環境等) は「リポジトリ不一致のため codex コマンド経路をスキップ」と記録し、優先順位 2 (MCP) で実行する。優先順位 1 のコマンドが non-zero で終了した場合も同様に MCP にフォールバックする。
 
 **Gemini MCP レビュー (利用可能時):**
 1. ToolSearch で \`select:mcp__gemini__ask-gemini\` の利用可能性を確認
@@ -516,22 +517,25 @@ echo "LOCAL_REPO=$LOCAL_REPO"
 3. stdout をレビュー結果として使う
 
 ### 3. レビュー実行 (優先順位 2: MCP フォールバック)
-\`CODEX_SCRIPT\` 未取得時のみ:
+以下のいずれかに該当する場合に実行する:
+- \`CODEX_SCRIPT\` 未取得 (コマンド未インストール)
+- \`CODEX_SCRIPT\` あり かつ \`PR_BASE_REPO\` != \`LOCAL_REPO\` (リポジトリ不一致 / fork を clone している環境等)
+- 優先順位 1 のコマンドが non-zero で終了した (ランタイム/認証/プラグインエラー等)
+
+リポジトリ不一致 / コマンドエラーで MCP に切り替えた場合は、その旨を lead に SendMessage で記録する。
+
 1. ToolSearch で確認: \`select:mcp__codex__codex\`
 2. 利用可能なら \`mcp__codex__codex\` を \`prompt: "/review <PR の URL>"\` で呼び出す
 3. 利用不可なら、その旨を lead に SendMessage で報告し、タスクを完了する
 
-### 4. スキップ条件
-\`CODEX_SCRIPT\` あり かつ \`PR_BASE_REPO\` != \`LOCAL_REPO\` の場合: 「リポジトリ不一致のため codex コマンドレビューを中断」と lead に SendMessage で報告し、タスクを完了する (MCP フォールバックは行わない)。
-
-### 5. 結果の送信
+### 4. 結果の送信
 Codex の出力を lead に SendMessage で送信する。severity マッピング:
 - critical, severe, security → CRITICAL
 - bug, error, high → HIGH
 - warning, medium → MEDIUM
 - info, suggestion, nit → LOW
 
-### 6. タスク完了
+### 5. タスク完了
 TaskUpdate で自分のタスクを completed に更新する。`
 })
 ```
