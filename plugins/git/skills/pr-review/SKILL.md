@@ -167,10 +167,13 @@ fi
 - リモート名が \`origin\` であること (\`origin\` 以外を使う構成では fetch / base 比較に失敗する。必要なら手動で読み替えること)。
 
 \`\`\`bash
-# fork PR か否かを isCrossRepository で判定する
-# (gh pr view は現リポジトリに紐づく PR のみ取得するため、isCrossRepository=false ならローカル == base が保証される)
-IS_CROSS=$(gh pr view <number> --json isCrossRepository --jq '.isCrossRepository' 2>/dev/null)
-[ "$IS_CROSS" = "false" ] && echo "REPO_MATCH=1" || echo "REPO_MATCH=0"
+# PR の URL から base リポジトリ (owner/repo) を抽出して、現在のローカルリポジトリと比較する
+# (gh pr view --json は baseRepository フィールドを直接受け付けないが、url からの抽出で代用できる。
+#  isCrossRepository は「head と base が異なる」(= fork PR) を意味するため、upstream base clone で fork PR をレビューする場合に誤判定するので使わない)
+PR_URL=$(gh pr view <number> --json url --jq '.url' 2>/dev/null)
+PR_BASE_REPO=$(printf '%s\n' "$PR_URL" | sed -E 's|^https?://[^/]+/([^/]+/[^/]+)/pull/.*|\1|')
+LOCAL_REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner' 2>/dev/null)
+[ -n "$PR_BASE_REPO" ] && [ "$PR_BASE_REPO" = "$LOCAL_REPO" ] && echo "REPO_MATCH=1" || echo "REPO_MATCH=0"
 \`\`\`
 
 - \`CODEX_SCRIPT\` あり かつ \`REPO_MATCH=1\` → コマンド利用可。worktree → checkout の優先順で実行。
@@ -503,15 +506,22 @@ else
   CODEX_SCRIPT=""
 fi
 
-# fork PR か否かを isCrossRepository で判定する
-# (gh pr view は現リポジトリに紐づく PR のみ取得するため、isCrossRepository=false ならローカル == base が保証される)
-IS_CROSS=$(gh pr view <number> --json isCrossRepository --jq '.isCrossRepository' 2>/dev/null)
+# PR の URL から base リポジトリ (owner/repo) を抽出して、現在のローカルリポジトリと比較する
+# (gh pr view --json は baseRepository フィールドを直接受け付けないが、url からの抽出で代用できる。
+#  isCrossRepository は「head と base が異なる」(= fork PR) を意味するため、upstream base clone で fork PR をレビューする場合に誤判定するので使わない)
+PR_URL=$(gh pr view <number> --json url --jq '.url' 2>/dev/null)
+PR_BASE_REPO=$(printf '%s\n' "$PR_URL" | sed -E 's|^https?://[^/]+/([^/]+/[^/]+)/pull/.*|\1|')
+LOCAL_REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner' 2>/dev/null)
+REPO_MATCH=0
+[ -n "$PR_BASE_REPO" ] && [ "$PR_BASE_REPO" = "$LOCAL_REPO" ] && REPO_MATCH=1
 echo "CODEX_SCRIPT=$CODEX_SCRIPT"
-echo "IS_CROSS=$IS_CROSS"
+echo "PR_BASE_REPO=$PR_BASE_REPO"
+echo "LOCAL_REPO=$LOCAL_REPO"
+echo "REPO_MATCH=$REPO_MATCH"
 \`\`\`
 
 ### 2. レビュー実行 (優先順位 1: コマンド)
-\`CODEX_SCRIPT\` が取得済み かつ \`IS_CROSS\` == \`false\` の場合のみ:
+\`CODEX_SCRIPT\` が取得済み かつ \`REPO_MATCH\` == \`1\` の場合のみ:
 
 1. PR の参照を fetch:
    \`\`\`bash
@@ -565,7 +575,7 @@ echo "IS_CROSS=$IS_CROSS"
 ### 3. レビュー実行 (優先順位 2: MCP フォールバック)
 以下のいずれかに該当する場合に実行する:
 - \`CODEX_SCRIPT\` 未取得 (コマンド未インストール)
-- \`CODEX_SCRIPT\` あり かつ \`IS_CROSS\` == \`true\` (fork PR / リポジトリ不一致)
+- \`CODEX_SCRIPT\` あり かつ \`REPO_MATCH\` == \`0\` (ローカルが PR の base リポジトリと一致しない / fork を clone している環境等)
 - 優先順位 1 のコマンドが non-zero で終了した (ランタイム/認証/プラグインエラー等)
 
 リポジトリ不一致 / コマンドエラーで MCP に切り替えた場合は、その旨を lead に SendMessage で記録する。
