@@ -146,10 +146,47 @@ gh pr diff <number>
 gh pr diff <number> --name-only
 \`\`\`
 
-### 2. MCP 利用可能性の確認
+### 2. レビュー手段の利用可能性確認
 
-ToolSearch で各 MCP の利用可能性を確認:
-- \`select:mcp__codex__codex\` - Codex MCP
+**Codex の優先順位:** codex-plugin-cc の \`/codex:review\` コマンド (companion script 経由) を優先し、利用不可時のみ Codex MCP にフォールバックする。コマンドは PR URL を直接受け取れないため、ローカルでチェックアウトしてから実行する。
+
+\`\`\`bash
+# codex-plugin-cc コマンドの利用可能性確認
+CODEX_INSTALL_PATH=$(jq -r '.plugins["codex@openai-codex"][0].installPath // empty' ~/.claude/plugins/installed_plugins.json 2>/dev/null)
+if [ -n "$CODEX_INSTALL_PATH" ] && [ -f "$CODEX_INSTALL_PATH/scripts/codex-companion.mjs" ]; then
+  CODEX_SCRIPT="$CODEX_INSTALL_PATH/scripts/codex-companion.mjs"
+  echo "CODEX_SCRIPT=$CODEX_SCRIPT"
+else
+  CODEX_SCRIPT=""
+fi
+\`\`\`
+
+**コマンド利用時の前提条件:**
+
+- PR の base リポジトリと現在のリポジトリが一致していること (ローカルが base リポジトリを clone している場合に一致する。fork を clone している環境では fork PR で不一致になる)。
+- リモート名が \`origin\` であること (\`origin\` 以外を使う構成では fetch / base 比較に失敗する。必要なら手動で読み替えること)。
+
+\`\`\`bash
+# PR の URL から base リポジトリ (owner/repo) を抽出して、現在のローカルリポジトリと比較する
+# (gh pr view --json は baseRepository フィールドを直接受け付けないが、url からの抽出で代用できる。
+#  isCrossRepository は「head と base が異なる」(= fork PR) を意味するため、upstream base clone で fork PR をレビューする場合に誤判定するので使わない)
+PR_URL=$(gh pr view <number> --json url --jq '.url' 2>/dev/null)
+PR_BASE_REPO=$(printf '%s\n' "$PR_URL" | sed -E 's|^https?://[^/]+/([^/]+/[^/]+)/pull/.*|\1|')
+LOCAL_REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner' 2>/dev/null)
+REPO_MATCH=0
+[ -n "$PR_BASE_REPO" ] && [ "$PR_BASE_REPO" = "$LOCAL_REPO" ] && REPO_MATCH=1
+echo "PR_BASE_REPO=$PR_BASE_REPO"
+echo "LOCAL_REPO=$LOCAL_REPO"
+echo "REPO_MATCH=$REPO_MATCH"
+\`\`\`
+
+- \`CODEX_SCRIPT\` あり かつ \`REPO_MATCH=1\` → コマンド利用可。worktree → checkout の優先順で実行。
+- \`CODEX_SCRIPT\` あり かつ \`REPO_MATCH=0\` → 「リポジトリ不一致のため codex コマンド経路をスキップし MCP にフォールバック」と記録し、MCP フォールバック (\`mcp__codex__codex\`) で実行する。
+- \`CODEX_SCRIPT\` なし → MCP フォールバック (\`mcp__codex__codex\`)
+- 上記いずれの経路でも、コマンド (優先順位 1) が non-zero で終了した場合は MCP フォールバックに切り替える。
+
+ToolSearch でその他 MCP の利用可能性を確認:
+- \`select:mcp__codex__codex\` - Codex MCP (コマンド利用不可時のフォールバック用)
 - \`select:mcp__gemini__ask-gemini\` - Gemini MCP
 
 ### 3. 並列レビューの実行
@@ -163,19 +200,79 @@ ToolSearch で各 MCP の利用可能性を確認:
 - 可読性: 命名、複雑度、コメント
 - テスト: カバレッジ、エッジケース
 
-**Codex MCP レビュー (利用可能時):**
+**Codex レビュー (利用可能時):**
+
+優先順位 1: \`/codex:review\` コマンド (REPO_MATCH=1 のときのみ)
+1. PR head と base ref を fetch (\`--base "origin/<baseRefName>"\` を参照するため、base 側も最新化が必要):
+   \`\`\`bash
+   git fetch origin "<baseRefName>"
+   git fetch origin "pull/<number>/head:refs/codex-pr-review/<number>"
+   \`\`\`
+2. worktree で実行を試みる (中断時/正常終了時のクリーンアップを trap EXIT で保証):
+   \`\`\`bash
+   CODEX_SCRIPT="$CODEX_SCRIPT" bash <<'CODEX_REVIEW_EOF'
+   set -euo pipefail
+   WORKTREE_PATH=$(mktemp -d -t codex-pr-XXXXXX)
+   if git worktree add "$WORKTREE_PATH" "refs/codex-pr-review/<number>" 2>/dev/null; then
+     trap 'git worktree remove --force "$WORKTREE_PATH" 2>/dev/null || true; rm -rf "$WORKTREE_PATH" || true; git update-ref -d "refs/codex-pr-review/<number>" 2>/dev/null || true' EXIT
+     (cd "$WORKTREE_PATH" && node "$CODEX_SCRIPT" review --wait --base "origin/<baseRefName>")
+   else
+     rm -rf "$WORKTREE_PATH"
+     # worktree 非対応 → checkout フォールバック
+     ORIG_REF=$(git symbolic-ref --quiet --short HEAD || git rev-parse HEAD)
+     STASHED=0
+     STASH_SHA=""
+     if [ -n "$(git status --porcelain)" ]; then
+       if git stash push -u -m "codex-pr-review-<number>"; then
+         # `stash^{/...}` は regex 部分一致で別 stash を誤選択する恐れがあるため、push 直後に SHA を取得して以降は SHA で一意に指定する
+         STASH_SHA=$(git rev-parse stash@{0})
+         STASHED=1
+       fi
+     fi
+     # stash 復元: apply は SHA でも動くが drop は stash reference (stash@{N}) しか受け付けないため、stash list から SHA → stash@{N} を逆引きしてから drop する
+     cleanup_stash() {
+       if [ "$STASHED" = "1" ] && [ -n "$STASH_SHA" ]; then
+         if git stash apply "$STASH_SHA"; then
+           local idx=""
+           idx=$(git stash list --format='%gd %H' | awk -v sha="$STASH_SHA" '$2 == sha { print $1; exit }')
+           if [ -n "$idx" ]; then
+             git stash drop "$idx" || echo "[codex-pr-review] WARNING: stash drop failed for $idx (SHA: $STASH_SHA)" >&2
+           else
+             echo "[codex-pr-review] WARNING: stash entry not found in list after apply (SHA: $STASH_SHA); manual cleanup required" >&2
+           fi
+         else
+           echo "[codex-pr-review] WARNING: stash apply failed; stash entry kept for manual recovery (SHA: $STASH_SHA)" >&2
+         fi
+       fi
+     }
+     trap 'git checkout "$ORIG_REF" || true; cleanup_stash; git update-ref -d "refs/codex-pr-review/<number>" 2>/dev/null || true' EXIT
+     git checkout "refs/codex-pr-review/<number>"
+     node "$CODEX_SCRIPT" review --wait --base "origin/<baseRefName>"
+   fi
+   CODEX_REVIEW_EOF
+   \`\`\`
+   注: heredoc を single-quote (\`<<'CODEX_REVIEW_EOF'\`) しているのは「heredoc 本文中で親シェルの変数展開が起こらないようにする」ためで、環境変数の継承可否とは別の話。子 bash で必要な \`CODEX_SCRIPT\` は heredoc 起動時に \`CODEX_SCRIPT="$CODEX_SCRIPT" bash\` の形で env として渡している。\`<number>\` と \`<baseRefName>\` はリテラル置換 (heredoc 内に直接書く) で値を埋めること。\`set -euo pipefail\` で git/node の失敗時に即座に中断させ、EXIT trap 側のクリーンアップ命令は \`|| true\` を付けて失敗しても後続のクリーンアップが走るようにしている。stash 復元は push 直後に取得した SHA (\`STASH_SHA\`) で \`apply\` し、成功時のみ \`stash list\` で SHA → \`stash@{N}\` を逆引きして \`drop\` する (\`git stash drop\` は SHA を受け付けないため)。apply / drop / 逆引きのいずれが失敗しても WARNING を stderr に出して stash を残し、手動復旧経路を確保する。
+3. stdout をレビュー結果として利用
+
+優先順位 2: Codex MCP (コマンド利用不可・リポジトリ不一致・コマンド失敗時のフォールバック)
 1. ToolSearch で \`select:mcp__codex__codex\` の利用可能性を確認
 2. 利用可能な場合、\`mcp__codex__codex\` を \`prompt: "/review <PR の URL>"\` で呼び出す
+
+フォールバック条件 (以下のいずれかに該当する場合):
+- \`CODEX_SCRIPT\` 未取得 (codex-plugin-cc 未インストール)
+- \`CODEX_SCRIPT\` あり かつ \`REPO_MATCH=0\` (fork を clone している環境等。「リポジトリ不一致のため codex コマンド経路をスキップ」と記録)
+- 優先順位 1 のコマンドが non-zero で終了した (ランタイム/認証/プラグインエラー等)
 
 **Gemini MCP レビュー (利用可能時):**
 1. ToolSearch で \`select:mcp__gemini__ask-gemini\` の利用可能性を確認
 2. 利用可能な場合、\`mcp__gemini__ask-gemini\` を \`prompt: "/code-review <PR の URL>"\` で呼び出す
 
 **実行順序:**
-1. Codex/Gemini の ToolSearch を並列実行
-2. Claude レビューと利用可能な MCP レビューを単一メッセージ内で並列実行 (全てフォアグラウンド)
+1. Codex 利用判定 (CODEX_SCRIPT, REPO_MATCH) と Gemini の ToolSearch を並列実行
+2. Claude レビューと Gemini レビュー (利用可能時) と Codex MCP レビュー (経路 2 利用時) は単一メッセージ内で並列実行
+3. Codex がコマンド経路 (経路 1) の場合は worktree/checkout の手順を Bash で逐次実行する。MCP/Claude/Gemini と並列に Bash 起動して並走させてもよいが、git の状態変更を伴うため他のローカル変更を加える操作とは並走させないこと
 
-注: Pattern A では全てフォアグラウンドで MCP ツールを実行する前提のため、個々の MCP 呼び出しに対する明示的なタイムアウト制御は行わない。タイムアウトやリトライ制御が必要な長時間処理は Pattern B (Agent Teams) で実装すること。
+注: Pattern A は基本的にフォアグラウンド前提でタイムアウト制御を行わない。Codex コマンド経路は worktree 操作を含み長時間化しやすいため、PR が大規模・コマンド経路が想定される場合は Pattern B (Agent Teams) で codex-reviewer に切り出す方が望ましい。
 
 ### 4. 結果の統合
 
@@ -398,27 +495,109 @@ Task({
   team_name: "pr-review-<number>",
   name: "codex-reviewer",
   subagent_type: "general-purpose",
-  description: "Codex MCP レビュー",
-  prompt: `あなたは codex-reviewer です。Codex MCP を使って PR #<number> をレビューしてください。
+  description: "Codex レビュー",
+  prompt: `あなたは codex-reviewer です。Codex を使って PR #<number> をレビューしてください。codex-plugin-cc の /codex:review コマンドを優先使用し、利用不可時のみ Codex MCP にフォールバックします。コマンドは PR URL を直接受け取れないため、ローカルでチェックアウトしてから実行します。
 
 ## 手順
 
-### 1. Codex MCP の利用可能性確認
-ToolSearch で確認: \`select:mcp__codex__codex\`
+### 1. 利用可能性とリポジトリ一致の確認
+\`\`\`bash
+# コマンドの利用可能性
+CODEX_INSTALL_PATH=$(jq -r '.plugins["codex@openai-codex"][0].installPath // empty' ~/.claude/plugins/installed_plugins.json 2>/dev/null)
+if [ -n "$CODEX_INSTALL_PATH" ] && [ -f "$CODEX_INSTALL_PATH/scripts/codex-companion.mjs" ]; then
+  CODEX_SCRIPT="$CODEX_INSTALL_PATH/scripts/codex-companion.mjs"
+else
+  # 親シェルに偶然 CODEX_SCRIPT が設定済みの場合に古い値が残らないよう、明示的に空で初期化する
+  CODEX_SCRIPT=""
+fi
 
-利用不可の場合は、その旨を lead に SendMessage で報告し、タスクを完了する。
+# PR の URL から base リポジトリ (owner/repo) を抽出して、現在のローカルリポジトリと比較する
+# (gh pr view --json は baseRepository フィールドを直接受け付けないが、url からの抽出で代用できる。
+#  isCrossRepository は「head と base が異なる」(= fork PR) を意味するため、upstream base clone で fork PR をレビューする場合に誤判定するので使わない)
+PR_URL=$(gh pr view <number> --json url --jq '.url' 2>/dev/null)
+PR_BASE_REPO=$(printf '%s\n' "$PR_URL" | sed -E 's|^https?://[^/]+/([^/]+/[^/]+)/pull/.*|\1|')
+LOCAL_REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner' 2>/dev/null)
+REPO_MATCH=0
+[ -n "$PR_BASE_REPO" ] && [ "$PR_BASE_REPO" = "$LOCAL_REPO" ] && REPO_MATCH=1
+echo "CODEX_SCRIPT=$CODEX_SCRIPT"
+echo "PR_BASE_REPO=$PR_BASE_REPO"
+echo "LOCAL_REPO=$LOCAL_REPO"
+echo "REPO_MATCH=$REPO_MATCH"
+\`\`\`
 
-### 2. Codex MCP でレビュー
-\`mcp__codex__codex\` を \`prompt: "/review <PR の URL>"\` で呼び出す。
+### 2. レビュー実行 (優先順位 1: コマンド)
+\`CODEX_SCRIPT\` が取得済み かつ \`REPO_MATCH\` == \`1\` の場合のみ:
 
-### 3. 結果の送信
+1. PR head と base ref を fetch (\`--base "origin/<baseRefName>"\` を参照するため、base 側も最新化が必要):
+   \`\`\`bash
+   git fetch origin "<baseRefName>"
+   git fetch origin "pull/<number>/head:refs/codex-pr-review/<number>"
+   \`\`\`
+2. worktree で実行を試み、失敗時は checkout にフォールバック (中断時/正常終了時のクリーンアップを trap EXIT で保証):
+   \`\`\`bash
+   CODEX_SCRIPT="$CODEX_SCRIPT" bash <<'CODEX_REVIEW_EOF'
+   set -euo pipefail
+   WORKTREE_PATH=$(mktemp -d -t codex-pr-XXXXXX)
+   if git worktree add "$WORKTREE_PATH" "refs/codex-pr-review/<number>" 2>/dev/null; then
+     trap 'git worktree remove --force "$WORKTREE_PATH" 2>/dev/null || true; rm -rf "$WORKTREE_PATH" || true; git update-ref -d "refs/codex-pr-review/<number>" 2>/dev/null || true' EXIT
+     (cd "$WORKTREE_PATH" && node "$CODEX_SCRIPT" review --wait --base "origin/<baseRefName>")
+   else
+     rm -rf "$WORKTREE_PATH"
+     ORIG_REF=$(git symbolic-ref --quiet --short HEAD || git rev-parse HEAD)
+     STASHED=0
+     STASH_SHA=""
+     if [ -n "$(git status --porcelain)" ]; then
+       if git stash push -u -m "codex-pr-review-<number>"; then
+         # `stash^{/...}` は regex 部分一致で別 stash を誤選択する恐れがあるため、push 直後に SHA を取得して以降は SHA で一意に指定する
+         STASH_SHA=$(git rev-parse stash@{0})
+         STASHED=1
+       fi
+     fi
+     # stash 復元: apply は SHA でも動くが drop は stash reference (stash@{N}) しか受け付けないため、stash list から SHA → stash@{N} を逆引きしてから drop する
+     cleanup_stash() {
+       if [ "$STASHED" = "1" ] && [ -n "$STASH_SHA" ]; then
+         if git stash apply "$STASH_SHA"; then
+           local idx=""
+           idx=$(git stash list --format='%gd %H' | awk -v sha="$STASH_SHA" '$2 == sha { print $1; exit }')
+           if [ -n "$idx" ]; then
+             git stash drop "$idx" || echo "[codex-pr-review] WARNING: stash drop failed for $idx (SHA: $STASH_SHA)" >&2
+           else
+             echo "[codex-pr-review] WARNING: stash entry not found in list after apply (SHA: $STASH_SHA); manual cleanup required" >&2
+           fi
+         else
+           echo "[codex-pr-review] WARNING: stash apply failed; stash entry kept for manual recovery (SHA: $STASH_SHA)" >&2
+         fi
+       fi
+     }
+     trap 'git checkout "$ORIG_REF" || true; cleanup_stash; git update-ref -d "refs/codex-pr-review/<number>" 2>/dev/null || true' EXIT
+     git checkout "refs/codex-pr-review/<number>"
+     node "$CODEX_SCRIPT" review --wait --base "origin/<baseRefName>"
+   fi
+   CODEX_REVIEW_EOF
+   \`\`\`
+   注: heredoc を single-quote (\`<<'CODEX_REVIEW_EOF'\`) しているのは「heredoc 本文中で親シェルの変数展開が起こらないようにする」ためで、環境変数の継承可否とは別の話。子 bash で必要な \`CODEX_SCRIPT\` は heredoc 起動時に \`CODEX_SCRIPT="$CODEX_SCRIPT" bash\` の形で env として明示的に渡している。\`<number>\` と \`<baseRefName>\` はリテラル置換で値を埋めること。\`set -euo pipefail\` で git/node の失敗時に即座に中断させ、EXIT trap 側のクリーンアップ命令は \`|| true\` を付けて失敗しても後続のクリーンアップが走るようにしている。stash 復元は push 直後に取得した SHA (\`STASH_SHA\`) で \`apply\` し、成功時のみ \`stash list\` で SHA → \`stash@{N}\` を逆引きして \`drop\` する (\`git stash drop\` は SHA を受け付けないため)。apply / drop / 逆引きのいずれが失敗しても WARNING を stderr に出して stash を残し、手動復旧経路を確保する。
+3. stdout をレビュー結果として使う
+
+### 3. レビュー実行 (優先順位 2: MCP フォールバック)
+以下のいずれかに該当する場合に実行する:
+- \`CODEX_SCRIPT\` 未取得 (コマンド未インストール)
+- \`CODEX_SCRIPT\` あり かつ \`REPO_MATCH\` == \`0\` (ローカルが PR の base リポジトリと一致しない / fork を clone している環境等)
+- 優先順位 1 のコマンドが non-zero で終了した (ランタイム/認証/プラグインエラー等)
+
+リポジトリ不一致 / コマンドエラーで MCP に切り替えた場合は、その旨を lead に SendMessage で記録する。
+
+1. ToolSearch で確認: \`select:mcp__codex__codex\`
+2. 利用可能なら \`mcp__codex__codex\` を \`prompt: "/review <PR の URL>"\` で呼び出す
+3. 利用不可なら、その旨を lead に SendMessage で報告し、タスクを完了する
+
+### 4. 結果の送信
 Codex の出力を lead に SendMessage で送信する。severity マッピング:
 - critical, severe, security → CRITICAL
 - bug, error, high → HIGH
 - warning, medium → MEDIUM
 - info, suggestion, nit → LOW
 
-### 4. タスク完了
+### 5. タスク完了
 TaskUpdate で自分のタスクを completed に更新する。`
 })
 ```

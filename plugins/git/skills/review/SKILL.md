@@ -144,10 +144,23 @@ git diff HEAD
 git diff HEAD --name-only
 \`\`\`
 
-### 2. MCP 利用可能性の確認
+### 2. レビュー手段の利用可能性確認
 
-ToolSearch で各 MCP の利用可能性を確認:
-- \`select:mcp__codex__codex\` - Codex MCP
+**Codex の優先順位:** codex-plugin-cc の \`/codex:review\` コマンド (companion script 経由) を優先し、利用不可時のみ Codex MCP にフォールバックする。
+
+\`\`\`bash
+# codex-plugin-cc コマンドの利用可能性確認
+CODEX_INSTALL_PATH=$(jq -r '.plugins["codex@openai-codex"][0].installPath // empty' ~/.claude/plugins/installed_plugins.json 2>/dev/null)
+if [ -n "$CODEX_INSTALL_PATH" ] && [ -f "$CODEX_INSTALL_PATH/scripts/codex-companion.mjs" ]; then
+  CODEX_SCRIPT="$CODEX_INSTALL_PATH/scripts/codex-companion.mjs"
+  echo "CODEX_SCRIPT=$CODEX_SCRIPT"
+else
+  CODEX_SCRIPT=""
+fi
+\`\`\`
+
+ToolSearch でその他 MCP の利用可能性を確認:
+- \`select:mcp__codex__codex\` - Codex MCP (上記コマンド利用不可時のフォールバック用)
 - \`select:mcp__gemini__ask-gemini\` - Gemini MCP
 
 ### 3. 並列レビューの実行
@@ -163,8 +176,20 @@ ToolSearch で各 MCP の利用可能性を確認:
 - 可読性: 命名、複雑度、コメント
 - テスト: カバレッジ、エッジケース
 
-**Codex MCP レビュー (利用可能時):**
-- \`mcp__codex__codex\` を \`prompt: "/review"\`, \`profile: "review"\`, \`cwd: "<対象ディレクトリの絶対パス>"\` で呼び出す
+**Codex レビュー (利用可能時):**
+
+優先順位 1: \`/codex:review\` コマンド (companion script 経由)
+- 上記の \`CODEX_SCRIPT\` が空でなければ、Bash で以下を実行 (\`cwd\` を MCP 側と揃えて固定する):
+  \`\`\`bash
+  (cd "<対象ディレクトリの絶対パス>" && node "$CODEX_SCRIPT" review --wait)
+  \`\`\`
+- stdout がレビュー結果 (Codex 出力をそのまま利用)
+- コマンドが non-zero で終了した場合 (ランタイム/認証/プラグインエラー等) は優先順位 2 (MCP フォールバック) に進む
+
+優先順位 2: Codex MCP (フォールバック)
+- 以下のいずれかに該当 かつ \`mcp__codex__codex\` が利用可能な場合、\`mcp__codex__codex\` を \`prompt: "/review"\`, \`profile: "review"\`, \`cwd: "<対象ディレクトリの絶対パス>"\` で呼び出す:
+  - \`CODEX_SCRIPT\` が空 (コマンド未インストール)
+  - 優先順位 1 のコマンドが non-zero で終了した
 
 **Gemini MCP レビュー (利用可能時):**
 - \`mcp__gemini__ask-gemini\` を \`prompt: "/code-review <対象ディレクトリの絶対パス>"\` で呼び出す
@@ -392,27 +417,46 @@ Task({
   team_name: "review-<timestamp>",
   name: "codex-reviewer",
   subagent_type: "general-purpose",
-  description: "Codex MCP レビュー",
-  prompt: `あなたは codex-reviewer です。Codex MCP を使ってローカルの変更差分をレビューしてください。
+  description: "Codex レビュー",
+  prompt: `あなたは codex-reviewer です。Codex を使ってローカルの変更差分をレビューしてください。codex-plugin-cc の /codex:review コマンドを優先使用し、利用不可時のみ Codex MCP にフォールバックします。
 
 ## 手順
 
-### 1. Codex MCP の利用可能性確認
-ToolSearch で確認: \`select:mcp__codex__codex\`
+### 1. /codex:review コマンドの利用可能性確認
+\`\`\`bash
+CODEX_INSTALL_PATH=$(jq -r '.plugins["codex@openai-codex"][0].installPath // empty' ~/.claude/plugins/installed_plugins.json 2>/dev/null)
+if [ -n "$CODEX_INSTALL_PATH" ] && [ -f "$CODEX_INSTALL_PATH/scripts/codex-companion.mjs" ]; then
+  CODEX_SCRIPT="$CODEX_INSTALL_PATH/scripts/codex-companion.mjs"
+  echo "CODEX_SCRIPT=$CODEX_SCRIPT"
+else
+  CODEX_SCRIPT=""
+fi
+\`\`\`
 
-利用不可の場合は、その旨を lead に SendMessage で報告し、タスクを完了する。
+### 2. レビュー実行 (優先順位 1: コマンド)
+\`CODEX_SCRIPT\` が取得できていれば、Bash で以下を実行する (\`cwd\` を MCP 側と揃えて固定する):
+\`\`\`bash
+(cd "<対象ディレクトリの絶対パス>" && node "$CODEX_SCRIPT" review --wait)
+\`\`\`
+stdout をレビュー結果として使う。コマンドが non-zero で終了した場合 (ランタイム/認証/プラグインエラー等) は優先順位 2 (MCP フォールバック) に進む。
 
-### 2. Codex MCP でレビュー
-\`mcp__codex__codex\` を \`prompt: "/review"\`, \`profile: "review"\`, \`cwd: "<対象ディレクトリの絶対パス>"\` で呼び出す。
+### 3. レビュー実行 (優先順位 2: MCP フォールバック)
+以下のいずれかに該当する場合に実行する:
+- \`CODEX_SCRIPT\` 未取得 (コマンド未インストール)
+- 優先順位 1 のコマンドが non-zero で終了した
 
-### 3. 結果の送信
+1. ToolSearch で確認: \`select:mcp__codex__codex\`
+2. 利用可能なら \`mcp__codex__codex\` を \`prompt: "/review"\`, \`profile: "review"\`, \`cwd: "<対象ディレクトリの絶対パス>"\` で呼び出す
+3. それも利用不可の場合は、その旨を lead に SendMessage で報告し、タスクを完了する
+
+### 4. 結果の送信
 Codex の出力を lead に SendMessage で送信する。severity マッピング:
 - critical, severe, security → CRITICAL
 - bug, error, high → HIGH
 - warning, medium → MEDIUM
 - info, suggestion, nit → LOW
 
-### 4. タスク完了
+### 5. タスク完了
 TaskUpdate で自分のタスクを completed に更新する。`
 })
 ```
