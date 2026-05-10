@@ -199,8 +199,9 @@ ToolSearch でその他 MCP の利用可能性を確認:
 **Codex レビュー (利用可能時):**
 
 優先順位 1: \`/codex:review\` コマンド (REPO_MATCH=1 のときのみ)
-1. PR の参照を fetch:
+1. PR head と base ref を fetch (\`--base "origin/<baseRefName>"\` を参照するため、base 側も最新化が必要):
    \`\`\`bash
+   git fetch origin "<baseRefName>"
    git fetch origin "pull/<number>/head:refs/codex-pr-review/<number>"
    \`\`\`
 2. worktree で実行を試みる (中断時/正常終了時のクリーンアップを trap EXIT で保証):
@@ -523,8 +524,9 @@ echo "REPO_MATCH=$REPO_MATCH"
 ### 2. レビュー実行 (優先順位 1: コマンド)
 \`CODEX_SCRIPT\` が取得済み かつ \`REPO_MATCH\` == \`1\` の場合のみ:
 
-1. PR の参照を fetch:
+1. PR head と base ref を fetch (\`--base "origin/<baseRefName>"\` を参照するため、base 側も最新化が必要):
    \`\`\`bash
+   git fetch origin "<baseRefName>"
    git fetch origin "pull/<number>/head:refs/codex-pr-review/<number>"
    \`\`\`
 2. worktree で実行を試み、失敗時は checkout にフォールバック (中断時/正常終了時のクリーンアップを trap EXIT で保証):
