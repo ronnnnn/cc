@@ -213,17 +213,22 @@ ToolSearch でその他 MCP の利用可能性を確認:
      # worktree 非対応 → checkout フォールバック
      ORIG_REF=$(git symbolic-ref --quiet --short HEAD || git rev-parse HEAD)
      STASHED=0
+     STASH_SHA=""
      if [ -n "$(git status --porcelain)" ]; then
-       git stash push -u -m "codex-pr-review-<number>" && STASHED=1
+       if git stash push -u -m "codex-pr-review-<number>"; then
+         # `stash^{/...}` は regex で部分一致 (例: stash 名 codex-pr-review-12 が codex-pr-review-123 にマッチ) して別の stash を誤って apply/drop する恐れがあるため、push 直後に SHA を取得して以降は SHA で一意に指定する
+         STASH_SHA=$(git rev-parse stash@{0})
+         STASHED=1
+       fi
      fi
      # 復元失敗を見える化するため、pop ではなく apply → 成功時のみ drop で stash を保持
-     trap 'git checkout "$ORIG_REF" || true; if [ "$STASHED" = "1" ]; then if git stash apply stash^{/codex-pr-review-<number>}; then git stash drop stash^{/codex-pr-review-<number>} || true; else echo "[codex-pr-review] WARNING: stash apply failed; stash entry kept for manual recovery" >&2; fi; fi; git update-ref -d "refs/codex-pr-review/<number>" 2>/dev/null || true' EXIT
+     trap 'git checkout "$ORIG_REF" || true; if [ "$STASHED" = "1" ] && [ -n "$STASH_SHA" ]; then if git stash apply "$STASH_SHA"; then git stash drop "$STASH_SHA" || true; else echo "[codex-pr-review] WARNING: stash apply failed; stash entry kept for manual recovery (SHA: $STASH_SHA)" >&2; fi; fi; git update-ref -d "refs/codex-pr-review/<number>" 2>/dev/null || true' EXIT
      git checkout "refs/codex-pr-review/<number>"
      node "$CODEX_SCRIPT" review --wait --base "origin/<baseRefName>"
    fi
    CODEX_REVIEW_EOF
    \`\`\`
-   注: heredoc を single-quote (\`<<'CODEX_REVIEW_EOF'\`) しているのは「heredoc 本文中で親シェルの変数展開が起こらないようにする」ためで、環境変数の継承可否とは別の話。子 bash で必要な \`CODEX_SCRIPT\` は heredoc 起動時に \`CODEX_SCRIPT="$CODEX_SCRIPT" bash\` の形で env として渡している。\`<number>\` と \`<baseRefName>\` はリテラル置換 (heredoc 内に直接書く) で値を埋めること。\`set -euo pipefail\` で git/node の失敗時に即座に中断させ、EXIT trap 側のクリーンアップ命令は \`|| true\` を付けて失敗しても後続のクリーンアップが走るようにしている。stash 復元は \`apply\` で試み、成功時のみ \`drop\` する (失敗時は stash を残して手動復旧できるようにする)。
+   注: heredoc を single-quote (\`<<'CODEX_REVIEW_EOF'\`) しているのは「heredoc 本文中で親シェルの変数展開が起こらないようにする」ためで、環境変数の継承可否とは別の話。子 bash で必要な \`CODEX_SCRIPT\` は heredoc 起動時に \`CODEX_SCRIPT="$CODEX_SCRIPT" bash\` の形で env として渡している。\`<number>\` と \`<baseRefName>\` はリテラル置換 (heredoc 内に直接書く) で値を埋めること。\`set -euo pipefail\` で git/node の失敗時に即座に中断させ、EXIT trap 側のクリーンアップ命令は \`|| true\` を付けて失敗しても後続のクリーンアップが走るようにしている。stash 復元は push 直後に取得した SHA (\`STASH_SHA\`) で一意に指定して \`apply\` し、成功時のみ \`drop\` する (失敗時は stash を残して手動復旧できるようにする)。
 3. stdout をレビュー結果として利用
 
 優先順位 2: Codex MCP (\`CODEX_SCRIPT\` 未取得時のフォールバック)
@@ -503,17 +508,22 @@ echo "IS_CROSS=$IS_CROSS"
      rm -rf "$WORKTREE_PATH"
      ORIG_REF=$(git symbolic-ref --quiet --short HEAD || git rev-parse HEAD)
      STASHED=0
+     STASH_SHA=""
      if [ -n "$(git status --porcelain)" ]; then
-       git stash push -u -m "codex-pr-review-<number>" && STASHED=1
+       if git stash push -u -m "codex-pr-review-<number>"; then
+         # `stash^{/...}` は regex で部分一致するため、push 直後に SHA を取得して以降は SHA で一意に指定する
+         STASH_SHA=$(git rev-parse stash@{0})
+         STASHED=1
+       fi
      fi
      # 復元失敗を見える化するため、pop ではなく apply → 成功時のみ drop で stash を保持
-     trap 'git checkout "$ORIG_REF" || true; if [ "$STASHED" = "1" ]; then if git stash apply stash^{/codex-pr-review-<number>}; then git stash drop stash^{/codex-pr-review-<number>} || true; else echo "[codex-pr-review] WARNING: stash apply failed; stash entry kept for manual recovery" >&2; fi; fi; git update-ref -d "refs/codex-pr-review/<number>" 2>/dev/null || true' EXIT
+     trap 'git checkout "$ORIG_REF" || true; if [ "$STASHED" = "1" ] && [ -n "$STASH_SHA" ]; then if git stash apply "$STASH_SHA"; then git stash drop "$STASH_SHA" || true; else echo "[codex-pr-review] WARNING: stash apply failed; stash entry kept for manual recovery (SHA: $STASH_SHA)" >&2; fi; fi; git update-ref -d "refs/codex-pr-review/<number>" 2>/dev/null || true' EXIT
      git checkout "refs/codex-pr-review/<number>"
      node "$CODEX_SCRIPT" review --wait --base "origin/<baseRefName>"
    fi
    CODEX_REVIEW_EOF
    \`\`\`
-   注: heredoc を single-quote (\`<<'CODEX_REVIEW_EOF'\`) しているのは「heredoc 本文中で親シェルの変数展開が起こらないようにする」ためで、環境変数の継承可否とは別の話。子 bash で必要な \`CODEX_SCRIPT\` は heredoc 起動時に \`CODEX_SCRIPT="$CODEX_SCRIPT" bash\` の形で env として明示的に渡している。\`<number>\` と \`<baseRefName>\` はリテラル置換で値を埋めること。\`set -euo pipefail\` で git/node の失敗時に即座に中断させ、EXIT trap 側のクリーンアップ命令は \`|| true\` を付けて失敗しても後続のクリーンアップが走るようにしている。stash 復元は \`apply\` で試み、成功時のみ \`drop\` する (失敗時は stash を残して手動復旧できるようにする)。
+   注: heredoc を single-quote (\`<<'CODEX_REVIEW_EOF'\`) しているのは「heredoc 本文中で親シェルの変数展開が起こらないようにする」ためで、環境変数の継承可否とは別の話。子 bash で必要な \`CODEX_SCRIPT\` は heredoc 起動時に \`CODEX_SCRIPT="$CODEX_SCRIPT" bash\` の形で env として明示的に渡している。\`<number>\` と \`<baseRefName>\` はリテラル置換で値を埋めること。\`set -euo pipefail\` で git/node の失敗時に即座に中断させ、EXIT trap 側のクリーンアップ命令は \`|| true\` を付けて失敗しても後続のクリーンアップが走るようにしている。stash 復元は push 直後に取得した SHA (\`STASH_SHA\`) で一意に指定して \`apply\` し、成功時のみ \`drop\` する (失敗時は stash を残して手動復旧できるようにする)。
 3. stdout をレビュー結果として使う
 
 ### 3. レビュー実行 (優先順位 2: MCP フォールバック)
