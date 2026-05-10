@@ -167,11 +167,10 @@ fi
 - リモート名が \`origin\` であること (\`origin\` 以外を使う構成では fetch / base 比較に失敗する。必要なら手動で読み替えること)。
 
 \`\`\`bash
-# PR の base リポジトリ (fork PR でも base 側を参照する)
-PR_BASE_REPO=$(gh pr view <number> --json baseRepository --jq '.baseRepository.nameWithOwner' 2>/dev/null)
-# 現リポジトリ
-LOCAL_REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner' 2>/dev/null)
-[ "$PR_BASE_REPO" = "$LOCAL_REPO" ] && echo "REPO_MATCH=1" || echo "REPO_MATCH=0"
+# fork PR か否かを isCrossRepository で判定する
+# (gh pr view は現リポジトリに紐づく PR のみ取得するため、isCrossRepository=false ならローカル == base が保証される)
+IS_CROSS=$(gh pr view <number> --json isCrossRepository --jq '.isCrossRepository' 2>/dev/null)
+[ "$IS_CROSS" = "false" ] && echo "REPO_MATCH=1" || echo "REPO_MATCH=0"
 \`\`\`
 
 - \`CODEX_SCRIPT\` あり かつ \`REPO_MATCH=1\` → コマンド利用可。worktree → checkout の優先順で実行。
@@ -477,16 +476,15 @@ if [ -n "$CODEX_INSTALL_PATH" ] && [ -f "$CODEX_INSTALL_PATH/scripts/codex-compa
   CODEX_SCRIPT="$CODEX_INSTALL_PATH/scripts/codex-companion.mjs"
 fi
 
-# PR と現リポジトリの一致確認 (fork PR でも base 側を参照する)
-PR_BASE_REPO=$(gh pr view <number> --json baseRepository --jq '.baseRepository.nameWithOwner' 2>/dev/null)
-LOCAL_REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner' 2>/dev/null)
+# fork PR か否かを isCrossRepository で判定する
+# (gh pr view は現リポジトリに紐づく PR のみ取得するため、isCrossRepository=false ならローカル == base が保証される)
+IS_CROSS=$(gh pr view <number> --json isCrossRepository --jq '.isCrossRepository' 2>/dev/null)
 echo "CODEX_SCRIPT=$CODEX_SCRIPT"
-echo "PR_BASE_REPO=$PR_BASE_REPO"
-echo "LOCAL_REPO=$LOCAL_REPO"
+echo "IS_CROSS=$IS_CROSS"
 \`\`\`
 
 ### 2. レビュー実行 (優先順位 1: コマンド)
-\`CODEX_SCRIPT\` が取得済み かつ \`PR_BASE_REPO\` == \`LOCAL_REPO\` の場合のみ:
+\`CODEX_SCRIPT\` が取得済み かつ \`IS_CROSS\` == \`false\` の場合のみ:
 
 1. PR の参照を fetch:
    \`\`\`bash
@@ -519,7 +517,7 @@ echo "LOCAL_REPO=$LOCAL_REPO"
 ### 3. レビュー実行 (優先順位 2: MCP フォールバック)
 以下のいずれかに該当する場合に実行する:
 - \`CODEX_SCRIPT\` 未取得 (コマンド未インストール)
-- \`CODEX_SCRIPT\` あり かつ \`PR_BASE_REPO\` != \`LOCAL_REPO\` (リポジトリ不一致 / fork を clone している環境等)
+- \`CODEX_SCRIPT\` あり かつ \`IS_CROSS\` == \`true\` (fork PR / リポジトリ不一致)
 - 優先順位 1 のコマンドが non-zero で終了した (ランタイム/認証/プラグインエラー等)
 
 リポジトリ不一致 / コマンドエラーで MCP に切り替えた場合は、その旨を lead に SendMessage で記録する。
