@@ -173,7 +173,11 @@ fi
 PR_URL=$(gh pr view <number> --json url --jq '.url' 2>/dev/null)
 PR_BASE_REPO=$(printf '%s\n' "$PR_URL" | sed -E 's|^https?://[^/]+/([^/]+/[^/]+)/pull/.*|\1|')
 LOCAL_REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner' 2>/dev/null)
-[ -n "$PR_BASE_REPO" ] && [ "$PR_BASE_REPO" = "$LOCAL_REPO" ] && echo "REPO_MATCH=1" || echo "REPO_MATCH=0"
+REPO_MATCH=0
+[ -n "$PR_BASE_REPO" ] && [ "$PR_BASE_REPO" = "$LOCAL_REPO" ] && REPO_MATCH=1
+echo "PR_BASE_REPO=$PR_BASE_REPO"
+echo "LOCAL_REPO=$LOCAL_REPO"
+echo "REPO_MATCH=$REPO_MATCH"
 \`\`\`
 
 - \`CODEX_SCRIPT\` あり かつ \`REPO_MATCH=1\` → コマンド利用可。worktree → checkout の優先順で実行。
