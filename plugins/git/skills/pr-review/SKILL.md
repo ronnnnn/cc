@@ -231,11 +231,14 @@ ToolSearch でその他 MCP の利用可能性を確認:
    注: heredoc を single-quote (\`<<'CODEX_REVIEW_EOF'\`) しているのは「heredoc 本文中で親シェルの変数展開が起こらないようにする」ためで、環境変数の継承可否とは別の話。子 bash で必要な \`CODEX_SCRIPT\` は heredoc 起動時に \`CODEX_SCRIPT="$CODEX_SCRIPT" bash\` の形で env として渡している。\`<number>\` と \`<baseRefName>\` はリテラル置換 (heredoc 内に直接書く) で値を埋めること。\`set -euo pipefail\` で git/node の失敗時に即座に中断させ、EXIT trap 側のクリーンアップ命令は \`|| true\` を付けて失敗しても後続のクリーンアップが走るようにしている。stash 復元は push 直後に取得した SHA (\`STASH_SHA\`) で一意に指定して \`apply\` し、成功時のみ \`drop\` する (失敗時は stash を残して手動復旧できるようにする)。
 3. stdout をレビュー結果として利用
 
-優先順位 2: Codex MCP (\`CODEX_SCRIPT\` 未取得時のフォールバック)
+優先順位 2: Codex MCP (コマンド利用不可・リポジトリ不一致・コマンド失敗時のフォールバック)
 1. ToolSearch で \`select:mcp__codex__codex\` の利用可能性を確認
 2. 利用可能な場合、\`mcp__codex__codex\` を \`prompt: "/review <PR の URL>"\` で呼び出す
 
-フォールバック条件: \`CODEX_SCRIPT\` あり かつ \`REPO_MATCH=0\` の場合 (fork を clone している環境等) は「リポジトリ不一致のため codex コマンド経路をスキップ」と記録し、優先順位 2 (MCP) で実行する。優先順位 1 のコマンドが non-zero で終了した場合も同様に MCP にフォールバックする。
+フォールバック条件 (以下のいずれかに該当する場合):
+- \`CODEX_SCRIPT\` 未取得 (codex-plugin-cc 未インストール)
+- \`CODEX_SCRIPT\` あり かつ \`REPO_MATCH=0\` (fork を clone している環境等。「リポジトリ不一致のため codex コマンド経路をスキップ」と記録)
+- 優先順位 1 のコマンドが non-zero で終了した (ランタイム/認証/プラグインエラー等)
 
 **Gemini MCP レビュー (利用可能時):**
 1. ToolSearch で \`select:mcp__gemini__ask-gemini\` の利用可能性を確認
@@ -480,6 +483,9 @@ Task({
 CODEX_INSTALL_PATH=$(jq -r '.plugins["codex@openai-codex"][0].installPath // empty' ~/.claude/plugins/installed_plugins.json 2>/dev/null)
 if [ -n "$CODEX_INSTALL_PATH" ] && [ -f "$CODEX_INSTALL_PATH/scripts/codex-companion.mjs" ]; then
   CODEX_SCRIPT="$CODEX_INSTALL_PATH/scripts/codex-companion.mjs"
+else
+  # 親シェルに偶然 CODEX_SCRIPT が設定済みの場合に古い値が残らないよう、明示的に空で初期化する
+  CODEX_SCRIPT=""
 fi
 
 # fork PR か否かを isCrossRepository で判定する
