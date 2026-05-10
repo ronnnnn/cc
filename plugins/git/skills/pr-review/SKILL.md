@@ -203,10 +203,10 @@ ToolSearch でその他 MCP の利用可能性を確認:
 2. worktree で実行を試みる (中断時/正常終了時のクリーンアップを trap EXIT で保証):
    \`\`\`bash
    CODEX_SCRIPT="$CODEX_SCRIPT" bash <<'CODEX_REVIEW_EOF'
-   set -u
+   set -euo pipefail
    WORKTREE_PATH=$(mktemp -d -t codex-pr-XXXXXX)
    if git worktree add "$WORKTREE_PATH" "refs/codex-pr-review/<number>" 2>/dev/null; then
-     trap 'git worktree remove --force "$WORKTREE_PATH" 2>/dev/null; rm -rf "$WORKTREE_PATH"; git update-ref -d "refs/codex-pr-review/<number>" 2>/dev/null' EXIT
+     trap 'git worktree remove --force "$WORKTREE_PATH" 2>/dev/null || true; rm -rf "$WORKTREE_PATH" || true; git update-ref -d "refs/codex-pr-review/<number>" 2>/dev/null || true' EXIT
      (cd "$WORKTREE_PATH" && node "$CODEX_SCRIPT" review --wait --base "origin/<baseRefName>")
    else
      rm -rf "$WORKTREE_PATH"
@@ -216,13 +216,14 @@ ToolSearch でその他 MCP の利用可能性を確認:
      if [ -n "$(git status --porcelain)" ]; then
        git stash push -u -m "codex-pr-review-<number>" && STASHED=1
      fi
-     trap 'git checkout "$ORIG_REF" 2>/dev/null; [ "$STASHED" = "1" ] && git stash pop 2>/dev/null; git update-ref -d "refs/codex-pr-review/<number>" 2>/dev/null' EXIT
+     # 復元失敗を見える化するため、pop ではなく apply → 成功時のみ drop で stash を保持
+     trap 'git checkout "$ORIG_REF" || true; if [ "$STASHED" = "1" ]; then if git stash apply stash^{/codex-pr-review-<number>}; then git stash drop stash^{/codex-pr-review-<number>} || true; else echo "[codex-pr-review] WARNING: stash apply failed; stash entry kept for manual recovery" >&2; fi; fi; git update-ref -d "refs/codex-pr-review/<number>" 2>/dev/null || true' EXIT
      git checkout "refs/codex-pr-review/<number>"
      node "$CODEX_SCRIPT" review --wait --base "origin/<baseRefName>"
    fi
    CODEX_REVIEW_EOF
    \`\`\`
-   注: heredoc は \`<<'CODEX_REVIEW_EOF'\` (single-quoted) なので親シェルの変数展開は走らない。子 bash 内で必要な \`CODEX_SCRIPT\` は heredoc 起動時に \`CODEX_SCRIPT="$CODEX_SCRIPT" bash\` の形で env として渡す。\`<number>\` と \`<baseRefName>\` はリテラル置換 (heredoc 内に直接書く) で値を埋めること。これにより bash プロセス終了時に EXIT trap が必ず発火し、worktree / stash / 一時 ref が正常終了時もクリーンアップされる。
+   注: heredoc を single-quote (\`<<'CODEX_REVIEW_EOF'\`) しているのは「heredoc 本文中で親シェルの変数展開が起こらないようにする」ためで、環境変数の継承可否とは別の話。子 bash で必要な \`CODEX_SCRIPT\` は heredoc 起動時に \`CODEX_SCRIPT="$CODEX_SCRIPT" bash\` の形で env として渡している。\`<number>\` と \`<baseRefName>\` はリテラル置換 (heredoc 内に直接書く) で値を埋めること。\`set -euo pipefail\` で git/node の失敗時に即座に中断させ、EXIT trap 側のクリーンアップ命令は \`|| true\` を付けて失敗しても後続のクリーンアップが走るようにしている。stash 復元は \`apply\` で試み、成功時のみ \`drop\` する (失敗時は stash を残して手動復旧できるようにする)。
 3. stdout をレビュー結果として利用
 
 優先順位 2: Codex MCP (\`CODEX_SCRIPT\` 未取得時のフォールバック)
@@ -493,10 +494,10 @@ echo "IS_CROSS=$IS_CROSS"
 2. worktree で実行を試み、失敗時は checkout にフォールバック (中断時/正常終了時のクリーンアップを trap EXIT で保証):
    \`\`\`bash
    CODEX_SCRIPT="$CODEX_SCRIPT" bash <<'CODEX_REVIEW_EOF'
-   set -u
+   set -euo pipefail
    WORKTREE_PATH=$(mktemp -d -t codex-pr-XXXXXX)
    if git worktree add "$WORKTREE_PATH" "refs/codex-pr-review/<number>" 2>/dev/null; then
-     trap 'git worktree remove --force "$WORKTREE_PATH" 2>/dev/null; rm -rf "$WORKTREE_PATH"; git update-ref -d "refs/codex-pr-review/<number>" 2>/dev/null' EXIT
+     trap 'git worktree remove --force "$WORKTREE_PATH" 2>/dev/null || true; rm -rf "$WORKTREE_PATH" || true; git update-ref -d "refs/codex-pr-review/<number>" 2>/dev/null || true' EXIT
      (cd "$WORKTREE_PATH" && node "$CODEX_SCRIPT" review --wait --base "origin/<baseRefName>")
    else
      rm -rf "$WORKTREE_PATH"
@@ -505,13 +506,14 @@ echo "IS_CROSS=$IS_CROSS"
      if [ -n "$(git status --porcelain)" ]; then
        git stash push -u -m "codex-pr-review-<number>" && STASHED=1
      fi
-     trap 'git checkout "$ORIG_REF" 2>/dev/null; [ "$STASHED" = "1" ] && git stash pop 2>/dev/null; git update-ref -d "refs/codex-pr-review/<number>" 2>/dev/null' EXIT
+     # 復元失敗を見える化するため、pop ではなく apply → 成功時のみ drop で stash を保持
+     trap 'git checkout "$ORIG_REF" || true; if [ "$STASHED" = "1" ]; then if git stash apply stash^{/codex-pr-review-<number>}; then git stash drop stash^{/codex-pr-review-<number>} || true; else echo "[codex-pr-review] WARNING: stash apply failed; stash entry kept for manual recovery" >&2; fi; fi; git update-ref -d "refs/codex-pr-review/<number>" 2>/dev/null || true' EXIT
      git checkout "refs/codex-pr-review/<number>"
      node "$CODEX_SCRIPT" review --wait --base "origin/<baseRefName>"
    fi
    CODEX_REVIEW_EOF
    \`\`\`
-   注: heredoc は single-quoted (\`<<'CODEX_REVIEW_EOF'\`) のため、親シェルの \`CODEX_SCRIPT\` は子 bash プロセスに継承されない。\`CODEX_SCRIPT="$CODEX_SCRIPT" bash\` の形で env として明示的に渡すこと。\`<number>\` と \`<baseRefName>\` はリテラル置換で値を埋めること。
+   注: heredoc を single-quote (\`<<'CODEX_REVIEW_EOF'\`) しているのは「heredoc 本文中で親シェルの変数展開が起こらないようにする」ためで、環境変数の継承可否とは別の話。子 bash で必要な \`CODEX_SCRIPT\` は heredoc 起動時に \`CODEX_SCRIPT="$CODEX_SCRIPT" bash\` の形で env として明示的に渡している。\`<number>\` と \`<baseRefName>\` はリテラル置換で値を埋めること。\`set -euo pipefail\` で git/node の失敗時に即座に中断させ、EXIT trap 側のクリーンアップ命令は \`|| true\` を付けて失敗しても後続のクリーンアップが走るようにしている。stash 復元は \`apply\` で試み、成功時のみ \`drop\` する (失敗時は stash を残して手動復旧できるようにする)。
 3. stdout をレビュー結果として使う
 
 ### 3. レビュー実行 (優先順位 2: MCP フォールバック)
