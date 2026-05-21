@@ -109,7 +109,7 @@ AskUserQuestion で出力先パスを確認する。選択肢の例:
 **全てのテキストノードを日/英 両方準備する**。手順:
 
 1. 元コンテンツが片言語のみの場合、もう片方を翻訳して用意する (技術用語/固有名詞は原語維持)
-2. テキストは `<span data-i18n="<key>"></span>` で包む or `data-ja` / `data-en` 属性で両言語を保持
+2. テキストは `data-ja` / `data-en` 属性で両言語を保持
 3. 細かい注釈・図のラベル・ボタン名も漏れなく対象とする
 
 実装の詳細は `references/i18n-toggle.md` を厳守する。
@@ -145,8 +145,8 @@ AskUserQuestion で出力先パスを確認する。選択肢の例:
 
 ```bash
 # 構文/構造の簡易チェック
-grep -c 'data-theme="dark"' <出力ファイル>          # dark テーマの CSS が存在するか
-grep -c 'data-lang\|data-i18n\|data-ja\|data-en' <出力ファイル>  # i18n 仕組みが存在するか
+grep -cE 'data-theme=["'"'"']dark["'"'"']' <出力ファイル>  # dark テーマの CSS が存在するか
+grep -cE 'data-(lang|ja|en)' <出力ファイル>          # i18n 仕組みが存在するか
 grep -c 'localStorage' <出力ファイル>                # 永続化が組み込まれているか
 grep -c 'viewport' <出力ファイル>                    # viewport 設定
 grep -c 'aria-' <出力ファイル>                       # ARIA 属性

@@ -384,12 +384,6 @@
       document.querySelectorAll('[data-lang]').forEach(el => {
         el.hidden = el.getAttribute('data-lang') !== lang;
       });
-      // <title>
-      const titleEl = document.querySelector('title');
-      if (titleEl) {
-        const v = titleEl.getAttribute(`data-${lang}`);
-        if (v != null) titleEl.textContent = v;
-      }
     }
 
     let saved = null;

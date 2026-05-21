@@ -80,8 +80,8 @@ body {
   id="theme-toggle"
   class="icon-btn"
   aria-label="Toggle theme"
-  data-ja-label="テーマ切替"
-  data-en-label="Toggle theme"
+  data-ja-aria-label="テーマ切替"
+  data-en-aria-label="Toggle theme"
 >
   <span class="icon" aria-hidden="true">
     <!-- インライン SVG (sun / moon) を切替 -->

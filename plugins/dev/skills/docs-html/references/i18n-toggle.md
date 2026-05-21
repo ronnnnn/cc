@@ -86,7 +86,6 @@ JS で `lang` の値に応じて該当属性の値を要素の `textContent` に
 
 ```js
 (function () {
-  const TEXT_ATTR = ['ja', 'en'];
   const REWRITE_ATTRS = ['aria-label', 'placeholder', 'title', 'alt'];
 
   function applyLang(lang) {
