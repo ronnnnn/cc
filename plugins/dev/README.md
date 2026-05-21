@@ -6,11 +6,12 @@
 
 ### Skills
 
-| スキル         | 説明                                                      |
-| -------------- | --------------------------------------------------------- |
-| `/dev:comment` | 変更差分を分析し、実装意図 (Why) を説明するコメントを追加 |
-| `do`           | 複数タスクを並列実行 (subagent / Agent Teams 自動選択)    |
-| `plan`         | 資料を分析してフェーズ別行動計画を作成                    |
+| スキル           | 説明                                                                        |
+| ---------------- | --------------------------------------------------------------------------- |
+| `/dev:comment`   | 変更差分を分析し、実装意図 (Why) を説明するコメントを追加                   |
+| `/dev:do`        | 複数タスクを並列実行 (subagent / Agent Teams 自動選択)                      |
+| `/dev:plan`      | 資料を分析してフェーズ別行動計画を作成                                      |
+| `/dev:docs-html` | 引数の内容を用途別カテゴリに分類し、dark/light + 日/英 切替付き HTML を生成 |
 
 ## インストール
 
@@ -121,6 +122,37 @@ add why comments
 4. 依存関係を整理してフェーズ構成
 5. フェーズごとにファイルを分割して出力
 
+### HTML ドキュメント生成
+
+```bash
+/dev:docs-html <内容、資料パス、URL、PR など>
+```
+
+自然言語でも起動します:
+
+```
+HTML ドキュメントを作って
+HTML 資料を生成して
+リッチな資料を HTML で出力して
+```
+
+**特徴:**
+
+- **カテゴリ自動分類** - 内容に応じて `plan` / `review` / `design` / `prototype` / `report` / `explainer` / `diagram` / `slide` / `editor` から最適なレイアウトを選択
+- **dark/light モード切替** - すべての生成 HTML に組み込み、`prefers-color-scheme` を初期値に `localStorage` で永続化
+- **日/英 言語切替** - 全テキストを両言語で保持し、ボタン操作で瞬時に切替 (ページ再ロード不要)
+- **単一ファイル・外部依存なし** - CSS/JS/SVG をすべて 1 ファイルに内包しブラウザでそのまま開ける
+- **モバイル対応** - レスポンシブ設計とアクセシビリティ (ARIA, focus) を確保
+
+**ワークフロー:**
+
+1. 引数 (ファイル/URL/PR/テキスト) を読み込み・分析
+2. カテゴリを判定 (不明確な場合は AskUserQuestion で確認)
+3. 出力先パスを確認
+4. 日/英 両言語のコンテンツを準備
+5. ベーステンプレートにカテゴリ別レイアウトを適用して HTML を生成
+6. セルフチェック (テーマ/言語切替、レスポンシブ) を実行
+
 ## ファイル構造
 
 ```
@@ -135,16 +167,25 @@ dev/
 │   │   └── references/
 │   │       ├── agent-teams-pattern.md
 │   │       └── report-format.md
-│   └── plan/
-│       ├── SKILL.md         # 行動計画スキル
-│       └── references/
-│           └── plan-format.md
+│   ├── plan/
+│   │   ├── SKILL.md         # 行動計画スキル
+│   │   └── references/
+│   │       └── plan-format.md
+│   └── docs-html/
+│       ├── SKILL.md         # HTML ドキュメント生成スキル
+│       ├── references/
+│       │   ├── categories.md
+│       │   ├── html-templates.md
+│       │   ├── theme-toggle.md
+│       │   └── i18n-toggle.md
+│       └── examples/
+│           └── base-template.html
 └── README.md
 ```
 
 ## 技術仕様
 
-| 項目       | 内容                                                                                                                              |
-| ---------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| **ツール** | Bash, Read, Edit, Write, Glob, Grep, Task, AskUserQuestion, TaskCreate, TaskUpdate, TaskList, TeamCreate, TeamDelete, SendMessage |
-| **言語**   | 日本語 (コメント追加は既存コードのコメント言語に準拠)                                                                             |
+| 項目       | 内容                                                                                                                                        |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| **ツール** | Bash, Read, Edit, Write, Glob, Grep, Task, WebFetch, AskUserQuestion, TaskCreate, TaskUpdate, TaskList, TeamCreate, TeamDelete, SendMessage |
+| **言語**   | 日本語 (コメント追加は既存コードのコメント言語に準拠)                                                                                       |

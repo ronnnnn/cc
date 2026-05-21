@@ -15,3 +15,6 @@ node_modules/
 
 # bun
 bun.lock
+
+# Local scratch / generated artifacts
+tmp/
