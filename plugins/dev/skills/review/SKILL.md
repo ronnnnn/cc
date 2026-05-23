@@ -127,7 +127,7 @@ Agent Teams が利用可能な場合、以下の基準で**メインセッショ
 **重要:**
 
 - `run_in_background: true` を指定しないこと。バックグラウンド実行では MCP ツールが利用できない。
-- `subagent_type` は `"general-purpose"` を使用すること。`"git:code-reviewer"` では MCP ツールが利用不可。
+- `subagent_type` は `"general-purpose"` を使用すること。
 
 ```
 Task({
