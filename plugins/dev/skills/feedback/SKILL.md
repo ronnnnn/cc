@@ -85,26 +85,29 @@ AskUserQuestion({
 現在のブランチを判定し、差分を取得する:
 
 ```bash
-# Git リポジトリ確認
-git rev-parse --is-inside-work-tree >/dev/null 2>&1 || { echo "Git リポジトリ外"; exit 1; }
-
-current=$(git rev-parse --abbrev-ref HEAD)
-
-# デフォルトブランチを検出 (未検出時は main)
-default=$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null | sed 's@^origin/@@')
-default=${default:-main}
-
-if [ "$current" = "$default" ]; then
-  # main: staged + unstaged の差分
-  git diff HEAD
+# Git リポジトリ外なら差分は取得せず、セッションのコンテキストのみで検証を続ける
+if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  echo "Git リポジトリ外: ブランチ差分なし (セッションのコンテキストで検証)"
 else
-  # main 以外: 分岐元 (merge-base) から現在のブランチまでの差分 (未コミット変更も含む)
-  # ローカルに $default が無い環境を考慮し origin/$default にフォールバック
-  base=$(git merge-base "$default" HEAD 2>/dev/null || git merge-base "origin/$default" HEAD 2>/dev/null)
-  if [ -z "$base" ]; then
-    echo "分岐元ブランチ ($default) が見つかりません"; exit 1
+  current=$(git rev-parse --abbrev-ref HEAD)
+
+  # デフォルトブランチを origin/HEAD から検出 (master/trunk 等にも対応。main は決め打ちしない)
+  default=$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null | sed 's@^origin/@@')
+
+  if [ -n "$default" ] && [ "$current" != "$default" ]; then
+    # 分岐元 (merge-base) から作業ツリーまでの差分 (未コミット変更も含む)
+    # ローカルに $default が無い環境を考慮し origin/$default にフォールバック
+    base=$(git merge-base "$default" HEAD 2>/dev/null || git merge-base "origin/$default" HEAD 2>/dev/null)
+    if [ -n "$base" ]; then
+      git diff "$base"
+    else
+      # 分岐元を特定できない場合は中断せず未コミット差分にフォールバック
+      git diff HEAD
+    fi
+  else
+    # デフォルトブランチ上、または default を特定できない場合は staged + unstaged の差分
+    git diff HEAD
   fi
-  git diff "$base"
 fi
 ```
 
