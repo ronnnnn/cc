@@ -99,7 +99,11 @@ if [ "$current" = "$default" ]; then
   git diff HEAD
 else
   # main 以外: 分岐元 (merge-base) から現在のブランチまでの差分 (未コミット変更も含む)
-  base=$(git merge-base "$default" HEAD)
+  # ローカルに $default が無い環境を考慮し origin/$default にフォールバック
+  base=$(git merge-base "$default" HEAD 2>/dev/null || git merge-base "origin/$default" HEAD 2>/dev/null)
+  if [ -z "$base" ]; then
+    echo "分岐元ブランチ ($default) が見つかりません"; exit 1
+  fi
   git diff "$base"
 fi
 ```
