@@ -13,7 +13,6 @@ Git/GitHub 操作を効率化する Claude Code plugin です。
 | `/git:pr-review`           | PR を複数 AI でレビューし、指摘箇所にコメントを投稿             |
 | `/git:pr-fix`              | レビュー指摘を修正 (妥当性判断、コミット/返信前に承認)          |
 | `/git:pr-update`           | PR のタイトルと description を最新化                            |
-| `/git:review`              | ローカル変更を複数 AI でレビューし、指摘箇所を自動修正          |
 | `/git:japanese-text-style` | 日本語テキストのスペース・句読点・括弧・文体ルール              |
 | `/git:pr-explain`          | PR の変更内容を包括的に収集・分析し、丁寧に解説                 |
 | `/git:pr-ci`               | CI 失敗の調査・修正 (ci-analyzer subagent で原因分析)           |
@@ -211,20 +210,6 @@ claude plugin install git@cc --scope project
 5. **ユーザー確認なし** で全ステップを自律実行
 6. アイドル上限 30 分 / 絶対上限 120 分で自動終了
 
-### ローカルレビュー
-
-```bash
-/git:review  # ローカルの変更 (staged/unstaged) をレビュー
-```
-
-**ワークフロー:**
-
-1. ローカル差分を取得 (staged + unstaged)
-2. **code-reviewer subagent** で並列レビュー (Claude / Codex (codex-plugin-cc コマンド優先・MCP フォールバック) / Gemini MCP)
-3. 修正が必要なものを**承認なしで自動修正**
-4. **指摘がなくなるまでレビュー・修正を繰り返す**
-5. 修正サマリを報告
-
 ## 前提条件
 
 - **Git** がインストールされていること
@@ -256,8 +241,6 @@ git/
 │   │   └── SKILL.md         # レビュー修正スキル
 │   ├── pr-update/
 │   │   └── SKILL.md         # Description 更新スキル
-│   ├── review/
-│   │   └── SKILL.md         # ローカルレビュースキル
 │   ├── japanese-text-style/
 │   │   └── SKILL.md         # 日本語テキストスタイルガイド
 │   ├── pr-explain/
