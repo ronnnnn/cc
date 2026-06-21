@@ -138,7 +138,7 @@ claude plugin install git@cc --scope project
 **ワークフロー:**
 
 1. PR の差分を取得
-2. **code-reviewer subagent** で並列レビュー (Claude / Codex (codex-plugin-cc コマンド優先・MCP フォールバック) / Gemini MCP)
+2. **code-reviewer subagent** で並列レビュー (Claude / Codex (codex-plugin-cc コマンド優先・MCP フォールバック) / Antigravity MCP)
 3. インラインコメント案を作成
 4. **コメント投稿前にユーザー承認を取得**
 5. 承認後、PR にコメントを投稿

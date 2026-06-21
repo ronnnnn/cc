@@ -105,9 +105,9 @@ ls -la CLAUDE.md 2>/dev/null
 
 ## 技術調査
 
-優先順位: LSP → deepwiki MCP → Gemini MCP → context7 MCP → WebSearch
+優先順位: LSP → deepwiki MCP → Antigravity MCP → context7 MCP → WebSearch
 
-※ Gemini MCP は mcp__gemini__ask-gemini で google_web_search を使用
+※ Antigravity MCP は mcp__antigravity__ask-antigravity で最新情報を Web 検索 (Gemini の検索グラウンディング)
 ```
 
 ### 6. 最適化

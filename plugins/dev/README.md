@@ -211,7 +211,7 @@ HTML 資料を生成して
 
 **特徴:**
 
-- **複数 AI で並列レビュー** - Claude / Codex (codex-plugin-cc コマンド優先・MCP フォールバック) / Gemini MCP を同時利用
+- **複数 AI で並列レビュー** - Claude / Codex (codex-plugin-cc コマンド優先・MCP フォールバック) / Antigravity MCP を同時利用
 - **承認なしで自動修正** - 修正が必要な指摘を自動で反映
 - **指摘がなくなるまで反復** - レビューと修正を最大 3 回繰り返す
 - **規模に応じてアプローチ自動選択** - 単一 subagent / Agent Teams を変更量・複雑度で切替
