@@ -23,7 +23,7 @@ allowed-tools:
 
 ## 重要な原則
 
-1. **複数 AI で並列レビューする** - Claude, Codex MCP, Gemini MCP を同時に使用
+1. **複数 AI で並列レビューする** - Claude, Codex MCP, Antigravity MCP を同時に使用
 2. **結果を統合・重複排除する** - 同じ指摘は 1 つにマージ
 3. **修正が必要なものは承認なしで自動修正する**
 4. **レビュー・修正を繰り返す** - 修正がなくなるまで
@@ -161,7 +161,7 @@ fi
 
 ToolSearch でその他 MCP の利用可能性を確認:
 - \`select:mcp__codex__codex\` - Codex MCP (上記コマンド利用不可時のフォールバック用)
-- \`select:mcp__gemini__ask-gemini\` - Gemini MCP
+- \`select:mcp__antigravity__ask-antigravity\` - Antigravity MCP
 
 ### 3. 並列レビューの実行
 
@@ -191,8 +191,8 @@ ToolSearch でその他 MCP の利用可能性を確認:
   - \`CODEX_SCRIPT\` が空 (コマンド未インストール)
   - 優先順位 1 のコマンドが non-zero で終了した
 
-**Gemini MCP レビュー (利用可能時):**
-- \`mcp__gemini__ask-gemini\` を \`prompt: "/code-review <対象ディレクトリの絶対パス>"\` で呼び出す
+**Antigravity MCP レビュー (利用可能時):**
+- \`mcp__antigravity__ask-antigravity\` を \`prompt: "<対象ディレクトリの絶対パス> のローカル変更差分 (git diff HEAD) をレビューし、バグ・セキュリティ・パフォーマンス・可読性・テストの観点で file:line 付きの指摘を返してください"\` で呼び出す (必要に応じて \`includeDirs\` で関連ディレクトリを追加する)
 
 ### 4. 結果の統合
 
@@ -218,7 +218,7 @@ ToolSearch でその他 MCP の利用可能性を確認:
 \`\`\`markdown
 ## Aggregated Review Results
 
-**Reviewed by:** Claude, Codex, Gemini (利用可能な AI のみ記載)
+**Reviewed by:** Claude, Codex, Antigravity (利用可能な AI のみ記載)
 **Total Issues:** N
 
 ### Critical Issues (X)
@@ -238,13 +238,13 @@ ToolSearch でその他 MCP の利用可能性を確認:
 ## 注意事項
 - MCP が全て利用不可の場合は Claude 単独でレビューを実行する
 - スタイルのみの指摘 (linter で対応すべき)、好みの問題、曖昧な指摘は除外する
-- 検出元 (Claude/Codex/Gemini) を各指摘に付記する`
+- 検出元 (Claude/Codex/Antigravity) を各指摘に付記する`
 })
 ```
 
 subagent が以下を自動で実行する:
 
-- MCP (Codex, Gemini) の利用可能性確認
+- MCP (Codex, Antigravity) の利用可能性確認
 - Claude 自身のレビュー + 利用可能な MCP に並列依頼
 - 結果の統合・重複排除・severity 統一
 
@@ -461,28 +461,28 @@ TaskUpdate で自分のタスクを completed に更新する。`
 })
 ```
 
-**gemini-reviewer:**
+**antigravity-reviewer:**
 
 ```
 Task({
   team_name: "review-<timestamp>",
-  name: "gemini-reviewer",
+  name: "antigravity-reviewer",
   subagent_type: "general-purpose",
-  description: "Gemini MCP レビュー",
-  prompt: `あなたは gemini-reviewer です。Gemini MCP を使ってローカルの変更差分をレビューしてください。
+  description: "Antigravity MCP レビュー",
+  prompt: `あなたは antigravity-reviewer です。Antigravity MCP を使ってローカルの変更差分をレビューしてください。
 
 ## 手順
 
-### 1. Gemini MCP の利用可能性確認
-ToolSearch で確認: \`select:mcp__gemini__ask-gemini\`
+### 1. Antigravity MCP の利用可能性確認
+ToolSearch で確認: \`select:mcp__antigravity__ask-antigravity\`
 
 利用不可の場合は、その旨を lead に SendMessage で報告し、タスクを完了する。
 
-### 2. Gemini MCP でレビュー
-\`mcp__gemini__ask-gemini\` を \`prompt: "/code-review <対象ディレクトリの絶対パス>"\` で呼び出す。
+### 2. Antigravity MCP でレビュー
+\`mcp__antigravity__ask-antigravity\` を \`prompt: "<対象ディレクトリの絶対パス> のローカル変更差分 (git diff HEAD) をレビューし、バグ・セキュリティ・パフォーマンス・可読性・テストの観点で file:line 付きの指摘を返してください"\` で呼び出す (必要に応じて \`includeDirs\` で関連ディレクトリを追加する)。
 
 ### 3. 結果の送信
-Gemini の出力を lead に SendMessage で送信する。severity マッピング:
+Antigravity の出力を lead に SendMessage で送信する。severity マッピング:
 - critical, severe, security → CRITICAL
 - bug, error, high → HIGH
 - warning, medium → MEDIUM
@@ -504,7 +504,7 @@ TaskList で全 reviewer タスクの完了を待機する。各 reviewer から
 1. ファイルパスと行番号で指摘をグループ化
 2. 同じ問題への指摘は最も詳細な説明を採用
 3. severity は最も高いものを採用
-4. 検出元 (security-reviewer, logic-reviewer, bestpractice-reviewer, Codex, Gemini) を付記
+4. 検出元 (security-reviewer, logic-reviewer, bestpractice-reviewer, Codex, Antigravity) を付記
 
 **severity 統一:**
 
@@ -521,7 +521,7 @@ SendMessage({ type: "shutdown_request", recipient: "security-reviewer" })
 SendMessage({ type: "shutdown_request", recipient: "logic-reviewer" })
 SendMessage({ type: "shutdown_request", recipient: "bestpractice-reviewer" })
 SendMessage({ type: "shutdown_request", recipient: "codex-reviewer" })
-SendMessage({ type: "shutdown_request", recipient: "gemini-reviewer" })
+SendMessage({ type: "shutdown_request", recipient: "antigravity-reviewer" })
 
 # 全 teammate のシャットダウン完了後
 TeamDelete()
@@ -600,7 +600,7 @@ git diff HEAD
 ## ローカルレビュー完了
 
 **レビュー方式:** 単一 subagent / Agent Teams
-**レビュー AI:** Claude, Codex, Gemini
+**レビュー AI:** Claude, Codex, Antigravity
 **レビュー回数:** N 回
 
 ### 修正サマリ
