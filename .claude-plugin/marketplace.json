@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "A collection of Claude Code plugins.",
-    "version": "3.18.0"
+    "version": "3.18.1"
   },
   "plugins": [
     {
@@ -60,7 +60,7 @@
     {
       "name": "catch-up",
       "description": "技術・ツール・フレームワークの最新バージョン取得・技術調査・セッション内容の学習を支援するエージェントとスキル",
-      "version": "2.4.0",
+      "version": "2.4.1",
       "author": {
         "name": "ronnnnn",
         "email": "xxxx.xyzs.xxxx@gmail.com"
