@@ -1,7 +1,7 @@
 {
   "name": "dev",
-  "version": "1.6.0",
-  "description": "開発支援スキル (コードコメント追加、行動計画作成、並列タスク実行、HTML ドキュメント生成、フィードバック検証・反映、ローカルレビュー)",
+  "version": "1.7.0",
+  "description": "開発支援スキル (コードコメント追加、行動計画作成、並列タスク実行、HTML ドキュメント生成、フィードバック検証・反映、ローカルレビュー、orchestrator-workers 実行、advisor 相談)",
   "author": {
     "name": "ronnnnn",
     "email": "xxxx.xyzs.xxxx@gmail.com"
@@ -21,6 +21,11 @@
     "documentation",
     "feedback",
     "review",
-    "code-review"
+    "code-review",
+    "orchestrate",
+    "orchestrator-workers",
+    "advise",
+    "advisor",
+    "multi-agent"
   ]
 }
