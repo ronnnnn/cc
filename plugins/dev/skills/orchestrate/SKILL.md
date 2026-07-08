@@ -28,7 +28,7 @@ allowed-tools:
 
 ## 作業開始前の準備
 
-**必須:** 作業開始前に TaskList で残存タスクを確認し、存在する場合は全て TaskUpdate({ status: "deleted" }) で削除する。その後、TaskCreate ツールで以下のステップをタスクとして登録する:
+**必須:** 作業開始前に TaskList で残存タスクを確認し、存在する場合は全て TaskUpdate({ taskId: <taskId>, status: "deleted" }) で削除する。その後、TaskCreate ツールで以下のステップをタスクとして登録する:
 
 ```
 TaskCreate({ subject: "ゴール分析と偵察", description: "ゴールの把握と軽量な現状調査", activeForm: "ゴールを分析中" })
@@ -85,10 +85,13 @@ TaskCreate({ subject: "統合と報告", description: "worker の報告を統合
 ```
 Task({
   subagent_type: "dev:worker",
+  name: "worker-<連番>",
   description: "<サブタスクの要約>",
   prompt: <references/worker-brief-format.md に従ったブリーフ>
 })
 ```
+
+`name` は手順 4 の SendMessage による再開の宛先になるため必ず付与する。同一実行内で複数起動する場合は連番等で一意にする。
 
 **モデルの上書き:** タスクの難易度が高い場合 (複雑な設計判断を含む等) は、Task の `model` パラメータで上位モデルを指定して委譲する (`model` パラメータは agent 定義の frontmatter より優先される)。
 
