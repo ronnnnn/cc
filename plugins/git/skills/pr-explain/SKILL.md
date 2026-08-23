@@ -182,6 +182,41 @@ gh issue view <number> --json title,body,labels
 
 **このステップが解説の質を決める。** diff は「何が変わったか」しか語らない。「何が変わったか」を意味のある情報にするには、変わっていない部分の理解が要る。
 
+#### 探索リビジョンの整合 (必須の事前確認)
+
+**LSP はワークスペースの現在の状態に対して動作する。** 解説対象が PR で、現在のチェックアウトがその head と異なる場合、`gh pr diff` は PR の内容を返す一方で LSP は別リビジョンのコードを参照するため、**新規・リネームされたシンボルが見つからない / 参照先が誤ったリビジョンから返る**という不整合が起きる。しかもこれは静かに起きるため、誤った背景・影響範囲の分析がそのまま解説になる。
+
+探索を始める前に必ずリビジョンの一致を確認する:
+
+```bash
+# PR の head SHA と現在の HEAD を比較
+PR_SHA=$(gh pr view <number> --json headRefOid --jq '.headRefOid')
+CUR_SHA=$(git rev-parse HEAD)
+```
+
+| 状況                                  | 対応                                          |
+| ------------------------------------- | --------------------------------------------- |
+| `PR_SHA` == `CUR_SHA`                 | そのまま LSP 探索を実行する                   |
+| 異なる (別ブランチをチェックアウト中) | 一時 worktree を作り、その中で探索する (下記) |
+| ローカル変更 / 直近コミットが対象     | 現在のワークスペースが対象そのもの。確認不要  |
+| 外部リポジトリ (ローカルに無い)       | LSP 探索は不可。後述のフォールバックに従う    |
+
+**一時 worktree での探索:**
+
+```bash
+# PR の head をフェッチして一時 worktree を作る
+WORKTREE_DIR=$(mktemp -d)/pr-<number>
+git fetch origin "pull/<number>/head"
+git worktree add --detach "$WORKTREE_DIR" FETCH_HEAD
+
+# 探索は $WORKTREE_DIR 配下のファイルに対して行う
+
+# 探索完了後に必ず後始末する
+git worktree remove "$WORKTREE_DIR" --force
+```
+
+worktree の作成に失敗した場合 (shallow clone、権限、ディスク等) は、**LSP 探索を諦めて Grep と Read に切り替え、解説の「前提となる仕組み」に「現在のチェックアウトを基準に読んでいるため、PR head との差異がある可能性がある」と明示する**。誤った分析を黙って出さないことを優先する。
+
 #### 探索対象
 
 変更されたファイルを読むだけで終わらせず、以下を能動的に探索する。
@@ -299,7 +334,19 @@ Step 4 で作成した解説をそのままコマンドラインに出力して�
 
 #### `--html` 指定時
 
-1. 解説本文をスクラッチパッドに Markdown として書き出す (ファイル名: `pr-explain-<PR 番号 or ブランチ名 or "local">.md`)。スクラッチパッドディレクトリが不明な場合は `mktemp -d` で作成する
+1. 解説本文をスクラッチパッドに Markdown として書き出す。スクラッチパッドディレクトリが不明な場合は `mktemp -d` で作成する
+
+   ファイル名は `pr-explain-<slug>.md` とし、`<slug>` は **必ずサニタイズしてから使う**。ブランチ名には `/` が含まれうるため (`feature/foo` 等)、そのまま埋めると存在しない中間ディレクトリを指すパスになり書き込みに失敗する:
+
+   ```bash
+   # PR 番号がある場合はそれを、無ければブランチ名、それも無ければ "local"
+   RAW="${PR_NUMBER:-$(git branch --show-current 2>/dev/null || echo local)}"
+   # パス区切りと不正な文字を - に潰し、先頭末尾の - を削る
+   SLUG=$(printf '%s' "$RAW" | tr '/' '-' | tr -c '[:alnum:]._-' '-' | sed 's/^-*//; s/-*$//')
+   SLUG=${SLUG:-local}
+   MD_PATH="$SCRATCHPAD/pr-explain-${SLUG}.md"
+   ```
+
 2. `dev:docs-html` スキルを起動し、書き出した md のパスを引数として渡す
 
    ```
