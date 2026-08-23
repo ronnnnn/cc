@@ -77,7 +77,7 @@ gh pr view <number> --json number,title,url,baseRefName,headRefName --jq '{numbe
 gh repo view --json owner,name --jq '"\(.owner.login)/\(.name)"'
 ```
 
-**確定した `<owner>/<repo>` は以降のすべての `gh` 呼び出しで `-R` に渡す。** fork と upstream の両方をリモートに持つクローンでは、`-R` を省略した番号解決が Step 1 で選んだリポジトリとは別のリポジトリに当たりうる。特に fork 側に同番号の PR が存在すると、Step 3 のリビジョン比較が誤って「一致」と判定し、意図した upstream の PR ではなく現在のワークツリーを分析してしまう。
+**確定した `<owner>/<repo>` は以降のすべての `gh pr` / `gh issue` 呼び出しで `-R` に渡す** (`gh api` は `-R` を受け付けないため、クエリまたはパスでリポジトリを指定する)。fork と upstream の両方をリモートに持つクローンでは、`-R` を省略した番号解決が Step 1 で選んだリポジトリとは別のリポジトリに当たりうる。特に fork 側に同番号の PR が存在すると、Step 3 のリビジョン比較が誤って「一致」と判定し、意図した upstream の PR ではなく現在のワークツリーを分析してしまう。
 
 URL から owner/repo を抽出できない場合は、現在のリポジトリの owner/repo を使用する。
 
@@ -110,7 +110,12 @@ URL から owner/repo を抽出できない場合は、現在のリポジトリ�
 
 ### 2. PR 情報の収集
 
-**すべての `gh` コマンドに `-R <owner>/<repo>` を渡す。** `gh` はリポジトリを省略すると現在のチェックアウトから解決するため、外部リポジトリの PR や、別リポジトリのクローン内で実行した場合に **無関係なリポジトリの情報を取得してしまう**。Step 1 で確定した `<owner>/<repo>` を必ず明示する。
+**`gh pr` / `gh issue` サブコマンドには必ず `-R <owner>/<repo>` を渡す。** これらはリポジトリを省略すると現在のチェックアウトから解決するため、外部リポジトリの PR や、別リポジトリのクローン内で実行した場合に **無関係なリポジトリの情報を取得してしまう**。Step 1 で確定した `<owner>/<repo>` を必ず明示する。
+
+**`gh api` は `-R` / `--repo` フラグを持たない** (`gh api <endpoint> [flags]`)。付けると unknown flag で失敗するため、リポジトリは次のいずれかで指定する:
+
+- GraphQL: クエリ内の `repository(owner: "<owner>", name: "<repo>")` 引数
+- REST: エンドポイントのパス (`repos/<owner>/<repo>/...`)
 
 以下の情報を **並列で** 収集する:
 
