@@ -232,22 +232,31 @@ DIRTY=$(git status --porcelain)
 
 `pull/<number>/head` は **その PR を所有するリポジトリにしか存在しない ref** である。`origin` をハードコードすると、base remote を `upstream` と名付けているクローン、`origin` が無いクローン、`origin` がフォークを指すクローンでフェッチが解決できず、不要にフォールバックしてしまう。Step 1 で確定した `<owner>/<repo>` からフェッチ先を導出する:
 
-リモートの照合は **正規化したうえで完全一致**させる。部分一致で探すと、対象が `acme/app` のときに `acme/app-fork` を指すリモートを拾ってしまい、そのリポジトリに同番号の PR があればフェッチが成功してしまう:
+リモートの照合は **ホストを含めて正規化したうえで完全一致**させる。判断を誤る例が 2 つある:
+
+- パスの部分一致で探すと、対象が `acme/app` のときに `acme/app-fork` を拾ってしまう
+- ホストを捨てて `owner/repo` だけで比べると、`gitlab.com/acme/app` が `github.com/acme/app` と等価になり、`pull/<number>/head` を持たないリモートを選んでフェッチが失敗する
+
+そこで `<host>/<owner>/<repo>` の形に揃えて比較する。`<host>` は Step 1 の PR URL から取得する (GitHub Enterprise では `github.com` にならない):
 
 ```bash
-# <owner>/<repo> を指すリモートを、URL を正規化したうえで完全一致で探す
+# PR URL からホストを取り出す (例: https://github.com/acme/app/pull/1 -> github.com)
+PR_HOST=$(gh pr view <number> -R <owner>/<repo> --json url --jq '.url' | sed -E 's#^https?://([^/]+)/.*#\1#')
+
+# <host>/<owner>/<repo> を指すリモートを、URL を正規化したうえで完全一致で探す
 REMOTE=""
 for r in $(git remote); do
-  # 以下をすべて owner/repo に正規化する:
-  #   ssh://git@host/owner/repo.git    (スキーム付き SSH。ポート付きも可)
-  #   https://host/owner/repo.git      (HTTP(S)。user@ 付きも可)
-  #   git://host/owner/repo.git        (その他スキーム)
-  #   git@host:owner/repo.git          (SCP 形式)
-  NORM=$(git remote get-url "$r" \
-    | sed -E 's#^[a-zA-Z][a-zA-Z0-9+.-]*://([^@/]+@)?[^/]+/##; s#^[^/]+@[^:/]+:##; s#/*$##; s#\.git$##')
-  if [ "$NORM" = "<owner>/<repo>" ]; then REMOTE="$r"; break; fi
+  # 以下をすべて host/owner/repo に正規化する:
+  #   ssh://git@host:2222/owner/repo.git  (スキーム付き SSH。ポート付きも可)
+  #   https://user@host/owner/repo.git    (HTTP(S)。user@ 付きも可)
+  #   git://host/owner/repo.git           (その他スキーム)
+  #   git@host:owner/repo.git             (SCP 形式)
+  # スキーム -> user@ -> ホストのポート -> SCP 形式の : -> 末尾の / と .git
+  # の順に落として host/owner/repo に揃える
+  NORM=$(git remote get-url "$r" | sed -E 's#^[a-zA-Z][a-zA-Z0-9+.-]*://##; s#^[^@/]+@##; s#^([^/:]+):([0-9]+)/#\1/#; s#^([^/:]+):#\1/#; s#/*$##; s#\.git$##')
+  if [ "$NORM" = "$PR_HOST/<owner>/<repo>" ]; then REMOTE="$r"; break; fi
 done
-FETCH_TARGET="${REMOTE:-https://github.com/<owner>/<repo>.git}"
+FETCH_TARGET="${REMOTE:-https://$PR_HOST/<owner>/<repo>.git}"
 
 # PR の head をフェッチする
 git fetch "$FETCH_TARGET" "pull/<number>/head"
@@ -267,6 +276,24 @@ git worktree add --detach "$WORKTREE_DIR" "$PR_SHA"
 
 # 探索完了後に必ず後始末する
 git worktree remove "$WORKTREE_DIR" --force
+```
+
+**削除を含む変更では base リビジョンの worktree も作る。** PR がファイルやシンボルを削除している場合、head 側の worktree には削除後のコードしかないため、**消えた定義には `findReferences` / `incomingCalls` / `goToDefinition` を実行する起点が存在しない**。「なぜ現設計だったか」「削除されたコードの呼び出し元がどう処理されたか」は base 側でしか調べられない:
+
+```bash
+# 削除されたファイル・シンボルがあるかを先に確認する
+gh pr diff <number> -R <owner>/<repo> --name-status | grep '^D' || true
+
+# 削除がある場合のみ、base リビジョンの worktree も作る
+BASE_SHA=$(gh pr view <number> -R <owner>/<repo> --json baseRefOid --jq '.baseRefOid')
+BASE_REF=$(gh pr view <number> -R <owner>/<repo> --json baseRefName --jq '.baseRefName')
+git fetch "$FETCH_TARGET" "$BASE_REF"
+BASE_WORKTREE_DIR=$(mktemp -d)/pr-<number>-base
+git worktree add --detach "$BASE_WORKTREE_DIR" "$BASE_SHA"
+
+# 削除されたシンボルの調査は $BASE_WORKTREE_DIR 側で行う
+# 探索完了後に head 側と同様に後始末する
+git worktree remove "$BASE_WORKTREE_DIR" --force
 ```
 
 **`FETCH_HEAD` をそのまま worktree に渡さず、照合済みの `$PR_SHA` を渡す。** リモート選択やフェッチが意図とずれていた場合、`FETCH_HEAD` は無関係なコミットを指しうるが、`$PR_SHA` は Step 3 冒頭で PR から直接取得した値なので取り違えが起きない。
@@ -299,13 +326,13 @@ git worktree remove "$WORKTREE_DIR" --force
 
 #### ファイル種別ごとの追加確認
 
-| 状況             | 対応                                               |
-| ---------------- | -------------------------------------------------- |
-| 新規ファイル追加 | 周辺の類似ファイルを読み、命名・構造の慣習を把握   |
-| 既存ファイル変更 | 変更箇所の前後に加え、ファイル全体の責務を把握     |
-| 型定義の変更     | LSP `findReferences` で全使用箇所を確認            |
-| 設定変更         | その設定を読み込むコードまで辿る                   |
-| 削除             | 削除されたコードの呼び出し元がどう処理されたか確認 |
+| 状況             | 対応                                                                                |
+| ---------------- | ----------------------------------------------------------------------------------- |
+| 新規ファイル追加 | 周辺の類似ファイルを読み、命名・構造の慣習を把握                                    |
+| 既存ファイル変更 | 変更箇所の前後に加え、ファイル全体の責務を把握                                      |
+| 型定義の変更     | LSP `findReferences` で全使用箇所を確認                                             |
+| 設定変更         | その設定を読み込むコードまで辿る                                                    |
+| 削除             | base リビジョンの worktree で、削除されたコードの呼び出し元がどう処理されたかを確認 |
 
 ### 4. 解説の作成
 
