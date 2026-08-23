@@ -177,11 +177,26 @@ query {
 gh pr view <number> -R <owner>/<repo> --json comments --jq '.comments[] | "\(.author.login): \(.body)"'
 ```
 
-**関連 Issue:** PR description に `#<number>` や `Closes #<number>` の参照があれば取得する。`#<number>` は **PR を所有するリポジトリの Issue 番号**であり、現在のチェックアウトの Issue ではない。`-R` を省略すると別リポジトリの無関係な Issue を取得してしまうため必ず指定する (Issue の URL が直接参照されている場合はその URL を渡してもよい)。
+**関連 Issue:** PR description に Issue 参照があれば取得する。参照の書き方は 3 種類あり、**それぞれ解決先のリポジトリが異なる**。番号だけを見て一律に PR のリポジトリへ問い合わせると、無関係な Issue を取得したり意図した背景を取りこぼしたりする:
+
+| 参照の形式                          | 解決先                  | `-R` に渡す値            |
+| ----------------------------------- | ----------------------- | ------------------------ |
+| `#123` / `Closes #123`              | PR を所有するリポジトリ | `<owner>/<repo>`         |
+| `other-owner/other-repo#123`        | 修飾子が指すリポジトリ  | `other-owner/other-repo` |
+| `https://github.com/o/r/issues/123` | URL が指すリポジトリ    | URL をそのまま渡す       |
 
 ```bash
+# 同一リポジトリの参照 (#123)
 gh issue view <number> -R <owner>/<repo> --json title,body,labels
+
+# クロスリポジトリ短縮形 (other-owner/other-repo#123) は修飾子をパースして -R に渡す
+gh issue view <number> -R <other-owner>/<other-repo> --json title,body,labels
+
+# フル URL はそのまま渡せる
+gh issue view <issue-url> --json title,body,labels
 ```
+
+`-R` を省略すると `gh` が現在のチェックアウトからリポジトリを解決するため、いずれの形式でも必ず解決先を明示する。
 
 ### 3. 背景の探索
 
