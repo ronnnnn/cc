@@ -186,27 +186,35 @@ gh issue view <number> --json title,body,labels
 
 **LSP はワークスペースの現在の状態に対して動作する。** 解説対象が PR で、現在のチェックアウトがその head と異なる場合、`gh pr diff` は PR の内容を返す一方で LSP は別リビジョンのコードを参照するため、**新規・リネームされたシンボルが見つからない / 参照先が誤ったリビジョンから返る**という不整合が起きる。しかもこれは静かに起きるため、誤った背景・影響範囲の分析がそのまま解説になる。
 
-探索を始める前に必ずリビジョンの一致を確認する:
+探索を始める前に必ずリビジョンの一致を確認する。**SHA の比較だけでは不十分で、未コミットの変更の有無も併せて見る**。SHA が一致していても作業ツリーが dirty なら、LSP はその編集内容を読むため、クリーンな PR を記述する `gh pr diff` との間に同じ不整合が生じる:
 
 ```bash
-# PR の head SHA と現在の HEAD を比較
+# PR の head SHA と現在の HEAD を比較し、作業ツリーの汚れも確認する
 PR_SHA=$(gh pr view <number> --json headRefOid --jq '.headRefOid')
 CUR_SHA=$(git rev-parse HEAD)
+DIRTY=$(git status --porcelain)
 ```
 
-| 状況                                  | 対応                                          |
-| ------------------------------------- | --------------------------------------------- |
-| `PR_SHA` == `CUR_SHA`                 | そのまま LSP 探索を実行する                   |
-| 異なる (別ブランチをチェックアウト中) | 一時 worktree を作り、その中で探索する (下記) |
-| ローカル変更 / 直近コミットが対象     | 現在のワークスペースが対象そのもの。確認不要  |
-| 外部リポジトリ (ローカルに無い)       | LSP 探索は不可。後述のフォールバックに従う    |
+| 状況                                             | 対応                                          |
+| ------------------------------------------------ | --------------------------------------------- |
+| `PR_SHA` == `CUR_SHA` かつ `DIRTY` が空          | そのまま LSP 探索を実行する                   |
+| `PR_SHA` == `CUR_SHA` だが未コミットの変更がある | 一時 worktree を作り、その中で探索する (下記) |
+| SHA が異なる (別ブランチをチェックアウト中)      | 一時 worktree を作り、その中で探索する (下記) |
+| ローカル変更 / 直近コミットが対象                | 現在のワークスペースが対象そのもの。確認不要  |
+| 外部リポジトリ (ローカルに無い)                  | LSP 探索は不可。後述のフォールバックに従う    |
 
 **一時 worktree での探索:**
 
+`pull/<number>/head` は **その PR を所有するリポジトリにしか存在しない ref** である。`origin` をハードコードすると、base remote を `upstream` と名付けているクローン、`origin` が無いクローン、`origin` がフォークを指すクローンでフェッチが解決できず、不要にフォールバックしてしまう。Step 1 で確定した `<owner>/<repo>` からフェッチ先を導出する:
+
 ```bash
+# <owner>/<repo> を指すリモート名を探し、無ければ URL を直接フェッチ先にする
+REMOTE=$(git remote -v | awk -v r="<owner>/<repo>" '$2 ~ r { print $1; exit }')
+FETCH_TARGET="${REMOTE:-https://github.com/<owner>/<repo>.git}"
+
 # PR の head をフェッチして一時 worktree を作る
 WORKTREE_DIR=$(mktemp -d)/pr-<number>
-git fetch origin "pull/<number>/head"
+git fetch "$FETCH_TARGET" "pull/<number>/head"
 git worktree add --detach "$WORKTREE_DIR" FETCH_HEAD
 
 # 探索は $WORKTREE_DIR 配下のファイルに対して行う
