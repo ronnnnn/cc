@@ -66,7 +66,7 @@ TaskCreate({ subject: "出力", description: "コマンドラインに出力、�
 
 ```bash
 # URL 形式: https://github.com/owner/repo/pull/123
-# owner, repo, number を URL から抽出
+# owner, repo, number を URL から抽出し、以降の gh コマンドに -R <owner>/<repo> として渡す
 
 # 番号形式: 123 または #123
 # 現在のリポジトリの PR として扱う
@@ -107,28 +107,30 @@ URL から owner/repo を抽出できない場合は、現在のリポジトリ�
 
 ### 2. PR 情報の収集
 
+**すべての `gh` コマンドに `-R <owner>/<repo>` を渡す。** `gh` はリポジトリを省略すると現在のチェックアウトから解決するため、外部リポジトリの PR や、別リポジトリのクローン内で実行した場合に **無関係なリポジトリの情報を取得してしまう**。Step 1 で確定した `<owner>/<repo>` を必ず明示する。
+
 以下の情報を **並列で** 収集する:
 
 **PR メタデータと description:**
 
 ```bash
-gh pr view <number> --json title,body,author,baseRefName,headRefName,labels,additions,deletions,changedFiles,createdAt
+gh pr view <number> -R <owner>/<repo> --json title,body,author,baseRefName,headRefName,labels,additions,deletions,changedFiles,createdAt
 ```
 
 **コミット履歴:**
 
 ```bash
-gh pr view <number> --json commits --jq '.commits[] | "\(.oid[0:7]) \(.messageHeadline)\n\(.messageBody)"'
+gh pr view <number> -R <owner>/<repo> --json commits --jq '.commits[] | "\(.oid[0:7]) \(.messageHeadline)\n\(.messageBody)"'
 ```
 
 **コード差分:**
 
 ```bash
 # 変更ファイル一覧
-gh pr diff <number> --name-only
+gh pr diff <number> -R <owner>/<repo> --name-only
 
 # 全差分
-gh pr diff <number>
+gh pr diff <number> -R <owner>/<repo>
 ```
 
 **レビューコメント (インライン):**
@@ -169,13 +171,13 @@ query {
 **PR コメント (一般):**
 
 ```bash
-gh pr view <number> --json comments --jq '.comments[] | "\(.author.login): \(.body)"'
+gh pr view <number> -R <owner>/<repo> --json comments --jq '.comments[] | "\(.author.login): \(.body)"'
 ```
 
-**関連 Issue:** PR description に `#<number>` や `Closes #<number>` の参照があれば取得する。
+**関連 Issue:** PR description に `#<number>` や `Closes #<number>` の参照があれば取得する。`#<number>` は **PR を所有するリポジトリの Issue 番号**であり、現在のチェックアウトの Issue ではない。`-R` を省略すると別リポジトリの無関係な Issue を取得してしまうため必ず指定する (Issue の URL が直接参照されている場合はその URL を渡してもよい)。
 
 ```bash
-gh issue view <number> --json title,body,labels
+gh issue view <number> -R <owner>/<repo> --json title,body,labels
 ```
 
 ### 3. 背景の探索
