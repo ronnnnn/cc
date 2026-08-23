@@ -66,15 +66,18 @@ TaskCreate({ subject: "出力", description: "コマンドラインに出力、�
 
 ```bash
 # URL 形式: https://github.com/owner/repo/pull/123
-# owner, repo, number を URL から抽出し、以降の gh コマンドに -R <owner>/<repo> として渡す
+# owner, repo, number を URL から抽出し、抽出した owner/repo を -R で明示する
+gh pr view <number> -R <owner>/<repo> --json number,title,url,baseRefName,headRefName --jq '{number, title, url, baseRefName, headRefName}'
 
 # 番号形式: 123 または #123
-# 現在のリポジトリの PR として扱う
+# 現在のリポジトリの PR として扱う (この時点では owner/repo が未確定のため -R を付けない)
 gh pr view <number> --json number,title,url,baseRefName,headRefName --jq '{number, title, url, baseRefName, headRefName}'
 
-# owner/repo を取得 (番号形式の場合、GraphQL クエリで使用)
+# owner/repo を取得 (番号形式の場合。以降の全 gh コマンドとサブクエリで使用する)
 gh repo view --json owner,name --jq '"\(.owner.login)/\(.name)"'
 ```
+
+**確定した `<owner>/<repo>` は以降のすべての `gh` 呼び出しで `-R` に渡す。** fork と upstream の両方をリモートに持つクローンでは、`-R` を省略した番号解決が Step 1 で選んだリポジトリとは別のリポジトリに当たりうる。特に fork 側に同番号の PR が存在すると、Step 3 のリビジョン比較が誤って「一致」と判定し、意図した upstream の PR ではなく現在のワークツリーを分析してしまう。
 
 URL から owner/repo を抽出できない場合は、現在のリポジトリの owner/repo を使用する。
 
@@ -192,7 +195,7 @@ gh issue view <number> -R <owner>/<repo> --json title,body,labels
 
 ```bash
 # PR の head SHA と現在の HEAD を比較し、作業ツリーの汚れも確認する
-PR_SHA=$(gh pr view <number> --json headRefOid --jq '.headRefOid')
+PR_SHA=$(gh pr view <number> -R <owner>/<repo> --json headRefOid --jq '.headRefOid')
 CUR_SHA=$(git rev-parse HEAD)
 DIRTY=$(git status --porcelain)
 ```
