@@ -212,15 +212,31 @@ DIRTY=$(git status --porcelain)
 
 `pull/<number>/head` は **その PR を所有するリポジトリにしか存在しない ref** である。`origin` をハードコードすると、base remote を `upstream` と名付けているクローン、`origin` が無いクローン、`origin` がフォークを指すクローンでフェッチが解決できず、不要にフォールバックしてしまう。Step 1 で確定した `<owner>/<repo>` からフェッチ先を導出する:
 
+リモートの照合は **正規化したうえで完全一致**させる。部分一致で探すと、対象が `acme/app` のときに `acme/app-fork` を指すリモートを拾ってしまい、そのリポジトリに同番号の PR があればフェッチが成功してしまう:
+
 ```bash
-# <owner>/<repo> を指すリモート名を探し、無ければ URL を直接フェッチ先にする
-REMOTE=$(git remote -v | awk -v r="<owner>/<repo>" '$2 ~ r { print $1; exit }')
+# <owner>/<repo> を指すリモートを、URL を正規化したうえで完全一致で探す
+REMOTE=""
+for r in $(git remote); do
+  # git@host:owner/repo.git と https://host/owner/repo.git の双方を owner/repo に正規化する
+  NORM=$(git remote get-url "$r" | sed -E 's#^(git@[^:]+:|https?://([^@/]+@)?[^/]+/)##; s#/*$##; s#\.git$##')
+  if [ "$NORM" = "<owner>/<repo>" ]; then REMOTE="$r"; break; fi
+done
 FETCH_TARGET="${REMOTE:-https://github.com/<owner>/<repo>.git}"
 
-# PR の head をフェッチして一時 worktree を作る
-WORKTREE_DIR=$(mktemp -d)/pr-<number>
+# PR の head をフェッチする
 git fetch "$FETCH_TARGET" "pull/<number>/head"
-git worktree add --detach "$WORKTREE_DIR" FETCH_HEAD
+
+# フェッチした head が目的の PR のものか必ず照合する (リモート選択を誤っていた場合の最後の砦)
+FETCHED_SHA=$(git rev-parse FETCH_HEAD)
+if [ "$FETCHED_SHA" != "$PR_SHA" ]; then
+  # 無関係な head を掴んでいる。worktree は作らずフォールバックへ
+  echo "fetched head ($FETCHED_SHA) != PR head ($PR_SHA)" >&2
+fi
+
+# 照合できた場合のみ一時 worktree を作る
+WORKTREE_DIR=$(mktemp -d)/pr-<number>
+git worktree add --detach "$WORKTREE_DIR" "$PR_SHA"
 
 # 探索は $WORKTREE_DIR 配下のファイルに対して行う
 
@@ -228,7 +244,9 @@ git worktree add --detach "$WORKTREE_DIR" FETCH_HEAD
 git worktree remove "$WORKTREE_DIR" --force
 ```
 
-worktree の作成に失敗した場合 (shallow clone、権限、ディスク等) は、**LSP 探索を諦めて Grep と Read に切り替え、解説の「前提となる仕組み」に「現在のチェックアウトを基準に読んでいるため、PR head との差異がある可能性がある」と明示する**。誤った分析を黙って出さないことを優先する。
+**`FETCH_HEAD` をそのまま worktree に渡さず、照合済みの `$PR_SHA` を渡す。** リモート選択やフェッチが意図とずれていた場合、`FETCH_HEAD` は無関係なコミットを指しうるが、`$PR_SHA` は Step 3 冒頭で PR から直接取得した値なので取り違えが起きない。
+
+**フェッチした SHA の照合に失敗した場合、または worktree の作成に失敗した場合** (shallow clone、権限、ディスク等) は、**LSP 探索を諦めて Grep と Read に切り替え、解説の「前提となる仕組み」に「現在のチェックアウトを基準に読んでいるため、PR head との差異がある可能性がある」と明示する**。誤った分析を黙って出さないことを優先する。
 
 #### 探索対象
 
