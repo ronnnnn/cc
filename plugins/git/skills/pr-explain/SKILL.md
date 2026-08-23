@@ -65,17 +65,26 @@ TaskCreate({ subject: "出力", description: "コマンドラインに出力、�
 引数が渡された場合、PR として特定する。URL 形式と番号形式の両方に対応する:
 
 ```bash
-# URL 形式: https://github.com/owner/repo/pull/123
-# owner, repo, number を URL から抽出し、抽出した owner/repo を -R で明示する
-gh pr view <number> -R <owner>/<repo> --json number,title,url,baseRefName,headRefName --jq '{number, title, url, baseRefName, headRefName}'
+# URL 形式: https://<host>/owner/repo/pull/123
+# host, owner, repo, number をすべて URL から抽出する。
+# gh の --repo は [HOST/]OWNER/REPO 形式を受け付けるため、host も含めて渡す。
+# host を落とすと gh はチェックアウトのホスト (または GH_HOST) で解決するため、
+# GitHub Enterprise の PR を別ホストのクローンから解説したときに、
+# 参照が失敗するか別ホストの同名リポジトリを掴んでしまう。
+gh pr view <number> -R <host>/<owner>/<repo> --json number,title,url,baseRefName,headRefName --jq '{number, title, url, baseRefName, headRefName}'
+
+# URL をそのまま渡す形でもよい (host の解決を gh に任せられる)
+gh pr view <pr-url> --json number,title,url,baseRefName,headRefName --jq '{number, title, url, baseRefName, headRefName}'
 
 # 番号形式: 123 または #123
-# 現在のリポジトリの PR として扱う (この時点では owner/repo が未確定のため -R を付けない)
+# 現在のリポジトリの PR として扱う (この時点では host/owner/repo が未確定のため -R を付けない)
 gh pr view <number> --json number,title,url,baseRefName,headRefName --jq '{number, title, url, baseRefName, headRefName}'
 
-# owner/repo を取得 (番号形式の場合。以降の全 gh コマンドとサブクエリで使用する)
-gh repo view --json owner,name --jq '"\(.owner.login)/\(.name)"'
+# host/owner/repo を取得 (番号形式の場合。以降の全 gh コマンドとサブクエリで使用する)
+gh repo view --json owner,name,url --jq '"\(.url | sub("^https?://"; "") | split("/")[0])/\(.owner.login)/\(.name)"'
 ```
+
+以降の本ドキュメントでは、この 3 つを合わせた値を `<host>/<owner>/<repo>` と表記する。GraphQL クエリや REST パスに埋め込む際は `<owner>` と `<repo>` のみを使う (ホストは `gh` の接続先設定で決まる)。
 
 **確定した `<owner>/<repo>` は以降のすべての `gh pr` / `gh issue` 呼び出しで `-R` に渡す** (`gh api` は `-R` を受け付けないため、クエリまたはパスでリポジトリを指定する)。fork と upstream の両方をリモートに持つクローンでは、`-R` を省略した番号解決が Step 1 で選んだリポジトリとは別のリポジトリに当たりうる。特に fork 側に同番号の PR が存在すると、Step 3 のリビジョン比較が誤って「一致」と判定し、意図した upstream の PR ではなく現在のワークツリーを分析してしまう。
 
@@ -110,35 +119,35 @@ URL から owner/repo を抽出できない場合は、現在のリポジトリ�
 
 ### 2. PR 情報の収集
 
-**`gh pr` / `gh issue` サブコマンドには必ず `-R <owner>/<repo>` を渡す。** これらはリポジトリを省略すると現在のチェックアウトから解決するため、外部リポジトリの PR や、別リポジトリのクローン内で実行した場合に **無関係なリポジトリの情報を取得してしまう**。Step 1 で確定した `<owner>/<repo>` を必ず明示する。
+**`gh pr` / `gh issue` サブコマンドには必ず `-R <host>/<owner>/<repo>` を渡す** (`--repo` は `[HOST/]OWNER/REPO` 形式を受け付ける。ホストを省くと `gh` がチェックアウトのホストや `GH_HOST` で解決してしまう)。 これらはリポジトリを省略すると現在のチェックアウトから解決するため、外部リポジトリの PR や、別リポジトリのクローン内で実行した場合に **無関係なリポジトリの情報を取得してしまう**。Step 1 で確定した `<owner>/<repo>` を必ず明示する。
 
-**`gh api` は `-R` / `--repo` フラグを持たない** (`gh api <endpoint> [flags]`)。付けると unknown flag で失敗するため、リポジトリは次のいずれかで指定する:
+**`gh api` は `-R` / `--repo` フラグを持たない** (`gh api <endpoint> [flags]`)。付けると unknown flag で失敗するため、リポジトリとホストは次のように指定する:
 
-- GraphQL: クエリ内の `repository(owner: "<owner>", name: "<repo>")` 引数
-- REST: エンドポイントのパス (`repos/<owner>/<repo>/...`)
+- リポジトリ — GraphQL: クエリ内の `repository(owner: "<owner>", name: "<repo>")` 引数 / REST: エンドポイントのパス (`repos/<owner>/<repo>/...`)
+- ホスト — `--hostname <host>` フラグ。`<host>` が既定の接続先 (通常 `github.com`) と異なる場合、GitHub Enterprise では必ず指定する
 
 以下の情報を **並列で** 収集する:
 
 **PR メタデータと description:**
 
 ```bash
-gh pr view <number> -R <owner>/<repo> --json title,body,author,baseRefName,headRefName,labels,additions,deletions,changedFiles,createdAt
+gh pr view <number> -R <host>/<owner>/<repo> --json title,body,author,baseRefName,headRefName,labels,additions,deletions,changedFiles,createdAt
 ```
 
 **コミット履歴:**
 
 ```bash
-gh pr view <number> -R <owner>/<repo> --json commits --jq '.commits[] | "\(.oid[0:7]) \(.messageHeadline)\n\(.messageBody)"'
+gh pr view <number> -R <host>/<owner>/<repo> --json commits --jq '.commits[] | "\(.oid[0:7]) \(.messageHeadline)\n\(.messageBody)"'
 ```
 
 **コード差分:**
 
 ```bash
 # 変更ファイル一覧
-gh pr diff <number> -R <owner>/<repo> --name-only
+gh pr diff <number> -R <host>/<owner>/<repo> --name-only
 
 # 全差分
-gh pr diff <number> -R <owner>/<repo>
+gh pr diff <number> -R <host>/<owner>/<repo>
 ```
 
 **レビューコメント (インライン):**
@@ -179,7 +188,7 @@ query {
 **PR コメント (一般):**
 
 ```bash
-gh pr view <number> -R <owner>/<repo> --json comments --jq '.comments[] | "\(.author.login): \(.body)"'
+gh pr view <number> -R <host>/<owner>/<repo> --json comments --jq '.comments[] | "\(.author.login): \(.body)"'
 ```
 
 **関連 Issue:** PR description に Issue 参照があれば取得する。参照の書き方は 3 種類あり、**それぞれ解決先のリポジトリが異なる**。番号だけを見て一律に PR のリポジトリへ問い合わせると、無関係な Issue を取得したり意図した背景を取りこぼしたりする:
@@ -192,10 +201,10 @@ gh pr view <number> -R <owner>/<repo> --json comments --jq '.comments[] | "\(.au
 
 ```bash
 # 同一リポジトリの参照 (#123)
-gh issue view <number> -R <owner>/<repo> --json title,body,labels
+gh issue view <number> -R <host>/<owner>/<repo> --json title,body,labels
 
 # クロスリポジトリ短縮形 (other-owner/other-repo#123) は修飾子をパースして -R に渡す
-gh issue view <number> -R <other-owner>/<other-repo> --json title,body,labels
+gh issue view <number> -R <other-host>/<other-owner>/<other-repo> --json title,body,labels
 
 # フル URL はそのまま渡せる
 gh issue view <issue-url> --json title,body,labels
@@ -215,7 +224,7 @@ gh issue view <issue-url> --json title,body,labels
 
 ```bash
 # PR の head SHA と現在の HEAD を比較し、作業ツリーの汚れも確認する
-PR_SHA=$(gh pr view <number> -R <owner>/<repo> --json headRefOid --jq '.headRefOid')
+PR_SHA=$(gh pr view <number> -R <host>/<owner>/<repo> --json headRefOid --jq '.headRefOid')
 CUR_SHA=$(git rev-parse HEAD)
 DIRTY=$(git status --porcelain)
 ```
@@ -241,7 +250,7 @@ DIRTY=$(git status --porcelain)
 
 ```bash
 # PR URL からホストを取り出す (例: https://github.com/acme/app/pull/1 -> github.com)
-PR_HOST=$(gh pr view <number> -R <owner>/<repo> --json url --jq '.url' | sed -E 's#^https?://([^/]+)/.*#\1#')
+PR_HOST=$(gh pr view <number> -R <host>/<owner>/<repo> --json url --jq '.url' | sed -E 's#^https?://([^/]+)/.*#\1#')
 
 # <host>/<owner>/<repo> を指すリモートを、URL を正規化したうえで完全一致で探す
 REMOTE=""
@@ -280,13 +289,15 @@ git worktree remove "$WORKTREE_DIR" --force
 
 **削除を含む変更では base リビジョンの worktree も作る。** PR がファイルやシンボルを削除している場合、head 側の worktree には削除後のコードしかないため、**消えた定義には `findReferences` / `incomingCalls` / `goToDefinition` を実行する起点が存在しない**。「なぜ現設計だったか」「削除されたコードの呼び出し元がどう処理されたか」は base 側でしか調べられない:
 
-```bash
-# 削除されたファイル・シンボルがあるかを先に確認する
-gh pr diff <number> -R <owner>/<repo> --name-status | grep '^D' || true
+`gh pr diff` に `--name-status` は無い (対応フラグは `--name-only` / `--patch` / `--web` / `--color` / `--exclude` など)。削除の有無は REST API の `files` エンドポイントで判定する:
 
-# 削除がある場合のみ、base リビジョンの worktree も作る
-BASE_SHA=$(gh pr view <number> -R <owner>/<repo> --json baseRefOid --jq '.baseRefOid')
-BASE_REF=$(gh pr view <number> -R <owner>/<repo> --json baseRefName --jq '.baseRefName')
+```bash
+# 削除されたファイルを列挙する (status は added / removed / modified / renamed など)
+DELETED=$(gh api --hostname <host> repos/<owner>/<repo>/pulls/<number>/files --paginate --jq '.[] | select(.status == "removed") | .filename')
+
+# $DELETED が空でない場合のみ、base リビジョンの worktree も作る
+BASE_SHA=$(gh pr view <number> -R <host>/<owner>/<repo> --json baseRefOid --jq '.baseRefOid')
+BASE_REF=$(gh pr view <number> -R <host>/<owner>/<repo> --json baseRefName --jq '.baseRefName')
 git fetch "$FETCH_TARGET" "$BASE_REF"
 BASE_WORKTREE_DIR=$(mktemp -d)/pr-<number>-base
 git worktree add --detach "$BASE_WORKTREE_DIR" "$BASE_SHA"
