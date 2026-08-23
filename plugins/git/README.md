@@ -14,7 +14,7 @@ Git/GitHub 操作を効率化する Claude Code plugin です。
 | `/git:pr-fix`              | レビュー指摘を修正 (妥当性判断、コミット/返信前に承認)          |
 | `/git:pr-update`           | PR のタイトルと description を最新化                            |
 | `/git:japanese-text-style` | 日本語テキストのスペース・句読点・括弧・文体ルール              |
-| `/git:pr-explain`          | PR の変更内容を包括的に収集・分析し、丁寧に解説                 |
+| `/git:pr-explain`          | PR の変更内容を包括的に収集・分析し、丁寧に解説 (`--html` 対応) |
 | `/git:pr-ci`               | CI 失敗の調査・修正 (ci-analyzer subagent で原因分析)           |
 | `/git:pr-status`           | PR のステータス (CI、レビュー、マージ可否) を簡潔に報告         |
 | `/git:pr-watch`            | PR を定期監視し、レビュー/CI 失敗を自動修正・コミット・プッシュ |
@@ -148,16 +148,27 @@ claude plugin install git@cc --scope project
 ```bash
 /git:pr-explain https://github.com/owner/repo/pull/123  # URL で指定
 /git:pr-explain 123                                      # PR 番号で指定
+/git:pr-explain                                          # ローカル変更 → PR → 直近コミットの優先度で対象を決定
+/git:pr-explain 123 --html                               # 解説を HTML ドキュメントとして出力
 ```
 
 **ワークフロー:**
 
 1. PR のメタデータ、description、diff、レビューコメント、PR コメントを包括的に収集
-2. 変更対象のコードを読み、文脈を把握
+2. 変更対象の**呼び出し元・依存先・型定義・テスト**を LSP で探索し、diff に映っていない既存システムを把握
 3. 以下の構造で丁寧に解説:
    - **対応概要**: 変更内容を簡潔に説明
-   - **背景説明**: なぜその変更をしたか
+   - **背景説明**: 前提となる仕組み (読み飛ばし可) と、この変更の動機
+   - **直感**: トイデータの Before/After で「何が本質的に変わったか」を提示
    - **実装説明**: 処理の流れを理解しやすい順序で解説
+4. `--html` 指定時は解説を中間 md に書き出し、**`dev:docs-html` に委譲**して単一 HTML を生成 (未導入時はコマンドライン出力にフォールバック)
+
+**出力形態:**
+
+| 指定              | 出力                                                         |
+| ----------------- | ------------------------------------------------------------ |
+| なし (デフォルト) | コマンドラインに Markdown で出力。ファイルは作成しない       |
+| `--html`          | `dev:docs-html` 経由で図解付きの単一 HTML ドキュメントを生成 |
 
 ### PR ステータス確認
 
@@ -244,7 +255,9 @@ git/
 │   ├── japanese-text-style/
 │   │   └── SKILL.md         # 日本語テキストスタイルガイド
 │   ├── pr-explain/
-│   │   └── SKILL.md         # PR 解説スキル
+│   │   ├── SKILL.md         # PR 解説スキル
+│   │   └── references/
+│   │       └── writing-guide.md  # 解説の文体・図示ガイド
 │   ├── pr-ci/
 │   │   └── SKILL.md         # CI 失敗の調査・修正スキル
 │   ├── pr-watch/
