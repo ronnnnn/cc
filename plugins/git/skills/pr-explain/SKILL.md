@@ -218,8 +218,13 @@ DIRTY=$(git status --porcelain)
 # <owner>/<repo> を指すリモートを、URL を正規化したうえで完全一致で探す
 REMOTE=""
 for r in $(git remote); do
-  # git@host:owner/repo.git と https://host/owner/repo.git の双方を owner/repo に正規化する
-  NORM=$(git remote get-url "$r" | sed -E 's#^(git@[^:]+:|https?://([^@/]+@)?[^/]+/)##; s#/*$##; s#\.git$##')
+  # 以下をすべて owner/repo に正規化する:
+  #   ssh://git@host/owner/repo.git    (スキーム付き SSH。ポート付きも可)
+  #   https://host/owner/repo.git      (HTTP(S)。user@ 付きも可)
+  #   git://host/owner/repo.git        (その他スキーム)
+  #   git@host:owner/repo.git          (SCP 形式)
+  NORM=$(git remote get-url "$r" \
+    | sed -E 's#^[a-zA-Z][a-zA-Z0-9+.-]*://([^@/]+@)?[^/]+/##; s#^[^/]+@[^:/]+:##; s#/*$##; s#\.git$##')
   if [ "$NORM" = "<owner>/<repo>" ]; then REMOTE="$r"; break; fi
 done
 FETCH_TARGET="${REMOTE:-https://github.com/<owner>/<repo>.git}"
