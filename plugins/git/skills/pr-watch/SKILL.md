@@ -64,16 +64,16 @@ Monitor ツールの利用可否によって監視方式を切り替える。
 
 Monitor スクリプトが stdout に出力するイベント。各行が 1 イベント。
 
-| イベント                                   | 意味                                                                      | 対応                        |
-| ------------------------------------------ | ------------------------------------------------------------------------- | --------------------------- |
-| `NEW_REVIEWS\|thread_id1,thread_id2`       | 新しい未解決レビュースレッドを検出                                        | レビュー修正を実行 (3a)     |
-| `NEW_REVIEW_BODIES\|review_id1,review_id2` | 新しい未対応のレビュー本文 (inline コメントを伴わない review body) を検出 | レビュー修正を実行 (3a)     |
-| `CI_FAIL\|run_id1,run_id2`                 | CI 失敗を検出 (全 run 完了後、run ID のみ)                                | CI 修正を実行 (3b)          |
-| `PR_MERGED`                                | PR がマージされた                                                         | 監視終了 → 完了報告 (4)     |
-| `PR_CLOSED`                                | PR がクローズされた                                                       | 監視終了 → 完了報告 (4)     |
-| `PR_CONFLICT`                              | コンフリクトが発生した                                                    | コンフリクト解消を実行 (3d) |
-| `TIMEOUT_IDLE\|Xmin`                       | アイドルタイムアウト (30 分)                                              | 監視終了 → 完了報告 (4)     |
-| `TIMEOUT_ABS\|Xmin`                        | 絶対タイムアウト (60 分) または API エラー 3 サイクル連続                 | 監視終了 → 完了報告 (4)     |
+| イベント                                   | 意味                                                                                                                                       | 対応                        |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------- |
+| `NEW_REVIEWS\|thread_id1,thread_id2`       | 新しい未解決レビュースレッドを検出                                                                                                         | レビュー修正を実行 (3a)     |
+| `NEW_REVIEW_BODIES\|review_id1,review_id2` | 新しい未対応のレビュー本文 (inline コメントを伴わない review body。inline コメント付きレビューの本文はスレッド側で対応するため除外) を検出 | レビュー修正を実行 (3a)     |
+| `CI_FAIL\|run_id1,run_id2`                 | CI 失敗を検出 (全 run 完了後、run ID のみ)                                                                                                 | CI 修正を実行 (3b)          |
+| `PR_MERGED`                                | PR がマージされた                                                                                                                          | 監視終了 → 完了報告 (4)     |
+| `PR_CLOSED`                                | PR がクローズされた                                                                                                                        | 監視終了 → 完了報告 (4)     |
+| `PR_CONFLICT`                              | コンフリクトが発生した                                                                                                                     | コンフリクト解消を実行 (3d) |
+| `TIMEOUT_IDLE\|Xmin`                       | アイドルタイムアウト (30 分)                                                                                                               | 監視終了 → 完了報告 (4)     |
+| `TIMEOUT_ABS\|Xmin`                        | 絶対タイムアウト (60 分) または API エラー 3 サイクル連続                                                                                  | 監視終了 → 完了報告 (4)     |
 
 ## 状態管理
 
@@ -223,12 +223,13 @@ while true; do
                 }
               }
             }
-            reviews(first: 100) {
+            reviews(last: 100) {
               nodes {
                 id
                 state
                 body
                 author { login }
+                comments(first: 1) { totalCount }
                 reactionGroups { content viewerHasReacted }
               }
             }
@@ -259,12 +260,15 @@ while true; do
       fi
       PREV_THREADS="$CT"
 
-      # 未対応レビュー本文の抽出 (inline コメントを伴わない review body。body あり・自分以外・👍 未付与)
+      # 未対応レビュー本文の抽出 (inline コメントを伴わない review body。
+      # body あり・author あり・自分以外・inline コメント 0 件・👍 未付与)
       RV=$(echo "$TJ" | jq -r --arg m "$MY_LOGIN" \
         '[.data.repository.pullRequest.reviews.nodes[]
           | select(.state != "PENDING" and .state != "DISMISSED")
           | select(.body != null and .body != "")
+          | select(.author != null)
           | select(.author.login != $m)
+          | select(.comments.totalCount == 0)
           | select(([.reactionGroups[]? | select(.content == "THUMBS_UP" and .viewerHasReacted)] | length) == 0)
           | .id] | sort | join(",")')
 
@@ -416,7 +420,7 @@ gh pr view <number> --json state,mergeable,headRefOid --jq '{state, mergeable, h
 
 **レビュー本文差分計算 (Monitor 側 `PREV_REVIEWS` ロジックの再現):**
 
-1. `reviews` のうち、`state` が `PENDING` / `DISMISSED` 以外、`body` が空でない、投稿者が `MY_LOGIN` 以外、かつ自分が 👍 リアクション未付与 (`reactionGroups` の `THUMBS_UP` で `viewerHasReacted == false`) のレビュー ID を抽出し、カンマ区切り文字列 (現在スナップショット `CURRENT_REVIEWS`) を作る
+1. `reviews` のうち、`state` が `PENDING` / `DISMISSED` 以外、`body` が空でない、`author` が null でない (削除ユーザー等を除外)、投稿者が `MY_LOGIN` 以外、inline コメント 0 件 (`comments.totalCount == 0`。inline コメントを伴うレビューはスレッド側で対応)、かつ自分が 👍 リアクション未付与 (`reactionGroups` の `THUMBS_UP` で `viewerHasReacted == false`) のレビュー ID を抽出し、カンマ区切り文字列 (現在スナップショット `CURRENT_REVIEWS`) を作る
 2. 現在スナップショットの各 ID が `PREV_REVIEWS` に含まれていないものを「新規レビュー本文」とし、その review_id のみをステップ 3a の処理対象として渡す (Monitor の `NEW_REVIEW_BODIES` と同等のセマンティクス)
 3. 処理対象が 1 件以上あれば `HAD_ACTIVITY = true` とし、ステップ 3a を実行する
 4. サイクル末尾で `PREV_REVIEWS = CURRENT_REVIEWS` に更新する (3a の実行可否や成功可否に関わらず保存)
@@ -507,13 +511,14 @@ query {
           }
         }
       }
-      reviews(first: 100) {
+      reviews(last: 100) {
         nodes {
           id
           state
           body
           url
           author { login }
+          comments(first: 1) { totalCount }
         }
       }
     }
@@ -889,7 +894,7 @@ Monitor が予期せず停止した場合 (スクリプトエラー等)、状態
 - 再初期化する状態: `WATCH_MODE = "polling"`、`MONITOR_ID = null`、`START_TIME = $(date +%s)` (ポーリング側のタイムアウト基準を移行時点にリセット)、`HAD_ACTIVITY = false`、`CYCLE_COUNT = 0`、`API_ERROR_STREAK = 0`、`PREV_CONFLICT = false` (ポーリング固有の状態を新規開始)
 - 移行直前にスナップショットを取得して初期化する状態 (Monitor モードで処理済みのスレッド/CI/コミットを再処理しないため):
   - `PREV_THREADS`: 移行直前に `gh api graphql` で現在の未解決スレッドを取得し、`<thread_id>:<comment_count>` 形式でカンマ区切り文字列として設定する。これにより Monitor モードで対応済みだが resolve 失敗で残っているスレッドは初回ポーリングサイクルで「既知」として重複処理を回避できる (resolve はステップ 3a 内で再試行)。新規スレッドやコメント追加されたスレッドのみが差分として検出される
-  - `PREV_REVIEWS`: 移行直前に同じ GraphQL クエリで現在の未対応レビュー本文 (body あり・自分以外・👍 未付与) の ID を取得し、カンマ区切り文字列として設定する
+  - `PREV_REVIEWS`: 移行直前に同じ GraphQL クエリで現在の未対応レビュー本文 (body あり・author あり・自分以外・inline コメント 0 件・👍 未付与) の ID を取得し、カンマ区切り文字列として設定する
   - `PREV_SHA`: 移行直前に `gh pr view --json headRefOid` で取得して設定 (新コミット検出基準を移行時点に揃える)
   - `PREV_CI_FAILS`: 移行直前に `gh run list --commit "$PREV_SHA" --json databaseId,status,conclusion -L 50` で取得し、全 run 完了済みなら `conclusion == "failure"` の run ID をソート済みカンマ区切りで設定。`in_progress` / `queued` が含まれる場合は空文字のままとする
 - 移行をユーザーに一行で報告した後、ステップ 2B のサイクルに合流する

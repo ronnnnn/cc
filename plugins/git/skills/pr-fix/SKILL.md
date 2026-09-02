@@ -98,7 +98,11 @@ query {
           }
         }
       }
-      reviews(first: 100) {
+      reviews(last: 100) {
+        pageInfo {
+          hasPreviousPage
+          startCursor
+        }
         nodes {
           id
           databaseId
@@ -106,6 +110,9 @@ query {
           body
           url
           author { login }
+          comments(first: 1) {
+            totalCount
+          }
           reactionGroups {
             content
             viewerHasReacted
@@ -130,8 +137,12 @@ inline コメントに紐づかない指摘 (PR 画面で `#pullrequestreview-<i
 
 1. `state` が `PENDING` または `DISMISSED` のレビューは除外する
 2. `body` が空のレビューは除外する (本文なしの approve / comment 等)
-3. `author.login` が `MY_LOGIN` と一致するレビューは除外する
-4. 自分が 👍 リアクション済み (`reactionGroups` の `content == "THUMBS_UP"` かつ `viewerHasReacted == true`) のレビューは対応済みとして除外する
+3. `author` が null のレビューは除外する (削除ユーザー等。返信時のメンション先が存在しないため)
+4. `author.login` が `MY_LOGIN` と一致するレビューは除外する
+5. `comments.totalCount > 0` (inline コメントを伴うレビュー) は除外する (指摘の実体は inline スレッド側で対応するため。二重返信を防ぐ)
+6. 自分が 👍 リアクション済み (`reactionGroups` の `content == "THUMBS_UP"` かつ `viewerHasReacted == true`) のレビューは対応済みとして除外する
+
+**取得件数の注意:** `reviews` は作成日時の昇順で返るため、最新側を優先する `last: 100` を使用する。レビューが 100 件を超える PR では `pageInfo.hasPreviousPage` を確認し、`startCursor` を `before` に渡して前のページも取得して全件確認する。
 
 ### 3. レビューコメントの分析とファクトチェック
 
