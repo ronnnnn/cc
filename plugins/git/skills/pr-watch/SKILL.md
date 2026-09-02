@@ -31,7 +31,7 @@ PR のレビューコメントと CI 失敗を監視し、検出次第自動で�
 4. **コミットメッセージは commit-proposer subagent で生成する** - Conventional Commits / commitlint 設定に準拠
 5. **コミットメッセージ・返信コメントの言語は対象リポジトリに従う** - 既存の PR やコミット履歴を確認し、使用されている言語に合わせる
 6. **日本語でコミットメッセージ・返信コメントを書く場合は `japanese-text-style` スキルに従う**
-7. **対応不要と判断したレビューコメントは理由を返信して resolve する**
+7. **対応不要と判断した指摘にも理由を返信して対応済みにする** - inline スレッドは理由を返信して resolve する。inline コメントを伴わないレビュー本文 (review body) はスレッドが存在しないため resolve せず、PR コメントで返信して 👍 リアクションで対応済みマークを付ける
 8. **コンフリクトを検出したら自動で解消して監視を継続する**
 9. **修正で PR の実態が変わった場合のみ、タイトル・description を自動更新する** - 軽微な修正 (typo、lint、フォーマット) では更新しない。テンプレートや既存フォーマットを維持する
 
@@ -64,15 +64,16 @@ Monitor ツールの利用可否によって監視方式を切り替える。
 
 Monitor スクリプトが stdout に出力するイベント。各行が 1 イベント。
 
-| イベント                             | 意味                                                      | 対応                        |
-| ------------------------------------ | --------------------------------------------------------- | --------------------------- |
-| `NEW_REVIEWS\|thread_id1,thread_id2` | 新しい未解決レビュースレッドを検出                        | レビュー修正を実行 (3a)     |
-| `CI_FAIL\|run_id1,run_id2`           | CI 失敗を検出 (全 run 完了後、run ID のみ)                | CI 修正を実行 (3b)          |
-| `PR_MERGED`                          | PR がマージされた                                         | 監視終了 → 完了報告 (4)     |
-| `PR_CLOSED`                          | PR がクローズされた                                       | 監視終了 → 完了報告 (4)     |
-| `PR_CONFLICT`                        | コンフリクトが発生した                                    | コンフリクト解消を実行 (3d) |
-| `TIMEOUT_IDLE\|Xmin`                 | アイドルタイムアウト (30 分)                              | 監視終了 → 完了報告 (4)     |
-| `TIMEOUT_ABS\|Xmin`                  | 絶対タイムアウト (60 分) または API エラー 3 サイクル連続 | 監視終了 → 完了報告 (4)     |
+| イベント                                   | 意味                                                                                                                                       | 対応                        |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------- |
+| `NEW_REVIEWS\|thread_id1,thread_id2`       | 新しい未解決レビュースレッドを検出                                                                                                         | レビュー修正を実行 (3a)     |
+| `NEW_REVIEW_BODIES\|review_id1,review_id2` | 新しい未対応のレビュー本文 (inline コメントを伴わない review body。inline コメント付きレビューの本文はスレッド側で対応するため除外) を検出 | レビュー修正を実行 (3a)     |
+| `CI_FAIL\|run_id1,run_id2`                 | CI 失敗を検出 (全 run 完了後、run ID のみ)                                                                                                 | CI 修正を実行 (3b)          |
+| `PR_MERGED`                                | PR がマージされた                                                                                                                          | 監視終了 → 完了報告 (4)     |
+| `PR_CLOSED`                                | PR がクローズされた                                                                                                                        | 監視終了 → 完了報告 (4)     |
+| `PR_CONFLICT`                              | コンフリクトが発生した                                                                                                                     | コンフリクト解消を実行 (3d) |
+| `TIMEOUT_IDLE\|Xmin`                       | アイドルタイムアウト (30 分)                                                                                                               | 監視終了 → 完了報告 (4)     |
+| `TIMEOUT_ABS\|Xmin`                        | 絶対タイムアウト (60 分) または API エラー 3 サイクル連続                                                                                  | 監視終了 → 完了報告 (4)     |
 
 ## 状態管理
 
@@ -87,6 +88,7 @@ Monitor スクリプトが stdout に出力するイベント。各行が 1 イ�
 - `HAD_ACTIVITY`: false (レビュー/CI 失敗/コンフリクト等の活動を一度でも検出したら true。ポーリングモードでアイドルタイムアウト判定に使用)
 - `CYCLE_COUNT`: 実行サイクル数 (ポーリングモードのみ)
 - `PREV_THREADS`: 前回サイクルで観測した未解決スレッドのスナップショット (ポーリングモードのみ。`"<thread_id>:<comment_count>"` をカンマ区切りで保持。各サイクルで現在のスナップショットと差分を取り、新規/コメント追加されたスレッド ID のみをステップ 3a の処理対象として渡す)
+- `PREV_REVIEWS`: 前回サイクルで観測した未対応レビュー本文 (review body) の ID スナップショット (ポーリングモードのみ。GraphQL node ID をカンマ区切りで保持。差分により新規レビュー本文のみをステップ 3a の処理対象として渡す)
 - `API_ERROR_STREAK`: gh CLI / GitHub API の連続エラー回数 (ポーリングモードのみ。各サイクルで API 呼び出しが 1 つでも失敗したら +1、全成功したら 0 にリセット。3 に達したらネットワーク障害と判断して監視終了)
 - `PREV_CONFLICT`: 前回サイクルでコンフリクト検出済みかを示すフラグ (ポーリングモードのみ。`true` の間はステップ 3d を再実行しない。`mergeable != CONFLICTING` を観測したサイクルで `false` にリセット)
 - `UNFIXABLE_RUNS`: 修正不可能と判断した CI run ID のリスト (以降の処理で同じ失敗の再処理をスキップする)
@@ -94,6 +96,9 @@ Monitor スクリプトが stdout に出力するイベント。各行が 1 イ�
 - `CI_COMMITS`: CI 修正コミット数
 - `REPLIED_COMMENTS`: 返信済みコメント数
 - `RESOLVED_THREADS`: resolve 済みスレッド数
+- `HANDLED_REVIEW_BODIES`: 対応済みレビュー本文数 (👍 マーク済み)
+- `PENDING_REVIEW_REPLIES`: レビュー本文への返信投稿に失敗した review_id のリスト (返信から再試行する)
+- `PENDING_REVIEW_MARKS`: 返信は成功したが 👍 マークに失敗した review_id のリスト (👍 のみ再試行する。返信は重複するため再投稿しない)
 - `PR_UPDATES`: PR タイトル・description の更新回数
 - `CONFLICT_RESOLVES`: コンフリクト解消回数
 - `RE_REQUESTED_REVIEWERS`: レビュー再リクエスト済みユーザーのリスト
@@ -170,7 +175,7 @@ set -uo pipefail
 OWNER="<OWNER>"; REPO="<REPO>"; PR_NUMBER=<PR_NUMBER>; MY_LOGIN="<MY_LOGIN>"
 START=$(date +%s)
 IDLE_LIMIT=1800; ABS_LIMIT=3600
-PREV_THREADS=""; PREV_FAILS=""; PREV_SHA=""
+PREV_THREADS=""; PREV_REVIEWS=""; PREV_FAILS=""; PREV_SHA=""
 HAD_ACT=false; API_ERRORS=0; PREV_CONFLICT=false
 
 while true; do
@@ -205,7 +210,7 @@ while true; do
       PREV_FAILS=""
     fi
 
-    # 未解決レビュースレッド取得
+    # 未解決レビュースレッド・レビュー本文取得
     TJ=$(gh api graphql -f query='
       query {
         repository(owner: "'"$OWNER"'", name: "'"$REPO"'") {
@@ -218,6 +223,16 @@ while true; do
                   totalCount
                   nodes { author { login } }
                 }
+              }
+            }
+            reviews(last: 100) {
+              nodes {
+                id
+                state
+                body
+                author { login }
+                comments(first: 1) { totalCount }
+                reactionGroups { content viewerHasReacted }
               }
             }
           }
@@ -246,6 +261,32 @@ while true; do
         [ -n "$NEW_T" ] && echo "NEW_REVIEWS|$NEW_T" && HAD_ACT=true
       fi
       PREV_THREADS="$CT"
+
+      # 未対応レビュー本文の抽出 (inline コメントを伴わない review body。
+      # body あり・author あり・自分以外・inline コメント 0 件・👍 未付与)
+      RV=$(echo "$TJ" | jq -r --arg m "$MY_LOGIN" \
+        '[.data.repository.pullRequest.reviews.nodes[]
+          | select(.state != "PENDING" and .state != "DISMISSED")
+          | select(.body != null and .body != "")
+          | select(.author != null)
+          | select(.author.login != $m)
+          | select(.comments.totalCount == 0)
+          | select(([.reactionGroups[]? | select(.content == "THUMBS_UP" and .viewerHasReacted)] | length) == 0)
+          | .id] | sort | join(",")')
+
+      # 新規レビュー本文を抽出 (PREV_REVIEWS に含まれない ID)
+      if [ -n "$RV" ]; then
+        NEW_R=""
+        IFS=',' read -ra RV_ARR <<< "$RV"
+        for rid in "${RV_ARR[@]}"; do
+          case ",$PREV_REVIEWS," in
+            *",$rid,"*) ;; # 既知
+            *) NEW_R="${NEW_R:+$NEW_R,}$rid" ;;
+          esac
+        done
+        [ -n "$NEW_R" ] && echo "NEW_REVIEW_BODIES|$NEW_R" && HAD_ACT=true
+      fi
+      PREV_REVIEWS="$RV"
     fi
 
     # CI ステータスチェック
@@ -332,6 +373,7 @@ Monitor ツールが利用できない場合、**agent 自身がフォアグラ�
 - `HAD_ACTIVITY=false`
 - `CYCLE_COUNT=0`
 - `PREV_THREADS=""` (前回観測した未解決スレッドのスナップショット。`"<thread_id>:<comment_count>"` 形式のエントリをカンマ区切りで保持)
+- `PREV_REVIEWS=""` (前回観測した未対応レビュー本文の ID スナップショット。GraphQL node ID をカンマ区切りで保持)
 - `PREV_SHA=""` (前回観測した PR の `headRefOid`。新コミット検出時に `PREV_CI_FAILS` をリセットする判定に使用)
 - `PREV_CI_FAILS=""` (前回観測した CI 失敗 run ID のカンマ区切りスナップショット。サイクル間での重複処理を防ぐ)
 - `API_ERROR_STREAK=0` (gh CLI / GitHub API の連続エラー回数)
@@ -378,6 +420,13 @@ gh pr view <number> --json state,mergeable,headRefOid --jq '{state, mergeable, h
 3. 処理対象が 1 件以上あれば `HAD_ACTIVITY = true` とし、ステップ 3a を実行する
 4. サイクル末尾で `PREV_THREADS = CURRENT_THREADS` に更新する (3a の実行可否や成功可否に関わらず、観測した最新スナップショットを保存。次サイクル以降の重複処理を防ぐ)
 
+**レビュー本文差分計算 (Monitor 側 `PREV_REVIEWS` ロジックの再現):**
+
+1. `reviews` のうち、`state` が `PENDING` / `DISMISSED` 以外、`body` が空でない、`author` が null でない (削除ユーザー等を除外)、投稿者が `MY_LOGIN` 以外、inline コメント 0 件 (`comments.totalCount == 0`。inline コメントを伴うレビューはスレッド側で対応)、かつ自分が 👍 リアクション未付与 (`reactionGroups` の `THUMBS_UP` で `viewerHasReacted == false`) のレビュー ID を抽出し、カンマ区切り文字列 (現在スナップショット `CURRENT_REVIEWS`) を作る
+2. 現在スナップショットの各 ID が `PREV_REVIEWS` に含まれていないものを「新規レビュー本文」とし、その review_id のみをステップ 3a の処理対象として渡す (Monitor の `NEW_REVIEW_BODIES` と同等のセマンティクス)
+3. 処理対象が 1 件以上あれば `HAD_ACTIVITY = true` とし、ステップ 3a を実行する
+4. サイクル末尾で `PREV_REVIEWS = CURRENT_REVIEWS` に更新する (3a の実行可否や成功可否に関わらず保存)。スナップショットは検知の重複排除専用であり処理の完了を保証しないため、返信・👍 マークの失敗は `PENDING_REVIEW_REPLIES` / `PENDING_REVIEW_MARKS` で別途追跡して再試行する (3a 参照)
+
 **CI 失敗チェック (Monitor 側 `PREV_FAILS` ロジックの再現):**
 
 1. `gh run list --commit "$CURRENT_SHA" -R "$OWNER/$REPO" --json databaseId,status,conclusion,name -L 50` で当該サイクルの head commit に紐づく CI run を取得する (Monitor スクリプトの `gh run list --commit "$SHA"` と同等。常に 2B-2 で取得した `CURRENT_SHA` を渡し、`PREV_SHA` は新コミット検出のための比較専用とする)
@@ -397,6 +446,7 @@ gh pr view <number> --json state,mergeable,headRefOid --jq '{state, mergeable, h
 サイクル末尾でスナップショット類を最新値に更新する (次サイクルの差分計算基準):
 
 - `PREV_THREADS = CURRENT_THREADS`
+- `PREV_REVIEWS = CURRENT_REVIEWS`
 - `PREV_CI_FAILS = CURRENT_CI_FAILS` (CI チェックがスキップされた場合は更新しない)
 - `PREV_SHA = CURRENT_SHA`
 
@@ -424,23 +474,23 @@ sleep 120
 
 修正・返信処理は Monitor モード/ポーリングモード共通のロジックを使用する:
 
-- **Monitor モード:** Monitor からの通知 (`NEW_REVIEWS` / `CI_FAIL` / `PR_CONFLICT`) を受信したら、対応するサブセクションを実行する
+- **Monitor モード:** Monitor からの通知 (`NEW_REVIEWS` / `NEW_REVIEW_BODIES` / `CI_FAIL` / `PR_CONFLICT`) を受信したら、対応するサブセクションを実行する
 - **ポーリングモード:** ステップ 2B-2 / 2B-3 のチェックで検出された項目に対して、対応するサブセクション (3a / 3b / 3c / 3d) を実行する
 
-**優先順位:** 同一通知/同一サイクル内に NEW_REVIEWS と CI_FAIL が含まれる場合、レビュー修正を先に処理する。
+**優先順位:** 同一通知/同一サイクル内に NEW_REVIEWS / NEW_REVIEW_BODIES と CI_FAIL が含まれる場合、レビュー修正を先に処理する。
 
-#### 3a. NEW_REVIEWS イベント
+#### 3a. NEW_REVIEWS / NEW_REVIEW_BODIES イベント
 
-通知に含まれるスレッド ID (Monitor モード) または、ステップ 2B-3 の差分計算で抽出された thread_id (ポーリングモード) を処理対象とする。
+通知に含まれるスレッド ID・レビュー ID (Monitor モード) または、ステップ 2B-3 の差分計算で抽出された thread_id / review_id (ポーリングモード) を処理対象とする。
 
 **重複排除:**
 
-- **Monitor モード:** Monitor スクリプトの `PREV_THREADS` で重複排除済み。イベントハンドラ側での追加フィルタは不要
-- **ポーリングモード:** ステップ 2B-3 の差分計算 (現在スナップショットと状態管理の `PREV_THREADS` の比較) で重複排除済み。3a 側での追加フィルタは不要
+- **Monitor モード:** Monitor スクリプトの `PREV_THREADS` / `PREV_REVIEWS` で重複排除済み。イベントハンドラ側での追加フィルタは不要
+- **ポーリングモード:** ステップ 2B-3 の差分計算 (現在スナップショットと状態管理の `PREV_THREADS` / `PREV_REVIEWS` の比較) で重複排除済み。3a 側での追加フィルタは不要
 
 **詳細取得:**
 
-処理対象のスレッドについて、完全なコメント情報を取得する:
+処理対象のスレッド・レビュー本文について、完全な情報を取得する:
 
 ```bash
 # <owner>, <repo>, <number> は実際の値に置き換える
@@ -463,12 +513,22 @@ query {
           }
         }
       }
+      reviews(last: 100) {
+        nodes {
+          id
+          state
+          body
+          url
+          author { login }
+          comments(first: 1) { totalCount }
+        }
+      }
     }
   }
 }'
 ```
 
-取得したスレッドのうち、処理対象の ID に一致するもののみ使用する。
+取得したスレッド・レビューのうち、処理対象の ID に一致するもののみ使用する。レビュー本文に複数の指摘が含まれる場合は指摘ごとに分解して判断する。
 
 **妥当性判断の基準:**
 
@@ -540,7 +600,7 @@ query {
    ```
 
 6. `git push` でリモートに反映する
-7. 各コメントに返信・リアクション・resolve を実行する:
+7. 各コメント・レビュー本文に返信・リアクション・resolve (スレッドのみ) を実行する:
 
    ```bash
    # 元のコメントに +1 リアクション (databaseId 使用)
@@ -565,7 +625,49 @@ query {
    }'
    ```
 
-**処理順序:** リアクション追加 → 返信投稿 → resolve。エラーが発生しても続行し、失敗を記録する。
+   **レビュー本文への対応 (スレッドが存在しない場合):** スレッド返信・resolve の代わりに、PR コメントで返信して 👍 リアクションで対応済みマークを付ける (マークを付けないと次回セッションで再処理されるため必須)。
+
+   信頼できないレビュー本文を含むため、シェルを介さず Write ツールで返信本文を一時ファイルに書き出し、`--body-file` でそのパスを渡す。シェル補間 (`--body "..."`) や heredoc は、本文中の `$()`・バッククォート・デリミタと同一の行によってローカルでコマンド実行され得るため使用しない。
+
+   まず Write ツールで `/tmp/pr-<number>-review-reply-<review_databaseId>.md` に以下の形式で書き出す:
+
+   ```markdown
+   @<reviewer>
+
+   > <元のレビュー本文の引用 (長い場合は要約)>
+
+   <返信本文>
+   ```
+
+   次に書き出したファイルのパスを渡して投稿し、👍 リアクションで対応済みマークを付ける:
+
+   ```bash
+   # 返信: PR コメントとして投稿
+   gh pr comment <number> --body-file /tmp/pr-<number>-review-reply-<review_databaseId>.md
+
+   # 対応済みマーク: レビュー本文に 👍 リアクションを追加 (GraphQL mutation)
+   # REST の reactions API はレビュー本文に対応していないため GraphQL を使用する
+   # <review_id> は reviews の id (GraphQL node ID) を使用
+   gh api graphql -F query='
+   mutation {
+     addReaction(input: {subjectId: "<review_id>", content: THUMBS_UP}) {
+       reaction { content }
+     }
+   }'
+   ```
+
+**処理順序:**
+
+- **スレッド:** 元コメントに +1 リアクション追加 → スレッドに返信投稿 → resolve
+- **レビュー本文:** PR コメントで返信投稿 → レビュー本文に 👍 リアクション追加 (対応済みマーク)
+
+エラーが発生しても続行し、失敗を記録する。
+
+**失敗時の再試行 (レビュー本文):** スナップショット (`PREV_REVIEWS`) は検知済みを記録するだけで処理の完了を保証しないため、返信と 👍 マークの成否を個別に追跡する:
+
+- 返信投稿に失敗した場合: `PENDING_REVIEW_REPLIES` に review_id を追加し、以降のイベント処理の末尾で返信から再試行する
+- 返信は成功したが 👍 マークに失敗した場合: `PENDING_REVIEW_MARKS` に review_id を追加し、以降のイベント処理の末尾で 👍 マークのみ再試行する (返信を再投稿すると重複するため投稿しない)
+- 再試行に成功したら各リストから削除する。監視終了時 (3e) に残っている場合は最後にもう一度再試行し、なお失敗する場合は完了報告に記載する (👍 マーク未付与のままだと次回セッションで重複返信されるため、手動での対応済みマークを依頼する)
 
 **返信テンプレート:**
 
@@ -593,13 +695,13 @@ ref: https://go.dev/ref/spec#Index_expressions
 現状のままとさせてください。
 ```
 
-カウンタを更新: `REVIEW_COMMITS`, `REPLIED_COMMENTS`, `RESOLVED_THREADS`。
+カウンタを更新: `REVIEW_COMMITS`, `REPLIED_COMMENTS`, `RESOLVED_THREADS`, `HANDLED_REVIEW_BODIES`。
 
 **レビュー再リクエスト:**
 
-返信・resolve の完了後、対応したスレッドの投稿者に対してレビューの再リクエストを送信する。
+返信・resolve の完了後、対応したスレッド・レビュー本文の投稿者に対してレビューの再リクエストを送信する。
 
-1. 返信・resolve したスレッドの投稿者 (最初のコメントの `author.login`) を重複なしで収集する
+1. 返信・resolve したスレッドの投稿者 (最初のコメントの `author.login`) と、対応したレビュー本文の投稿者を重複なしで収集する
 2. PR のレビュー一覧を取得し、再リクエスト対象の判定に必要な情報 (ユーザー種別・レビュー状態) を収集する:
 
    ```bash
@@ -763,9 +865,10 @@ ref: https://go.dev/ref/spec#Index_expressions
 **Monitor モード:** `PR_MERGED`, `PR_CLOSED`, `TIMEOUT_IDLE`, `TIMEOUT_ABS` を受信した場合:
 
 1. Monitor を TaskStop で停止する (既に exit 済みの場合もあるが、念のため実行する)
-2. 完了報告 (ステップ 4) に進む
+2. `PENDING_REVIEW_REPLIES` / `PENDING_REVIEW_MARKS` に残っている review_id があれば最後にもう一度再試行し、なお失敗する場合は完了報告に記載する
+3. 完了報告 (ステップ 4) に進む
 
-**ポーリングモード:** ステップ 2B-1 / 2B-2 で終了条件を満たした場合、または 2B エラーハンドリングで API エラー連続上限・コンフリクト・rebase 失敗が発生した場合に完了報告 (ステップ 4) に進む。
+**ポーリングモード:** ステップ 2B-1 / 2B-2 で終了条件を満たした場合、または 2B エラーハンドリングで API エラー連続上限・コンフリクト・rebase 失敗が発生した場合も同様に、未完了の返信・👍 マークを再試行してから完了報告 (ステップ 4) に進む。
 
 ### 4. 監視終了・完了報告
 
@@ -781,6 +884,8 @@ ref: https://go.dev/ref/spec#Index_expressions
 - 修正コミット数: X
 - 返信済みコメント数: Y
 - resolve 済みスレッド数: Z
+- 対応済みレビュー本文数: W (👍 マーク済み。0 の場合は省略)
+- 返信・👍 マークに失敗したレビュー本文: (該当する場合のみ review URL と失敗内容を記載。👍 未付与のままだと次回セッションで重複返信されるため、手動での対応済みマークを依頼する)
 - レビュー再リクエスト: L 人 (該当がない場合は省略)
 
 ### CI 修正
@@ -811,10 +916,11 @@ Monitor が予期せず停止した場合 (スクリプトエラー等)、状態
 
 **Monitor → ポーリングへ移行する場合の状態遷移:**
 
-- 引き継ぐ状態: `PR_NUMBER`, `OWNER`, `REPO`, `MY_LOGIN`, `UNFIXABLE_RUNS`, `REVIEW_COMMITS`, `CI_COMMITS`, `REPLIED_COMMENTS`, `RESOLVED_THREADS`, `PR_UPDATES`, `CONFLICT_RESOLVES`, `RE_REQUESTED_REVIEWERS` (累積カウンタ・処理済みリストはセッション通算で維持)
+- 引き継ぐ状態: `PR_NUMBER`, `OWNER`, `REPO`, `MY_LOGIN`, `UNFIXABLE_RUNS`, `REVIEW_COMMITS`, `CI_COMMITS`, `REPLIED_COMMENTS`, `RESOLVED_THREADS`, `HANDLED_REVIEW_BODIES`, `PR_UPDATES`, `CONFLICT_RESOLVES`, `RE_REQUESTED_REVIEWERS` (累積カウンタ・処理済みリストはセッション通算で維持)
 - 再初期化する状態: `WATCH_MODE = "polling"`、`MONITOR_ID = null`、`START_TIME = $(date +%s)` (ポーリング側のタイムアウト基準を移行時点にリセット)、`HAD_ACTIVITY = false`、`CYCLE_COUNT = 0`、`API_ERROR_STREAK = 0`、`PREV_CONFLICT = false` (ポーリング固有の状態を新規開始)
 - 移行直前にスナップショットを取得して初期化する状態 (Monitor モードで処理済みのスレッド/CI/コミットを再処理しないため):
   - `PREV_THREADS`: 移行直前に `gh api graphql` で現在の未解決スレッドを取得し、`<thread_id>:<comment_count>` 形式でカンマ区切り文字列として設定する。これにより Monitor モードで対応済みだが resolve 失敗で残っているスレッドは初回ポーリングサイクルで「既知」として重複処理を回避できる (resolve はステップ 3a 内で再試行)。新規スレッドやコメント追加されたスレッドのみが差分として検出される
+  - `PREV_REVIEWS`: 移行直前に同じ GraphQL クエリで現在の未対応レビュー本文 (body あり・author あり・自分以外・inline コメント 0 件・👍 未付与) の ID を取得し、カンマ区切り文字列として設定する
   - `PREV_SHA`: 移行直前に `gh pr view --json headRefOid` で取得して設定 (新コミット検出基準を移行時点に揃える)
   - `PREV_CI_FAILS`: 移行直前に `gh run list --commit "$PREV_SHA" --json databaseId,status,conclusion -L 50` で取得し、全 run 完了済みなら `conclusion == "failure"` の run ID をソート済みカンマ区切りで設定。`in_progress` / `queued` が含まれる場合は空文字のままとする
 - 移行をユーザーに一行で報告した後、ステップ 2B のサイクルに合流する
