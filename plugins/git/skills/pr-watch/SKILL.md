@@ -31,7 +31,7 @@ PR のレビューコメントと CI 失敗を監視し、検出次第自動で�
 4. **コミットメッセージは commit-proposer subagent で生成する** - Conventional Commits / commitlint 設定に準拠
 5. **コミットメッセージ・返信コメントの言語は対象リポジトリに従う** - 既存の PR やコミット履歴を確認し、使用されている言語に合わせる
 6. **日本語でコミットメッセージ・返信コメントを書く場合は `japanese-text-style` スキルに従う**
-7. **対応不要と判断したレビューコメントは理由を返信して resolve する** - inline コメントを伴わないレビュー本文 (review body) も監視対象とし、対応後は PR コメントで返信して 👍 リアクションで対応済みマークを付ける (スレッドが存在しないため resolve は行わない)
+7. **対応不要と判断した指摘にも理由を返信して対応済みにする** - inline スレッドは理由を返信して resolve する。inline コメントを伴わないレビュー本文 (review body) はスレッドが存在しないため resolve せず、PR コメントで返信して 👍 リアクションで対応済みマークを付ける
 8. **コンフリクトを検出したら自動で解消して監視を継続する**
 9. **修正で PR の実態が変わった場合のみ、タイトル・description を自動更新する** - 軽微な修正 (typo、lint、フォーマット) では更新しない。テンプレートや既存フォーマットを維持する
 
@@ -97,6 +97,8 @@ Monitor スクリプトが stdout に出力するイベント。各行が 1 イ�
 - `REPLIED_COMMENTS`: 返信済みコメント数
 - `RESOLVED_THREADS`: resolve 済みスレッド数
 - `HANDLED_REVIEW_BODIES`: 対応済みレビュー本文数 (👍 マーク済み)
+- `PENDING_REVIEW_REPLIES`: レビュー本文への返信投稿に失敗した review_id のリスト (返信から再試行する)
+- `PENDING_REVIEW_MARKS`: 返信は成功したが 👍 マークに失敗した review_id のリスト (👍 のみ再試行する。返信は重複するため再投稿しない)
 - `PR_UPDATES`: PR タイトル・description の更新回数
 - `CONFLICT_RESOLVES`: コンフリクト解消回数
 - `RE_REQUESTED_REVIEWERS`: レビュー再リクエスト済みユーザーのリスト
@@ -423,7 +425,7 @@ gh pr view <number> --json state,mergeable,headRefOid --jq '{state, mergeable, h
 1. `reviews` のうち、`state` が `PENDING` / `DISMISSED` 以外、`body` が空でない、`author` が null でない (削除ユーザー等を除外)、投稿者が `MY_LOGIN` 以外、inline コメント 0 件 (`comments.totalCount == 0`。inline コメントを伴うレビューはスレッド側で対応)、かつ自分が 👍 リアクション未付与 (`reactionGroups` の `THUMBS_UP` で `viewerHasReacted == false`) のレビュー ID を抽出し、カンマ区切り文字列 (現在スナップショット `CURRENT_REVIEWS`) を作る
 2. 現在スナップショットの各 ID が `PREV_REVIEWS` に含まれていないものを「新規レビュー本文」とし、その review_id のみをステップ 3a の処理対象として渡す (Monitor の `NEW_REVIEW_BODIES` と同等のセマンティクス)
 3. 処理対象が 1 件以上あれば `HAD_ACTIVITY = true` とし、ステップ 3a を実行する
-4. サイクル末尾で `PREV_REVIEWS = CURRENT_REVIEWS` に更新する (3a の実行可否や成功可否に関わらず保存)
+4. サイクル末尾で `PREV_REVIEWS = CURRENT_REVIEWS` に更新する (3a の実行可否や成功可否に関わらず保存)。スナップショットは検知の重複排除専用であり処理の完了を保証しないため、返信・👍 マークの失敗は `PENDING_REVIEW_REPLIES` / `PENDING_REVIEW_MARKS` で別途追跡して再試行する (3a 参照)
 
 **CI 失敗チェック (Monitor 側 `PREV_FAILS` ロジックの再現):**
 
@@ -623,19 +625,25 @@ query {
    }'
    ```
 
-   **レビュー本文への対応 (スレッドが存在しない場合):** スレッド返信・resolve の代わりに、PR コメントで返信して 👍 リアクションで対応済みマークを付ける (マークを付けないと次回セッションで再処理されるため必須):
+   **レビュー本文への対応 (スレッドが存在しない場合):** スレッド返信・resolve の代わりに、PR コメントで返信して 👍 リアクションで対応済みマークを付ける (マークを付けないと次回セッションで再処理されるため必須)。
 
-   ```bash
-   # 返信: PR コメントとして投稿 (レビュワーへのメンションと元レビューの引用を含める)
-   # 信頼できないレビュー本文を含むため、シェル補間 (--body "...") は使わず
-   # --body-file - と引用符付き heredoc で stdin から渡す
-   # (バッククォートや $() がローカルでコマンド実行されるのを防ぐ)
-   gh pr comment <number> --body-file - <<'PR_COMMENT_EOF'
+   信頼できないレビュー本文を含むため、シェルを介さず Write ツールで返信本文を一時ファイルに書き出し、`--body-file` でそのパスを渡す。シェル補間 (`--body "..."`) や heredoc は、本文中の `$()`・バッククォート・デリミタと同一の行によってローカルでコマンド実行され得るため使用しない。
+
+   まず Write ツールで `/tmp/pr-<number>-review-reply-<review_databaseId>.md` に以下の形式で書き出す:
+
+   ```markdown
    @<reviewer>
+
    > <元のレビュー本文の引用 (長い場合は要約)>
 
    <返信本文>
-   PR_COMMENT_EOF
+   ```
+
+   次に書き出したファイルのパスを渡して投稿し、👍 リアクションで対応済みマークを付ける:
+
+   ```bash
+   # 返信: PR コメントとして投稿
+   gh pr comment <number> --body-file /tmp/pr-<number>-review-reply-<review_databaseId>.md
 
    # 対応済みマーク: レビュー本文に 👍 リアクションを追加 (GraphQL mutation)
    # REST の reactions API はレビュー本文に対応していないため GraphQL を使用する
@@ -654,6 +662,12 @@ query {
 - **レビュー本文:** PR コメントで返信投稿 → レビュー本文に 👍 リアクション追加 (対応済みマーク)
 
 エラーが発生しても続行し、失敗を記録する。
+
+**失敗時の再試行 (レビュー本文):** スナップショット (`PREV_REVIEWS`) は検知済みを記録するだけで処理の完了を保証しないため、返信と 👍 マークの成否を個別に追跡する:
+
+- 返信投稿に失敗した場合: `PENDING_REVIEW_REPLIES` に review_id を追加し、以降のイベント処理の末尾で返信から再試行する
+- 返信は成功したが 👍 マークに失敗した場合: `PENDING_REVIEW_MARKS` に review_id を追加し、以降のイベント処理の末尾で 👍 マークのみ再試行する (返信を再投稿すると重複するため投稿しない)
+- 再試行に成功したら各リストから削除する。監視終了時 (3e) に残っている場合は最後にもう一度再試行し、なお失敗する場合は完了報告に記載する (👍 マーク未付与のままだと次回セッションで重複返信されるため、手動での対応済みマークを依頼する)
 
 **返信テンプレート:**
 
@@ -851,9 +865,10 @@ ref: https://go.dev/ref/spec#Index_expressions
 **Monitor モード:** `PR_MERGED`, `PR_CLOSED`, `TIMEOUT_IDLE`, `TIMEOUT_ABS` を受信した場合:
 
 1. Monitor を TaskStop で停止する (既に exit 済みの場合もあるが、念のため実行する)
-2. 完了報告 (ステップ 4) に進む
+2. `PENDING_REVIEW_REPLIES` / `PENDING_REVIEW_MARKS` に残っている review_id があれば最後にもう一度再試行し、なお失敗する場合は完了報告に記載する
+3. 完了報告 (ステップ 4) に進む
 
-**ポーリングモード:** ステップ 2B-1 / 2B-2 で終了条件を満たした場合、または 2B エラーハンドリングで API エラー連続上限・コンフリクト・rebase 失敗が発生した場合に完了報告 (ステップ 4) に進む。
+**ポーリングモード:** ステップ 2B-1 / 2B-2 で終了条件を満たした場合、または 2B エラーハンドリングで API エラー連続上限・コンフリクト・rebase 失敗が発生した場合も同様に、未完了の返信・👍 マークを再試行してから完了報告 (ステップ 4) に進む。
 
 ### 4. 監視終了・完了報告
 
@@ -870,6 +885,7 @@ ref: https://go.dev/ref/spec#Index_expressions
 - 返信済みコメント数: Y
 - resolve 済みスレッド数: Z
 - 対応済みレビュー本文数: W (👍 マーク済み。0 の場合は省略)
+- 返信・👍 マークに失敗したレビュー本文: (該当する場合のみ review URL と失敗内容を記載。👍 未付与のままだと次回セッションで重複返信されるため、手動での対応済みマークを依頼する)
 - レビュー再リクエスト: L 人 (該当がない場合は省略)
 
 ### CI 修正

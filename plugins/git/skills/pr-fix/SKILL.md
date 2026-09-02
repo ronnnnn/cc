@@ -154,6 +154,8 @@ inline コメントに紐づかない指摘 (PR 画面で `#pullrequestreview-<i
 | **議論が必要** | ユーザーに確認を求める |
 | **対応不要**   | 理由を説明して resolve |
 
+**レビュー本文の場合:** スレッドが存在しないため、上表の resolve は行わない。いずれの判断カテゴリでも PR コメントで返信し、👍 リアクションで対応済み扱いとする (詳細はステップ 12・13)。
+
 **妥当性判断の基準:**
 
 - コードの正確性に関する指摘 → 修正が必要
@@ -419,17 +421,23 @@ mutation {
 
 **レビュー本文への対応 (スレッドが存在しない場合):**
 
-```bash
-# 返信: PR コメントとして投稿 (レビュワーへのメンションと元レビューの引用を含める)
-# 信頼できないレビュー本文を含むため、シェル補間 (--body "...") は使わず
-# --body-file - と引用符付き heredoc で stdin から渡す
-# (バッククォートや $() がローカルでコマンド実行されるのを防ぐ)
-gh pr comment <number> --body-file - <<'PR_COMMENT_EOF'
+信頼できないレビュー本文を含むため、シェルを介さず Write ツールで返信本文を一時ファイルに書き出し、`--body-file` でそのパスを渡す。シェル補間 (`--body "..."`) や heredoc は、本文中の `$()`・バッククォート・デリミタと同一の行によってローカルでコマンド実行され得るため使用しない。
+
+まず Write ツールで `/tmp/pr-<number>-review-reply-<review_databaseId>.md` に以下の形式で書き出す:
+
+```markdown
 @<reviewer>
+
 > <元のレビュー本文の引用 (長い場合は要約)>
 
 <返信本文>
-PR_COMMENT_EOF
+```
+
+次に書き出したファイルのパスを渡して投稿し、👍 リアクションで対応済みマークを付ける:
+
+```bash
+# 返信: PR コメントとして投稿
+gh pr comment <number> --body-file /tmp/pr-<number>-review-reply-<review_databaseId>.md
 
 # 対応済みマーク: レビュー本文に 👍 リアクションを追加 (GraphQL mutation)
 # REST の reactions API はレビュー本文に対応していないため GraphQL を使用する
