@@ -421,10 +421,15 @@ mutation {
 
 ```bash
 # 返信: PR コメントとして投稿 (レビュワーへのメンションと元レビューの引用を含める)
-gh pr comment <number> --body "@<reviewer>
+# 信頼できないレビュー本文を含むため、シェル補間 (--body "...") は使わず
+# --body-file - と引用符付き heredoc で stdin から渡す
+# (バッククォートや $() がローカルでコマンド実行されるのを防ぐ)
+gh pr comment <number> --body-file - <<'PR_COMMENT_EOF'
+@<reviewer>
 > <元のレビュー本文の引用 (長い場合は要約)>
 
-<返信本文>"
+<返信本文>
+PR_COMMENT_EOF
 
 # 対応済みマーク: レビュー本文に 👍 リアクションを追加 (GraphQL mutation)
 # REST の reactions API はレビュー本文に対応していないため GraphQL を使用する
