@@ -86,6 +86,18 @@ claude plugin validate ./plugins/<name>  # 個別プラグイン検証
 claude --plugin-dir ./plugins/git
 ```
 
+### スキル発火の回帰テスト (evals)
+
+各プラグインの `evals/` に、自然な依頼文で意図したスキルが発火するか (および無関係な依頼で発火しないか) を検証するケースを置いています。実行にはモデル呼び出しが伴い、利用中のアカウントのコストとして計上されます。
+
+```bash
+cd plugins/<name>
+claude plugin eval . --ablation none                      # 全ケース (3 runs)
+claude plugin eval . --ablation none --case <case> --runs 1  # 1 ケースだけ素早く確認
+```
+
+CI では `plugins/**` に変更がある PR を開いたとき (opened のみ、push ごとには実行しない) に `.github/workflows/plugin-evals.yaml` が実行されます。対象は `.github/scripts/detect-eval-targets.sh` が変更ファイルから決めます: 変更されたスキル (`skills/<name>/`) と変更されたケース (`evals/<name>/`) に対応するケースだけを `--tag` で選び、過剰発火を確認する `ignores-unrelated-request` を常に加えます。hooks や agents など共有部分が変わったプラグインは suite 全体を実行します。対応するケースが無いスキルを変更した場合、ケースを削除・rename して対応が外れた場合、否定ケース `ignores-unrelated-request` が無い場合は CI が失敗します (frontmatter に `disable-model-invocation: true` を持つ、model から起動できないスキルは除く)。`evals/mocks/` など共有アセットの変更は suite 全体を実行します。結果はプラグインごとの表 (ケース、score、合否、run ごとの P/F) にまとめて PR にコメントし、JSON と HTML レポートは artifact に保存します。追加で検証したい場合は Actions から workflow_dispatch で任意のプラグインの suite 全体を実行できます。認証は API キーではなく [Workload Identity Federation](https://platform.claude.com/docs/en/manage-claude/wif-providers/github-actions) を使い、GitHub の OIDC トークンを Claude API の短命トークンに交換します。Claude Console 側で GitHub Actions 用の issuer、service account、federation rule を作成し、リポジトリ変数 `ANTHROPIC_FEDERATION_RULE_ID`、`ANTHROPIC_ORGANIZATION_ID`、`ANTHROPIC_SERVICE_ACCOUNT_ID` (必要なら `ANTHROPIC_WORKSPACE_ID`) を設定してください。
+
 ### コミット規約
 
 [Conventional Commits](https://www.conventionalcommits.org/) 形式に従います。

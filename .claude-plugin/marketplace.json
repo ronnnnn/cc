@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "A collection of Claude Code plugins.",
-    "version": "3.20.0"
+    "version": "3.20.1"
   },
   "plugins": [
     {
@@ -99,7 +99,7 @@
     {
       "name": "dev",
       "description": "開発支援スキル (コードコメント追加、行動計画作成、並列タスク実行、HTML ドキュメント生成、フィードバック検証・反映、ローカルレビュー、orchestrator-workers 実行、advisor 相談)",
-      "version": "1.7.0",
+      "version": "1.7.1",
       "author": {
         "name": "ronnnnn",
         "email": "xxxx.xyzs.xxxx@gmail.com"
