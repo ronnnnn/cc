@@ -18,3 +18,7 @@ bun.lock
 
 # Local scratch / generated artifacts
 tmp/
+
+# claude plugin eval の実行結果 (プラグイン配下、およびルートで実行した場合の evals/results/)
+**/evals/results/
+plugins/*/results.json

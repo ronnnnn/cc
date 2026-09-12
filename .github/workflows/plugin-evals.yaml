@@ -1,0 +1,243 @@
+name: Plugin Evals
+
+on:
+  pull_request:
+    types: [opened] # push ごとには回さず、PR を開いたときだけ評価する (追加検証は workflow_dispatch で)
+    paths:
+      - 'plugins/**'
+  workflow_dispatch:
+    inputs:
+      plugins:
+        description: '評価するプラグイン名 (スペース区切り、空なら全プラグイン)'
+        required: false
+        default: ''
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      targets: ${{ steps.detect.outputs.targets }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      # 変更されたプラグインの、変更されたスキルのケースだけを対象にする (判定ルールはスクリプト参照)
+      - name: Detect eval targets from changed files
+        id: detect
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          REQUESTED: ${{ github.event.inputs.plugins }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            # shellcheck disable=SC2086 # プラグイン名のスペース区切りを引数に展開する
+            targets=$(.github/scripts/detect-eval-targets.sh --all $REQUESTED)
+          else
+            # --no-renames: rename を追加 + 削除として列挙し、削除元のケース/スキルも検査対象にする
+            targets=$(git diff --name-only --no-renames "$BASE_SHA" HEAD -- plugins | .github/scripts/detect-eval-targets.sh)
+          fi
+          echo "targets=${targets}"
+          echo "targets=${targets}" >> "$GITHUB_OUTPUT"
+
+  eval:
+    needs: detect
+    # fork からの PR には OIDC トークンが発行されないため、federation できる自リポジトリのブランチのみ実行する
+    if: needs.detect.outputs.targets != '[]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.fork == false)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # Workload Identity Federation 用に GitHub OIDC トークンを要求する
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.detect.outputs.targets) }}
+    env:
+      THRESHOLD: '0.6' # 3 run 中 2 回発火 (score 0.667) で合格。0.67 だと 2/3 を落とすので注意。eval の --threshold と summary の判定で共用する
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Claude Code
+        run: curl -fsSL https://claude.ai/install.sh | bash
+
+      # GitHub OIDC トークンを Claude API の短命アクセストークンに交換する (Workload Identity Federation)。
+      # plugin eval は複数の claude 子プロセスを並列起動し、GitHub の JWT は jti により 1 回しか
+      # 交換できないため、ここで 1 回だけ交換して ANTHROPIC_AUTH_TOKEN として全プロセスに渡す。
+      # 交換後のトークン寿命は「ルールの token_lifetime_seconds」と「JWT 残り寿命の 2 倍」の小さい方。
+      - name: Exchange GitHub OIDC token for a Claude access token
+        env:
+          ANTHROPIC_FEDERATION_RULE_ID: ${{ vars.ANTHROPIC_FEDERATION_RULE_ID }}
+          ANTHROPIC_ORGANIZATION_ID: ${{ vars.ANTHROPIC_ORGANIZATION_ID }}
+          ANTHROPIC_SERVICE_ACCOUNT_ID: ${{ vars.ANTHROPIC_SERVICE_ACCOUNT_ID }}
+          ANTHROPIC_WORKSPACE_ID: ${{ vars.ANTHROPIC_WORKSPACE_ID }}
+        run: |
+          set -euo pipefail
+          for v in ANTHROPIC_FEDERATION_RULE_ID ANTHROPIC_ORGANIZATION_ID ANTHROPIC_SERVICE_ACCOUNT_ID; do
+            if [ -z "${!v}" ]; then
+              echo "::error::Repository variable ${v} is not set"
+              exit 1
+            fi
+          done
+          jwt=$(curl -sS -H "Authorization: Bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=https://api.anthropic.com" | jq -r .value)
+          echo "::add-mask::${jwt}"
+          body=$(jq -n \
+            --arg assertion "$jwt" \
+            --arg rule "$ANTHROPIC_FEDERATION_RULE_ID" \
+            --arg org "$ANTHROPIC_ORGANIZATION_ID" \
+            --arg svac "$ANTHROPIC_SERVICE_ACCOUNT_ID" \
+            --arg ws "$ANTHROPIC_WORKSPACE_ID" \
+            '{
+              grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+              assertion: $assertion,
+              federation_rule_id: $rule,
+              organization_id: $org,
+              service_account_id: $svac
+            } + (if $ws == "" then {} else { workspace_id: $ws } end)')
+          # anthropic-beta は公式ドキュメントの cURL 例には無いが、Claude Code SDK が同じ交換で送っている値。
+          # 有無で API の応答が変わらないことを確認済みで、SDK と同じ形にそろえるために付与している
+          response=$(curl -sS https://api.anthropic.com/v1/oauth/token \
+            -H "content-type: application/json" \
+            -H "anthropic-beta: oauth-2025-04-20,oidc-federation-2026-04-01" \
+            --data "$body")
+          token=$(jq -r '.access_token // empty' <<< "$response")
+          if [ -z "$token" ]; then
+            echo "::error::Token exchange failed: $(jq -c 'del(.access_token)' <<< "$response")"
+            exit 1
+          fi
+          echo "::add-mask::${token}"
+          # 交換で得た sk-ant-oat01- トークンは Claude Code が Bearer として送る ANTHROPIC_AUTH_TOKEN で渡す。
+          # WIF ドキュメントの /v1/messages 例は Bearer のみで beta ヘッダーを要求していない
+          # (https://platform.claude.com/docs/en/manage-claude/wif-providers/github-actions)。
+          # 認証エラーになる場合は Console の Authentication events で交換の成否を切り分ける
+          echo "ANTHROPIC_AUTH_TOKEN=${token}" >> "$GITHUB_ENV"
+          expires_in=$(jq -r '.expires_in // 0' <<< "$response")
+          echo "Access token acquired; expires_in=${expires_in}s"
+          # GitHub の JWT は発行後約 5 分で失効し、交換後トークンはその残り寿命の 2 倍が上限になる。
+          # eval suite はこの寿命内に完走する必要があるため、短い場合は警告する
+          if [ "$expires_in" -lt 540 ]; then
+            echo "::warning::Access token lifetime is only ${expires_in}s; long eval suites may hit 401 before finishing"
+          fi
+
+      - name: Run eval suite
+        id: run
+        working-directory: plugins/${{ matrix.plugin }}
+        env:
+          TAGS: ${{ matrix.tags }} # 空なら suite 全体、非空ならそのケース (スキル) だけ
+        run: |
+          # --tag はリストを取るので末尾に置く (空のときは付けない)
+          # shellcheck disable=SC2086
+          claude plugin eval . \
+            --trust-plugin \
+            --ablation none \
+            --runs 3 \
+            --concurrency 6 \
+            --threshold "$THRESHOLD" \
+            --model claude-sonnet-5 \
+            --max-cost-usd 15 \
+            --no-publish \
+            --json results.json \
+            ${TAGS:+--tag $TAGS}
+
+      # プラグインごとの結果を Markdown にまとめる。Step Summary に出しつつ、PR コメント用に artifact にも含める
+      - name: Summarize
+        if: always()
+        working-directory: plugins/${{ matrix.plugin }}
+        env:
+          PLUGIN: ${{ matrix.plugin }}
+          TAGS: ${{ matrix.tags }}
+          OUTCOME: ${{ steps.run.outcome }}
+        run: |
+          set -euo pipefail
+          {
+            echo "### ${PLUGIN}: ${OUTCOME}"
+            echo
+            if [ -n "$TAGS" ]; then
+              echo "対象ケース: $(tr ' ' '\n' <<< "$TAGS" | sed 's/.*/`&`/' | paste -sd, - | sed 's/,/, /g')"
+            else
+              echo "対象ケース: suite 全体"
+            fi
+            if [ -f results.json ]; then
+              echo
+              jq -r --argjson t "$THRESHOLD" '"- score: \(.aggregates.overallScore | . * 100 | round / 100) · passed: \(.aggregates.casesPassed)/\(.aggregates.casesTotal) (threshold \($t)) · cost: $\(.costUsd | . * 100 | round / 100) · \(.durationSeconds)s" + (if .partial then " · **partial: \(.partialReason)**" else "" end)' results.json
+              echo
+              echo "| case | score | result | runs (P/F) | error |"
+              echo "| --- | --- | --- | --- | --- |"
+              jq -r --argjson t "$THRESHOLD" '.cases[] | "| \(.name) | \(.aggregates.score | . * 100 | round / 100) | \(if .aggregates.score >= $t then "✅" else "❌" end) | \([.arms.with[] | if .passed then "P" else "F" end] | join("")) | \([.arms.with[].error // empty] | unique | join("<br>")) |"' results.json
+            else
+              echo
+              echo "results.json が生成されませんでした (eval 実行前に失敗した可能性があります)。"
+            fi
+          } > summary.md
+          cat summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: plugin-evals-${{ matrix.plugin }}
+          path: |
+            plugins/${{ matrix.plugin }}/summary.md
+            plugins/${{ matrix.plugin }}/results.json
+            plugins/${{ matrix.plugin }}/evals/results/
+          if-no-files-found: ignore
+
+  # PR 実行時は、プラグインごとの summary を 1 件のコメントにまとめて PR に投稿する (既存コメントがあれば更新)
+  comment:
+    needs: [detect, eval]
+    if: always() && github.event_name == 'pull_request' && needs.eval.result != 'skipped'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: plugin-evals-*
+          path: results
+
+      - name: Post summary comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          EVAL_RESULT: ${{ needs.eval.result }}
+        run: |
+          set -euo pipefail
+          marker='<!-- plugin-evals-summary -->'
+          {
+            echo "$marker"
+            echo "## Plugin Evals (スキル発火の回帰テスト)"
+            echo
+            case "$EVAL_RESULT" in
+              success) echo "✅ 全プラグイン合格 · [実行ログ](${RUN_URL})" ;;
+              failure) echo "❌ 閾値未達または実行エラーのプラグインがあります · [実行ログ](${RUN_URL})" ;;
+              *) echo "⚠️ 結果: ${EVAL_RESULT} · [実行ログ](${RUN_URL})" ;;
+            esac
+            for f in results/plugin-evals-*/summary.md; do
+              [ -f "$f" ] || continue
+              echo
+              cat "$f"
+            done
+            echo
+            echo "<sub>変更のあったスキルのケースのみ実行。詳細な verdict は artifact の report.html を参照。</sub>"
+          } > comment.md
+          existing=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" --paginate \
+            --jq ".[] | select(.body | startswith(\"${marker}\")) | .id" | head -n 1)
+          if [ -n "$existing" ]; then
+            gh api -X PATCH "repos/${REPO}/issues/comments/${existing}" -F body=@comment.md >/dev/null
+            echo "Updated comment ${existing}"
+          else
+            gh pr comment "$PR_NUMBER" --repo "$REPO" --body-file comment.md
+          fi
