@@ -68,8 +68,11 @@ jobs:
         with:
           persist-credentials: false
 
+      # このジョブは id-token: write を持つため、未固定のリモートインストーラ (curl | bash) は使わない。
+      # バージョンを固定した npm パッケージを使い、npm が registry の sha512 で tarball の整合性を検証する。
+      # plugin eval には v2.1.269 以上が必要
       - name: Install Claude Code
-        run: curl -fsSL https://claude.ai/install.sh | bash
+        run: npm install -g @anthropic-ai/claude-code@2.1.269
 
       # GitHub OIDC トークンを Claude API の短命アクセストークンに交換する (Workload Identity Federation)。
       # plugin eval は複数の claude 子プロセスを並列起動し、GitHub の JWT は jti により 1 回しか
