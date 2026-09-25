@@ -4,6 +4,6 @@
   "private": true,
   "description": "CI (plugin-evals) 用に Claude Code をバージョン固定 + lockfile でインストールするための定義",
   "devDependencies": {
-    "@anthropic-ai/claude-code": "2.1.269"
+    "@anthropic-ai/claude-code": "2.1.280"
   }
 }
