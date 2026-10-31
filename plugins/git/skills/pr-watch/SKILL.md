@@ -102,6 +102,7 @@ Monitor スクリプトが stdout に出力するイベント。各行が 1 イ�
 - `SKIPPED_NON_REVIEWS`: 非レビューと判定して返信を省略したスレッド・レビュー本文の数
 - `PENDING_REVIEW_REPLIES`: レビュー本文への返信投稿に失敗した review_id のリスト (返信から再試行する)
 - `PENDING_REVIEW_MARKS`: 返信は成功した (または非レビューのため返信を省略した) が 👍 マークに失敗した review_id のリスト (👍 のみ再試行する。返信は重複するため再投稿しない)
+- `PENDING_THREAD_RESOLVES`: 非レビューと判定したスレッドのうち resolve に失敗した thread_id のリスト (返信しないためコメント数が変わらず監視側で再検出されないので、resolve のみ再試行する)
 - `PR_UPDATES`: PR タイトル・description の更新回数
 - `CONFLICT_RESOLVES`: コンフリクト解消回数
 - `RE_REQUESTED_REVIEWERS`: レビュー再リクエスト済みユーザーのリスト
@@ -677,7 +678,7 @@ query {
 
 - **スレッド:** 元コメントに +1 リアクション追加 → スレッドに返信投稿 → resolve
 - **レビュー本文:** PR コメントで返信投稿 → レビュー本文に 👍 リアクション追加 (対応済みマーク)
-- **非レビュー (スレッド):** 返信と +1 リアクションを省略し、resolve のみ実行
+- **非レビュー (スレッド):** 返信と +1 リアクションを省略し、resolve のみ実行 (失敗した場合は `PENDING_THREAD_RESOLVES` に追加して再試行する)
 - **非レビュー (レビュー本文):** 返信を省略し、👍 リアクションのみ追加 (追加に失敗した場合は `PENDING_REVIEW_MARKS` に追加して再試行する)
 
 エラーが発生しても続行し、失敗を記録する。
@@ -686,6 +687,7 @@ query {
 
 - 返信投稿に失敗した場合: `PENDING_REVIEW_REPLIES` に review_id を追加し、以降のイベント処理の末尾で返信から再試行する
 - 返信は成功したが 👍 マークに失敗した場合: `PENDING_REVIEW_MARKS` に review_id を追加し、以降のイベント処理の末尾で 👍 マークのみ再試行する (返信を再投稿すると重複するため投稿しない)
+- 非レビューのスレッドの resolve に失敗した場合: `PENDING_THREAD_RESOLVES` に thread_id を追加し、以降のイベント処理の末尾で resolve を再試行する (返信を伴わずコメント数が変わらないため、監視側のスナップショット差分では再検出されない)
 - 再試行に成功したら各リストから削除する。監視終了時 (3e) に残っている場合は最後にもう一度再試行し、なお失敗する場合は完了報告に記載する (👍 マーク未付与のままだと次回セッションで重複返信されるため、手動での対応済みマークを依頼する)
 
 **返信の書き方:**
@@ -889,7 +891,7 @@ ref: https://go.dev/ref/spec#Index_expressions
 **Monitor モード:** `PR_MERGED`, `PR_CLOSED`, `TIMEOUT_IDLE`, `TIMEOUT_ABS` を受信した場合:
 
 1. Monitor を TaskStop で停止する (既に exit 済みの場合もあるが、念のため実行する)
-2. `PENDING_REVIEW_REPLIES` / `PENDING_REVIEW_MARKS` に残っている review_id があれば最後にもう一度再試行し、なお失敗する場合は完了報告に記載する
+2. `PENDING_REVIEW_REPLIES` / `PENDING_REVIEW_MARKS` に残っている review_id や `PENDING_THREAD_RESOLVES` に残っている thread_id があれば最後にもう一度再試行し、なお失敗する場合は完了報告に記載する
 3. 完了報告 (ステップ 4) に進む
 
 **ポーリングモード:** ステップ 2B-1 / 2B-2 で終了条件を満たした場合、または 2B エラーハンドリングで API エラー連続上限・コンフリクト・rebase 失敗が発生した場合も同様に、未完了の返信・👍 マークを再試行してから完了報告 (ステップ 4) に進む。
