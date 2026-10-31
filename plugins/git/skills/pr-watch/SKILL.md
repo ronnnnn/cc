@@ -894,7 +894,7 @@ ref: https://go.dev/ref/spec#Index_expressions
 2. `PENDING_REVIEW_REPLIES` / `PENDING_REVIEW_MARKS` に残っている review_id や `PENDING_THREAD_RESOLVES` に残っている thread_id があれば最後にもう一度再試行し、なお失敗する場合は完了報告に記載する
 3. 完了報告 (ステップ 4) に進む
 
-**ポーリングモード:** ステップ 2B-1 / 2B-2 で終了条件を満たした場合、または 2B エラーハンドリングで API エラー連続上限・コンフリクト・rebase 失敗が発生した場合も同様に、未完了の返信・👍 マークを再試行してから完了報告 (ステップ 4) に進む。
+**ポーリングモード:** ステップ 2B-1 / 2B-2 で終了条件を満たした場合、または 2B エラーハンドリングで API エラー連続上限・コンフリクト・rebase 失敗が発生した場合も同様に、未完了の返信・👍 マークと `PENDING_THREAD_RESOLVES` に残っている非レビュースレッドの resolve を再試行してから完了報告 (ステップ 4) に進む。
 
 ### 4. 監視終了・完了報告
 
@@ -913,6 +913,7 @@ ref: https://go.dev/ref/spec#Index_expressions
 - 対応済みレビュー本文数: W (👍 マーク済み。0 の場合は省略)
 - 非レビューとして返信を省略: V 件 (0 の場合は省略)
 - 返信・👍 マークに失敗したレビュー本文: (該当する場合のみ review URL と失敗内容を記載。👍 未付与のままだと次回セッションで重複返信されるため、手動での対応済みマークを依頼する)
+- resolve に失敗した非レビューのスレッド: (該当する場合のみ thread_id とスレッドの URL を記載。手動での resolve を依頼する)
 - レビュー再リクエスト: L 人 (該当がない場合は省略)
 
 ### CI 修正
@@ -943,7 +944,7 @@ Monitor が予期せず停止した場合 (スクリプトエラー等)、状態
 
 **Monitor → ポーリングへ移行する場合の状態遷移:**
 
-- 引き継ぐ状態: `PR_NUMBER`, `OWNER`, `REPO`, `MY_LOGIN`, `UNFIXABLE_RUNS`, `REVIEW_COMMITS`, `CI_COMMITS`, `REPLIED_COMMENTS`, `RESOLVED_THREADS`, `HANDLED_REVIEW_BODIES`, `SKIPPED_NON_REVIEWS`, `PR_UPDATES`, `CONFLICT_RESOLVES`, `RE_REQUESTED_REVIEWERS` (累積カウンタ・処理済みリストはセッション通算で維持)
+- 引き継ぐ状態: `PR_NUMBER`, `OWNER`, `REPO`, `MY_LOGIN`, `UNFIXABLE_RUNS`, `REVIEW_COMMITS`, `CI_COMMITS`, `REPLIED_COMMENTS`, `RESOLVED_THREADS`, `HANDLED_REVIEW_BODIES`, `SKIPPED_NON_REVIEWS`, `PENDING_THREAD_RESOLVES`, `PR_UPDATES`, `CONFLICT_RESOLVES`, `RE_REQUESTED_REVIEWERS` (`PENDING_THREAD_RESOLVES` は移行後の `PREV_THREADS` 初期化で既知扱いになり再検出されないため必ず引き継ぐ。累積カウンタ・処理済みリストはセッション通算で維持)
 - 再初期化する状態: `WATCH_MODE = "polling"`、`MONITOR_ID = null`、`START_TIME = $(date +%s)` (ポーリング側のタイムアウト基準を移行時点にリセット)、`HAD_ACTIVITY = false`、`CYCLE_COUNT = 0`、`API_ERROR_STREAK = 0`、`PREV_CONFLICT = false` (ポーリング固有の状態を新規開始)
 - 移行直前にスナップショットを取得して初期化する状態 (Monitor モードで処理済みのスレッド/CI/コミットを再処理しないため):
   - `PREV_THREADS`: 移行直前に `gh api graphql` で現在の未解決スレッドを取得し、`<thread_id>:<comment_count>` 形式でカンマ区切り文字列として設定する。これにより Monitor モードで対応済みだが resolve 失敗で残っているスレッドは初回ポーリングサイクルで「既知」として重複処理を回避できる (resolve はステップ 3a 内で再試行)。新規スレッドやコメント追加されたスレッドのみが差分として検出される
