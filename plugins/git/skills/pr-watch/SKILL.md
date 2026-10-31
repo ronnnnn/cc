@@ -590,7 +590,7 @@ query {
 **処理フロー:**
 
 1. 各スレッド・レビュー本文がレビューかを判定する。非レビューは返信せず対応済みマークのみ付ける (後述の処理順序を参照)。レビューと判定したものは妥当性を上記基準で判断し、ファクトチェックで検証する
-2. 修正が必要なコメントに対してコードを修正する
+2. 修正が必要なコメントに対してコードを修正する。修正が必要なものがない場合 (非レビュー・対応不要のみ) は手順 3〜6 (ステージング〜プッシュ) をスキップして手順 7 に進む (変更なしのコミットは失敗し、対応済みマークが付かないまま残るため)
 3. 修正したファイルをステージングする: `git add <修正ファイル>`
 4. commit-proposer subagent でコミットメッセージを生成する:
 
@@ -941,7 +941,7 @@ Monitor が予期せず停止した場合 (スクリプトエラー等)、状態
 
 **Monitor → ポーリングへ移行する場合の状態遷移:**
 
-- 引き継ぐ状態: `PR_NUMBER`, `OWNER`, `REPO`, `MY_LOGIN`, `UNFIXABLE_RUNS`, `REVIEW_COMMITS`, `CI_COMMITS`, `REPLIED_COMMENTS`, `RESOLVED_THREADS`, `HANDLED_REVIEW_BODIES`, `PR_UPDATES`, `CONFLICT_RESOLVES`, `RE_REQUESTED_REVIEWERS` (累積カウンタ・処理済みリストはセッション通算で維持)
+- 引き継ぐ状態: `PR_NUMBER`, `OWNER`, `REPO`, `MY_LOGIN`, `UNFIXABLE_RUNS`, `REVIEW_COMMITS`, `CI_COMMITS`, `REPLIED_COMMENTS`, `RESOLVED_THREADS`, `HANDLED_REVIEW_BODIES`, `SKIPPED_NON_REVIEWS`, `PR_UPDATES`, `CONFLICT_RESOLVES`, `RE_REQUESTED_REVIEWERS` (累積カウンタ・処理済みリストはセッション通算で維持)
 - 再初期化する状態: `WATCH_MODE = "polling"`、`MONITOR_ID = null`、`START_TIME = $(date +%s)` (ポーリング側のタイムアウト基準を移行時点にリセット)、`HAD_ACTIVITY = false`、`CYCLE_COUNT = 0`、`API_ERROR_STREAK = 0`、`PREV_CONFLICT = false` (ポーリング固有の状態を新規開始)
 - 移行直前にスナップショットを取得して初期化する状態 (Monitor モードで処理済みのスレッド/CI/コミットを再処理しないため):
   - `PREV_THREADS`: 移行直前に `gh api graphql` で現在の未解決スレッドを取得し、`<thread_id>:<comment_count>` 形式でカンマ区切り文字列として設定する。これにより Monitor モードで対応済みだが resolve 失敗で残っているスレッドは初回ポーリングサイクルで「既知」として重複処理を回避できる (resolve はステップ 3a 内で再試行)。新規スレッドやコメント追加されたスレッドのみが差分として検出される
